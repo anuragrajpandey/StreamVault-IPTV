@@ -18,224 +18,131 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply EliteStocks TV migration
+      - name: Apply branding and resource migration
         shell: python
         run: |
           from pathlib import Path
           import re
           import shutil
 
-          ROOT = Path('.')
-          BRAND_RE = re.compile(r'(?i)streamvault')
-          URL_RE = re.compile(r'https?://[^\s\"\'<>]+')
-          TECH_ATTRS = {
-              'android:name', 'android:theme', 'android:resource', 'android:icon',
-              'android:roundIcon', 'android:banner', 'android:authorities', 'android:src',
-              'android:package', 'android:class', 'tools:targetPackage', 'tools:replace'
-          }
+          root = Path('.')
+          text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.yml', '.yaml', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
+          protected_identifiers = re.compile(r'(?i)(com\.streamvault|streamvault\.[A-Za-z0-9_.]+|StreamVault[A-Za-z0-9_]+|STREAMVAULT[A-Za-z0-9_]+|streamvault[A-Za-z0-9_]+)')
+          string_re = re.compile(r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')')
 
-          def replacement(match):
-              token = match.group(0)
-              if token == 'STREAMVAULT':
-                  return 'ELITESTOCKS TV'
-              if token == 'Streamvault':
-                  return 'EliteStocks TV'
-              if token == 'streamvault':
-                  return 'elitestocks-tv'
-              return 'EliteStocks TV'
-
-          def safe_brand(text):
-              protected = []
-              def protect(m):
-                  protected.append(m.group(0))
-                  return f'__ES_PROTECTED_{len(protected)-1}__'
-              text = URL_RE.sub(protect, text)
-              text = BRAND_RE.sub(replacement, text)
-              for i, value in enumerate(protected):
-                  text = text.replace(f'__ES_PROTECTED_{i}__', value)
+          def brand(text):
+              text = re.sub(r'(?i)streamvault\s+live\s+channels', 'EliteStocks TV Live Channels', text)
+              text = re.sub(r'(?i)streamvault\s+tv', 'EliteStocks TV', text)
+              text = re.sub(r'(?i)streamvault', 'EliteStocks TV', text)
               return text
 
-          def safe_code(text):
-              string_pattern = re.compile(r'(""".*?"""|"(?:\\.|[^"\\])*"|\'[^\'\\]*(?:\\.[^\'\\]*)*\')', re.S)
-              def replace_string(m):
+          def code_replace(text):
+              def repl(m):
                   value = m.group(0)
-                  inner = value[3:-3] if value.startswith('"""') else value[1:-1]
-                  lowered = inner.lower()
-                  if ('com.streamvault' in lowered or 'streamvault.' in lowered or
-                      'https://' in lowered or 'http://' in lowered or
-                      'streamvault://' in lowered or '${' in inner and 'applicationid' in lowered):
+                  inner = value[1:-1]
+                  low = inner.lower()
+                  if ('com.streamvault' in low or 'streamvault.' in low or
+                      'http://' in low or 'https://' in low or
+                      'streamvault://' in low):
                       return value
-                  changed = safe_brand(inner)
-                  if value.startswith('"""'):
-                      return '"""' + changed + '"""'
-                  return value[0] + changed + value[-1]
-              return string_pattern.sub(replace_string, text)
+                  return value[0] + brand(inner) + value[-1]
+              return string_re.sub(repl, text)
 
-          def safe_xml(text):
-              protected = []
-              attr_pattern = re.compile(r'([A-Za-z_][\w:.-]*)\s*=\s*([\"\'])(.*?)\2', re.S)
-              def protect_attr(m):
+          def xml_replace(text):
+              attr = re.compile(r'([A-Za-z_][\\w:.-]*)\\s*=\\s*([\"\'])(.*?)\\2', re.S)
+              def repl(m):
                   name, quote, value = m.group(1), m.group(2), m.group(3)
-                  if name in TECH_ATTRS or value.startswith('@') or value.startswith('.') or 'com.streamvault' in value.lower():
-                      protected.append((quote + value + quote))
-                      return f'{name}=__ES_XML_PROTECTED_{len(protected)-1}__'
-                  return m.group(0)
-              text = attr_pattern.sub(protect_attr, text)
-              text = safe_brand(text)
-              for i, (quote_value) in enumerate(protected):
-                  text = text.replace(f'__ES_XML_PROTECTED_{i}__', quote_value)
-              return text
-
-          text_exts = {
-              '.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt',
-              '.yml', '.yaml', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh', '.bat',
-              '.html', '.css', '.js', '.ts', '.sql'
-          }
+                  low = value.lower()
+                  if (name.startswith('android:') and name in {'android:name','android:theme','android:resource','android:icon','android:roundIcon','android:banner','android:authorities','android:src'}) or value.startswith('@') or value.startswith('.') or 'com.streamvault' in low or 'http://' in low or 'https://' in low:
+                      return m.group(0)
+                  return f'{name}={quote}{brand(value)}{quote}'
+              return attr.sub(repl, text)
 
           changed = []
-          for path in ROOT.rglob('*'):
-              if not path.is_file() or '.git' in path.parts:
-                  continue
-              if path.suffix.lower() not in text_exts:
+          for p in root.rglob('*'):
+              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in text_exts:
                   continue
               try:
-                  original = path.read_text(encoding='utf-8')
-              except (UnicodeDecodeError, OSError):
+                  old = p.read_text(encoding='utf-8')
+              except Exception:
                   continue
-              if 'streamvault' not in original.lower():
+              if 'streamvault' not in old.lower():
                   continue
-              if path.suffix.lower() == '.xml':
-                  updated = safe_xml(original)
-              elif path.suffix.lower() in {'.kt', '.kts', '.java'}:
-                  updated = safe_code(original)
+              if p.suffix.lower() == '.xml':
+                  new = xml_replace(old)
+              elif p.suffix.lower() in {'.kt', '.kts', '.java'}:
+                  new = code_replace(old)
               else:
-                  updated = safe_brand(original)
-              if updated != original:
-                  path.write_text(updated, encoding='utf-8')
-                  changed.append(str(path))
+                  # Documentation/config text is user-facing unless it is clearly an internal identifier.
+                  lines = []
+                  for line in old.splitlines(keepends=True):
+                      low = line.lower()
+                      if ('com.streamvault' in low or 'streamvault.' in low or 'streamvault://' in low or 'https://' in low and 'streamvault' in low):
+                          lines.append(line)
+                      else:
+                          lines.append(brand(line))
+                  new = ''.join(lines)
+              if new != old:
+                  p.write_text(new, encoding='utf-8')
+                  changed.append(str(p))
 
-          # Remove language-specific Android values-* resource directories while
-          # preserving non-language qualifiers such as night, land, port, v31, sw600dp.
-          language_dir = re.compile(r'^[a-z]{2,3}(?:-r[A-Z]{2})?$|^b\+[A-Za-z0-9+]+$')
-          removed_values = []
-          for path in sorted(ROOT.rglob('values-*'), key=lambda p: len(p.parts), reverse=True):
-              if path.is_dir() and language_dir.fullmatch(path.name[7:]):
-                  shutil.rmtree(path)
-                  removed_values.append(str(path))
+          # Remove only language-qualified values directories. Keep values-night, values-land,
+          # values-port, values-v31, values-sw600dp and other non-language qualifiers.
+          lang = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\\+[A-Za-z0-9+]+)$')
+          for p in sorted(root.rglob('values-*'), key=lambda x: len(x.parts), reverse=True):
+              if p.is_dir() and lang.fullmatch(p.name[7:]):
+                  shutil.rmtree(p)
 
-          # Preserve the existing resource identifiers, but replace old bitmap
-          # branding with density-independent vector artwork.
-          res_roots = [p for p in ROOT.rglob('src/main/res') if p.is_dir()]
-          icon_vector = '''<?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#FF000000" android:pathData="M0,0h108v108h-108z"/>
-              <path android:fillColor="#FFFFA000" android:pathData="M18,18h72a12,12 0,0 1,12 12v48a12,12 0,0 1,-12 12h-72a12,12 0,0 1,-12 -12v-48a12,12 0,0 1,12 -12z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M31,29h46v10h-33v10h29v10h-29v10h33v10h-46z"/>
-          </vector>
-          '''
-          banner_vector = '''<?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="320dp" android:height="180dp"
-              android:viewportWidth="320" android:viewportHeight="180">
-              <path android:fillColor="#FF000000" android:pathData="M0,0h320v180h-320z"/>
-              <path android:fillColor="#FFFFA000" android:pathData="M42,45h90a14,14 0,0 1,14 14v62a14,14 0,0 1,-14 14h-90a14,14 0,0 1,-14 -14v-62a14,14 0,0 1,14 -14z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M58,58h56v12h-40v12h35v12h-35v12h40v12h-56z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M168,64h12v52h-12zM190,64h12v52h-12zM212,64h12v52h-12z"/>
-          </vector>
-          '''
-          for res in res_roots:
-              for p in res.rglob('ic_launcher_vault_art.*'):
-                  if p.suffix.lower() != '.xml':
-                      p.unlink()
-              for p in res.rglob('app_banner.*'):
-                  if p.suffix.lower() != '.xml':
-                      p.unlink()
-              drawable = res / 'drawable'
-              drawable.mkdir(parents=True, exist_ok=True)
-              (drawable / 'ic_launcher_vault_art.xml').write_text(icon_vector.strip() + '\n', encoding='utf-8')
-              (drawable / 'app_banner.xml').write_text(banner_vector.strip() + '\n', encoding='utf-8')
-
-          # EliteStocks TV palette based on the supplied reference image.
-          colors = ROOT / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt'
-          if colors.exists():
-              text = colors.read_text(encoding='utf-8')
-              replacements = {
-                  '0xFF07111B': '0xFF070608', '0xFF0B1622': '0xFF0D0A08',
-                  '0xFF0F1B29': '0xFF15100B', '0xFF162338': '0xFF20160B',
-                  '0xFF1D2E46': '0xFF2A1B0A', '0xFF223754': '0xFF3A250A',
-                  '0xFF69A8FF': '0xFFFFA000', '0x335FA4FF': '0x33FFA000',
-                  '0xFF8BBCFF': '0xFFFFB52E', '0xFF57C9FF': '0xFFFFB52E',
-                  '0xFF4FD39A': '0xFF62D99A', '0xFFFF5C61': '0xFFFF5A5F',
-                  '0xFFFFC766': '0xFFFFB52E', '0xCC07111B': '0xCC070608',
-                  '0xF207111B': '0xF2070608'
-              }
-              for old, new in replacements.items():
-                  text = text.replace(old, new)
-              colors.write_text(text, encoding='utf-8')
-              changed.append(str(colors))
-
-          # Add reusable vector transport icons without changing existing resource IDs.
-          icon_dir = ROOT / 'app/src/main/res/drawable'
-          icon_dir.mkdir(parents=True, exist_ok=True)
-          replay = '''<?xml version="1.0" encoding="utf-8"?>
+          # Add proper 10-second vector controls while preserving existing resource identifiers.
+          d = root / 'app/src/main/res/drawable'
+          d.mkdir(parents=True, exist_ok=True)
+          (d / 'ic_replay_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M15,6a10,10 0,1 0,9.5 13h-3.2A7,7 0,1 1,15 9c2.2,0 4.1,1 5.4,2.6L17,15h9V6l-3.2,3.2A9.9,9.9 0,0 0,15 6z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M12,14h2v4h3v2h-5z"/>
-          </vector>'''
-          forward = '''<?xml version="1.0" encoding="utf-8"?>
+              <path android:fillColor="#FFFFFFFF" android:pathData="M15,5A11,11 0,1 0,25.5 19h-3.2A8,8 0,1 1,15 8c2.4,0 4.6,1.1 6,3l-3,3h9V5l-3.5,3.5A10.9,10.9 0,0 0,15 5z"/>
+              <path android:fillColor="#FFFFFFFF" android:pathData="M12,13h2v6h5v2h-7z"/>
+          </vector>
+          ''', encoding='utf-8')
+          (d / 'ic_forward_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M17,6a10,10 0,1 1,-9.5 13h3.2A7,7 0,1 0,17 9c-2.2,0-4.1,1-5.4,2.6L15,15H6V6l3.2,3.2A9.9,9.9 0,0 1,17 6z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M14,14h-2v4h-3v2h5z"/>
-          </vector>'''
-          (icon_dir / 'ic_replay_10.xml').write_text(replay.strip() + '\n', encoding='utf-8')
-          (icon_dir / 'ic_forward_10.xml').write_text(forward.strip() + '\n', encoding='utf-8')
+              <path android:fillColor="#FFFFFFFF" android:pathData="M17,5A11,11 0,1 1,6.5 19h3.2A8,8 0,1 0,17 8c-2.4,0-4.6 1.1-6 3l3,3H5V5l3.5,3.5A10.9,10.9 0,0 1,17 5z"/>
+              <path android:fillColor="#FFFFFFFF" android:pathData="M20,13h-2v6h-5v2h7z"/>
+          </vector>
+          ''', encoding='utf-8')
 
-          # Ensure the service's TV-facing label is explicit and branded.
-          manifest = ROOT / 'app/src/main/AndroidManifest.xml'
-          if manifest.exists():
-              text = manifest.read_text(encoding='utf-8')
-              text = re.sub(r'(android:label=")StreamVault Live Channels("
-?)', r'\1EliteStocks TV Live Channels\2', text)
-              manifest.write_text(text, encoding='utf-8')
-
-          # Add a dedicated manual APK artifact workflow using the existing Gradle/signing setup.
-          apk_workflow = ROOT / '.github/workflows/build-apk.yml'
-          apk_workflow.write_text('''name: Build EliteStocks TV APK\n\non:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  build-apk:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Set up JDK 17\n        uses: actions/setup-java@v4\n        with:\n          java-version: "17"\n          distribution: temurin\n          cache: gradle\n      - name: Set up Gradle\n        uses: gradle/actions/setup-gradle@v4\n      - name: Prepare optional signing files\n        shell: bash\n        env:\n          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}\n          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}\n          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}\n          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}\n        run: |\n          if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_STORE_PASSWORD" ] && [ -n "$RELEASE_KEY_ALIAS" ] && [ -n "$RELEASE_KEY_PASSWORD" ]; then\n            mkdir -p keystore\n            echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > keystore/release.jks\n            printf '%s\\n' \\\n              'storeFile=keystore/release.jks' \\\n              "storePassword=$RELEASE_STORE_PASSWORD" \\\n              "keyAlias=$RELEASE_KEY_ALIAS" \\\n              "keyPassword=$RELEASE_KEY_PASSWORD" \\\n              > keystore.properties\n          fi\n      - name: Build release APK\n        run: |\n          chmod +x gradlew\n          ./gradlew --console=plain :app:assembleRelease\n      - name: Upload APK\n        uses: actions/upload-artifact@v4\n        with:\n          name: elitestocks-tv-apk\n          path: app/build/outputs/apk/release/*.apk\n          if-no-files-found: error\n''', encoding='utf-8')
-
-          # Final audit. Technical package/class identifiers are intentionally allowed.
-          user_facing_hits = []
-          for path in ROOT.rglob('*'):
-              if not path.is_file() or '.git' in path.parts:
+          # EliteStocks TV palette: black, warm orange/gold, white.
+          for p in [root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt', root / 'app/src/main/java/com/streamvault/app/ui/theme/Color.kt']:
+              if not p.exists():
                   continue
-              if path.suffix.lower() not in text_exts:
+              text = p.read_text(encoding='utf-8')
+              for old, new in {
+                  '0xFF07111B':'0xFF070608', '0xFF0B1622':'0xFF0D0A08', '0xFF0F1B29':'0xFF15100B',
+                  '0xFF162338':'0xFF20160B', '0xFF1D2E46':'0xFF2A1B0A', '0xFF223754':'0xFF3A250A',
+                  '0xFF69A8FF':'0xFFFFA000', '0xFF8BBCFF':'0xFFFFB52E', '0xFF57C9FF':'0xFFFFB52E',
+                  '0xFFFFC766':'0xFFFFB52E', '0xCC07111B':'0xCC070608', '0xF207111B':'0xF2070608'
+              }.items():
+                  text = text.replace(old, new)
+              p.write_text(text, encoding='utf-8')
+
+          # Preserve package/class/resource identifiers. Audit visible string literals for the old brand.
+          hits = []
+          for p in root.rglob('*'):
+              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in text_exts:
                   continue
               try:
-                  text = path.read_text(encoding='utf-8')
-              except (UnicodeDecodeError, OSError):
+                  text = p.read_text(encoding='utf-8')
+              except Exception:
                   continue
-              for line_no, line in enumerate(text.splitlines(), 1):
-                  if BRAND_RE.search(line):
-                      low = line.lower()
-                      if ('com.streamvault' in low or 'streamvaultapp' in low or
-                          'streamvaulttvinputservice' in low or 'streamvaultcastoptionsprovider' in low):
-                          continue
-                      if 'streamvault' in low and not ('streamvault' in low and ('package ' in low or 'import ' in low)):
-                          user_facing_hits.append(f'{path}:{line_no}:{line.strip()}')
+              for n, line in enumerate(text.splitlines(), 1):
+                  low = line.lower()
+                  if 'streamvault' in low and not any(x in low for x in ('package com.streamvault', 'import com.streamvault', 'com.streamvault.', 'streamvault://')):
+                      hits.append(f'{p}:{n}:{line.strip()}')
+          if hits:
+              print('Remaining non-technical branding references:')
+              print('\n'.join(hits[:100]))
+              raise SystemExit(1)
+          print(f'Migration changed {len(changed)} files.')
 
-          Path('/tmp/migration-summary.txt').write_text(
-              'Changed files: ' + str(len(set(changed))) + '\n' +
-              'Removed language resource dirs: ' + str(len(removed_values)) + '\n' +
-              'Remaining non-technical StreamVault hits: ' + str(len(user_facing_hits)) + '\n' +
-              '\n'.join(user_facing_hits[:100]) + '\n',
-              encoding='utf-8'
-          )
-          print(Path('/tmp/migration-summary.txt').read_text())
-          if user_facing_hits:
-              raise SystemExit('User-facing StreamVault occurrences remain; migration stopped before commit.')
-
-      - name: Verify build and tests
+      - name: Verify Kotlin tests and debug APK
         run: |
           chmod +x gradlew
           ./gradlew --console=plain testDebugUnitTest :app:assembleDebug
@@ -247,7 +154,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "No migration changes to commit."
+            echo "No migration changes detected."
             exit 0
           fi
           git commit -m "feat: rebrand Android TV app to EliteStocks TV"
