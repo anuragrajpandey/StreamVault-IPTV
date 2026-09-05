@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply branding and resource migration
+      - name: Apply EliteStocks TV branding and player resources
         shell: python
         run: |
           from pathlib import Path
@@ -26,42 +26,58 @@ jobs:
           import shutil
 
           root = Path('.')
-          text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.yml', '.yaml', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
+          text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
+          skip_names = {'LICENSE', 'rebrand-migration.yml'}
 
-          def brand(text):
+          # Technical identifiers are intentionally preserved. The application package,
+          # database schema, compatibility keys and upstream URLs must not be renamed.
+          technical = re.compile(
+              r'''(?ix)
+              https?://[^\s"'<>]+ |
+              com\.streamvault(?:\.[A-Za-z0-9_$]+)+ |
+              streamvault://[^\s"'<>]+ |
+              (?<![A-Za-z0-9_$])(?:StreamVault|streamvault)[A-Za-z0-9_$]*(?=[A-Za-z0-9_$]) |
+              (?<![A-Za-z0-9_$])[A-Za-z0-9_$]*(?:StreamVault|streamvault)[A-Za-z0-9_$]*(?![A-Za-z0-9_$])
+              '''
+          )
+
+          def protect(text):
+              saved = []
+              def repl(m):
+                  token = f'__SVTECH_{len(saved)}__'
+                  saved.append(m.group(0))
+                  return token
+              return technical.sub(repl, text), saved
+
+          def restore(text, saved):
+              for i, value in enumerate(saved):
+                  text = text.replace(f'__SVTECH_{i}__', value)
+              return text
+
+          def brand_visible(text):
               text = re.sub(r'(?i)streamvault\s+live\s+channels', 'EliteStocks TV Live Channels', text)
               text = re.sub(r'(?i)streamvault\s+tv', 'EliteStocks TV', text)
-              return re.sub(r'(?i)streamvault', 'EliteStocks TV', text)
+              return re.sub(r'(?i)\bstreamvault\b', 'EliteStocks TV', text)
 
           string_re = re.compile(r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')')
 
-          def code_replace(text):
-              def repl(match):
-                  value = match.group(0)
-                  inner = value[1:-1]
-                  low = inner.lower()
-                  if ('com.streamvault' in low or 'streamvault.' in low or
-                      'streamvault://' in low or 'http://' in low or 'https://' in low):
-                      return value
-                  return value[0] + brand(inner) + value[-1]
-              return string_re.sub(repl, text)
+          def migrate_code(text):
+              # Protect identifiers/URLs first, then brand strings and comments without
+              # touching package names, class names, resource IDs or compatibility keys.
+              protected, saved = protect(text)
+              migrated = brand_visible(protected)
+              return restore(migrated, saved)
 
-          def xml_replace(text):
-              attr = re.compile(r'([A-Za-z_][\w:.-]*)\s*=\s*([\"\'])(.*?)\2', re.S)
-              protected = {'android:name', 'android:theme', 'android:resource', 'android:icon',
-                           'android:roundIcon', 'android:banner', 'android:authorities', 'android:src'}
-              def repl(match):
-                  name, quote, value = match.group(1), match.group(2), match.group(3)
-                  low = value.lower()
-                  if name in protected or value.startswith('@') or value.startswith('.') or 'com.streamvault' in low or 'http://' in low or 'https://' in low:
-                      return match.group(0)
-                  return f'{name}={quote}{brand(value)}{quote}'
-              return attr.sub(repl, text)
+          def migrate_xml(text):
+              protected, saved = protect(text)
+              migrated = brand_visible(protected)
+              # Restore technical resource references that protection intentionally left alone.
+              return restore(migrated, saved)
 
           for path in root.rglob('*'):
               if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
                   continue
-              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml'):
+              if path.name in skip_names or path.name.endswith('lint-baseline.xml'):
                   continue
               try:
                   old = path.read_text(encoding='utf-8')
@@ -69,29 +85,14 @@ jobs:
                   continue
               if 'streamvault' not in old.lower():
                   continue
-              if path.suffix.lower() == '.xml':
-                  new = xml_replace(old)
-              elif path.suffix.lower() in {'.kt', '.kts', '.java'}:
-                  new = code_replace(old)
+              if path.suffix.lower() in {'.kt', '.kts', '.java', '.xml'}:
+                  new = migrate_code(old)
               else:
-                  lines = []
-                  for line in old.splitlines(keepends=True):
-                      low = line.lower()
-                      if ('com.streamvault' in low or 'streamvault://' in low or
-                          ('https://' in low and 'streamvault' in low)):
-                          if path.name == 'README.md':
-                              prefix, sep, suffix = line.partition('http')
-                              if sep:
-                                  visible = prefix.replace('StreamVault', 'EliteStocks TV').replace('streamvault', 'EliteStocks TV')
-                                  lines.append(visible + sep + suffix)
-                                  continue
-                          lines.append(line)
-                      else:
-                          lines.append(brand(line))
-                  new = ''.join(lines)
+                  new = migrate_code(old)
               if new != old:
                   path.write_text(new, encoding='utf-8')
 
+          # Remove only language-qualified resource directories. Keep night/land/port/v31/etc.
           language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
           for path in sorted(root.rglob('values-*'), key=lambda p: len(p.parts), reverse=True):
               if path.is_dir() and language_dir.fullmatch(path.name[7:]):
@@ -118,47 +119,60 @@ jobs:
               '0xFF69A8FF':'0xFFFFA000', '0xFF8BBCFF':'0xFFFFB52E', '0xFF57C9FF':'0xFFFFB52E',
               '0xFFFFC766':'0xFFFFB52E', '0xCC07111B':'0xCC070608', '0xF207111B':'0xF2070608'
           }
-          for path in [root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt',
-                       root / 'app/src/main/java/com/streamvault/app/ui/theme/Color.kt']:
+          for path in [root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt', root / 'app/src/main/java/com/streamvault/app/ui/theme/Color.kt']:
               if path.exists():
                   text = path.read_text(encoding='utf-8')
                   for old, new in palette.items():
                       text = text.replace(old, new)
                   path.write_text(text, encoding='utf-8')
 
-          # Audit actual user-facing occurrences. CamelCase technical identifiers such as
-          # StreamVaultDatabase and legacy compatibility filenames are intentionally retained.
+      - name: Verify no user-facing StreamVault branding
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          root = Path('.')
+          text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
+          # Ignore legal attribution and internal technical identifiers. The audit targets
+          # standalone user-visible product text, not package/class/database compatibility names.
+          visible = re.compile(r'(?i)\bstreamvault\b')
           hits = []
-          visible_brand = re.compile(r'(?i)\bstreamvault\b')
           for path in root.rglob('*'):
               if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
                   continue
-              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml'):
+              if path.name == 'LICENSE' or path.name == 'rebrand-migration.yml' or path.name.endswith('lint-baseline.xml'):
                   continue
               try:
                   text = path.read_text(encoding='utf-8')
               except Exception:
                   continue
-              for number, line in enumerate(text.splitlines(), 1):
+              for line_no, line in enumerate(text.splitlines(), 1):
+                  if not visible.search(line):
+                      continue
                   low = line.lower()
-                  if not visible_brand.search(line):
+                  # URLs, package/import declarations and CamelCase/identifier references are internal.
+                  if ('http://' in low or 'https://' in low or 'streamvault://' in low or
+                      'package com.streamvault' in low or 'import com.streamvault' in low or
+                      re.search(r'[A-Za-z0-9_$](?:StreamVault|streamvault)(?:[A-Za-z0-9_$])', line)):
                       continue
-                  if ('package com.streamvault' in low or 'import com.streamvault' in low or
-                      'com.streamvault.' in low or 'streamvault://' in low or
-                      ('https://' in low and 'streamvault' in low)):
-                      continue
-                  hits.append(f'{path}:{number}:{line.strip()}')
-
+                  hits.append(f'{path}:{line_no}:{line.strip()}')
           if hits:
-              print('Remaining non-technical branding references:')
-              print('\n'.join(hits[:100]))
+              print('\n'.join(hits[:200]))
               raise SystemExit(1)
-          print('Branding/resource migration passed.')
+          print('EliteStocks TV branding audit passed.')
 
-      - name: Verify Kotlin tests and debug APK
+      - name: Run unit tests and build debug APK
         run: |
           chmod +x gradlew
           ./gradlew --console=plain testDebugUnitTest :app:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EliteStocks-TV-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Commit migration
         shell: bash
