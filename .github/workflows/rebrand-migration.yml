@@ -40,7 +40,6 @@ jobs:
                   value = match.group(0)
                   inner = value[1:-1]
                   low = inner.lower()
-                  # Never touch URLs, package names, imports, or other technical identifiers.
                   if ('com.streamvault' in low or 'streamvault.' in low or
                       'streamvault://' in low or 'http://' in low or 'https://' in low):
                       return value
@@ -78,10 +77,8 @@ jobs:
                   lines = []
                   for line in old.splitlines(keepends=True):
                       low = line.lower()
-                      # Preserve technical paths and URLs, but replace visible documentation text.
                       if ('com.streamvault' in low or 'streamvault://' in low or
                           ('https://' in low and 'streamvault' in low)):
-                          # README URLs may contain the upstream project name, so only protect the URL itself.
                           if path.name == 'README.md':
                               prefix, sep, suffix = line.partition('http')
                               if sep:
@@ -95,30 +92,26 @@ jobs:
               if new != old:
                   path.write_text(new, encoding='utf-8')
 
-          # Remove language-only resource qualifiers. Keep values-night, values-land,
-          # values-port, values-v31, values-sw600dp, etc.
           language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
           for path in sorted(root.rglob('values-*'), key=lambda p: len(p.parts), reverse=True):
               if path.is_dir() and language_dir.fullmatch(path.name[7:]):
                   shutil.rmtree(path)
 
-          # Proper vector icons for the existing 10-second seek controls.
           drawable = root / 'app/src/main/res/drawable'
           drawable.mkdir(parents=True, exist_ok=True)
           (drawable / 'ic_replay_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M15,5A11,11 0,1 0,25.5 19h-3.2A8,8 0,1 1,15 8c2.4,0 4.6,1.1 6,3l-3,3h9V5l-3.5,3.5A10.9,10.9 0,0 0,15 5z"/>
+              <path android:fillColor="#FFFFFFFF" android:pathData="M15,5A11,11 0,1 0,25.5 19h-3.2A8,8 0,1 1,15 8c2.4,0 4.6 1.1 6 3l-3,3h9V5l-3.5,3.5A10.9,10.9 0,0 0,15 5z"/>
               <path android:fillColor="#FFFFFFFF" android:pathData="M12,13h2v6h5v2h-7z"/>
           </vector>
           ''', encoding='utf-8')
           (drawable / 'ic_forward_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M17,5A11,11 0,1 1,6.5 19h3.2A8,8 0,1 0,17 8c-2.4,0-4.6,1.1-6 3l3,3H5V5l3.5,3.5A10.9,10.9 0,0 1,17 5z"/>
+              <path android:fillColor="#FFFFFFFF" android:pathData="M17,5A11,11 0,1 1,6.5 19h3.2A8,8 0,1 0,17 8c-2.4,0-4.6 1.1-6 3l3,3H5V5l3.5,3.5A10.9,10.9 0,0 1,17 5z"/>
               <path android:fillColor="#FFFFFFFF" android:pathData="M20,13h-2v6h-5v2h7z"/>
           </vector>
           ''', encoding='utf-8')
 
-          # EliteStocks TV palette: near-black background, warm orange/gold accent, white text.
           palette = {
               '0xFF07111B':'0xFF070608', '0xFF0B1622':'0xFF0D0A08', '0xFF0F1B29':'0xFF15100B',
               '0xFF162338':'0xFF20160B', '0xFF1D2E46':'0xFF2A1B0A', '0xFF223754':'0xFF3A250A',
@@ -133,9 +126,10 @@ jobs:
                       text = text.replace(old, new)
                   path.write_text(text, encoding='utf-8')
 
-          # Audit user-facing branding. Legal attribution, technical package/path identifiers,
-          # and upstream URLs are intentionally allowed to retain the original project name.
+          # Audit actual user-facing occurrences. CamelCase technical identifiers such as
+          # StreamVaultDatabase and legacy compatibility filenames are intentionally retained.
           hits = []
+          visible_brand = re.compile(r'(?i)\bstreamvault\b')
           for path in root.rglob('*'):
               if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
                   continue
@@ -147,7 +141,7 @@ jobs:
                   continue
               for number, line in enumerate(text.splitlines(), 1):
                   low = line.lower()
-                  if 'streamvault' not in low:
+                  if not visible_brand.search(line):
                       continue
                   if ('package com.streamvault' in low or 'import com.streamvault' in low or
                       'com.streamvault.' in low or 'streamvault://' in low or
