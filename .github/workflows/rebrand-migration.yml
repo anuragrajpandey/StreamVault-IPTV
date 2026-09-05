@@ -27,120 +27,139 @@ jobs:
 
           root = Path('.')
           text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.yml', '.yaml', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
-          protected_identifiers = re.compile(r'(?i)(com\.streamvault|streamvault\.[A-Za-z0-9_.]+|StreamVault[A-Za-z0-9_]+|STREAMVAULT[A-Za-z0-9_]+|streamvault[A-Za-z0-9_]+)')
-          string_re = re.compile(r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')')
 
           def brand(text):
               text = re.sub(r'(?i)streamvault\s+live\s+channels', 'EliteStocks TV Live Channels', text)
               text = re.sub(r'(?i)streamvault\s+tv', 'EliteStocks TV', text)
-              text = re.sub(r'(?i)streamvault', 'EliteStocks TV', text)
-              return text
+              return re.sub(r'(?i)streamvault', 'EliteStocks TV', text)
+
+          string_re = re.compile(r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')')
 
           def code_replace(text):
-              def repl(m):
-                  value = m.group(0)
+              def repl(match):
+                  value = match.group(0)
                   inner = value[1:-1]
                   low = inner.lower()
+                  # Never touch URLs, package names, imports, or other technical identifiers.
                   if ('com.streamvault' in low or 'streamvault.' in low or
-                      'http://' in low or 'https://' in low or
-                      'streamvault://' in low):
+                      'streamvault://' in low or 'http://' in low or 'https://' in low):
                       return value
                   return value[0] + brand(inner) + value[-1]
               return string_re.sub(repl, text)
 
           def xml_replace(text):
-              attr = re.compile(r'([A-Za-z_][\\w:.-]*)\\s*=\\s*([\"\'])(.*?)\\2', re.S)
-              def repl(m):
-                  name, quote, value = m.group(1), m.group(2), m.group(3)
+              attr = re.compile(r'([A-Za-z_][\w:.-]*)\s*=\s*([\"\'])(.*?)\2', re.S)
+              protected = {'android:name', 'android:theme', 'android:resource', 'android:icon',
+                           'android:roundIcon', 'android:banner', 'android:authorities', 'android:src'}
+              def repl(match):
+                  name, quote, value = match.group(1), match.group(2), match.group(3)
                   low = value.lower()
-                  if (name.startswith('android:') and name in {'android:name','android:theme','android:resource','android:icon','android:roundIcon','android:banner','android:authorities','android:src'}) or value.startswith('@') or value.startswith('.') or 'com.streamvault' in low or 'http://' in low or 'https://' in low:
-                      return m.group(0)
+                  if name in protected or value.startswith('@') or value.startswith('.') or 'com.streamvault' in low or 'http://' in low or 'https://' in low:
+                      return match.group(0)
                   return f'{name}={quote}{brand(value)}{quote}'
               return attr.sub(repl, text)
 
-          changed = []
-          for p in root.rglob('*'):
-              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in text_exts:
+          for path in root.rglob('*'):
+              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
+                  continue
+              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml'):
                   continue
               try:
-                  old = p.read_text(encoding='utf-8')
+                  old = path.read_text(encoding='utf-8')
               except Exception:
                   continue
               if 'streamvault' not in old.lower():
                   continue
-              if p.suffix.lower() == '.xml':
+              if path.suffix.lower() == '.xml':
                   new = xml_replace(old)
-              elif p.suffix.lower() in {'.kt', '.kts', '.java'}:
+              elif path.suffix.lower() in {'.kt', '.kts', '.java'}:
                   new = code_replace(old)
               else:
-                  # Documentation/config text is user-facing unless it is clearly an internal identifier.
                   lines = []
                   for line in old.splitlines(keepends=True):
                       low = line.lower()
-                      if ('com.streamvault' in low or 'streamvault.' in low or 'streamvault://' in low or 'https://' in low and 'streamvault' in low):
+                      # Preserve technical paths and URLs, but replace visible documentation text.
+                      if ('com.streamvault' in low or 'streamvault://' in low or
+                          ('https://' in low and 'streamvault' in low)):
+                          # README URLs may contain the upstream project name, so only protect the URL itself.
+                          if path.name == 'README.md':
+                              prefix, sep, suffix = line.partition('http')
+                              if sep:
+                                  visible = prefix.replace('StreamVault', 'EliteStocks TV').replace('streamvault', 'EliteStocks TV')
+                                  lines.append(visible + sep + suffix)
+                                  continue
                           lines.append(line)
                       else:
                           lines.append(brand(line))
                   new = ''.join(lines)
               if new != old:
-                  p.write_text(new, encoding='utf-8')
-                  changed.append(str(p))
+                  path.write_text(new, encoding='utf-8')
 
-          # Remove only language-qualified values directories. Keep values-night, values-land,
-          # values-port, values-v31, values-sw600dp and other non-language qualifiers.
-          lang = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\\+[A-Za-z0-9+]+)$')
-          for p in sorted(root.rglob('values-*'), key=lambda x: len(x.parts), reverse=True):
-              if p.is_dir() and lang.fullmatch(p.name[7:]):
-                  shutil.rmtree(p)
+          # Remove language-only resource qualifiers. Keep values-night, values-land,
+          # values-port, values-v31, values-sw600dp, etc.
+          language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
+          for path in sorted(root.rglob('values-*'), key=lambda p: len(p.parts), reverse=True):
+              if path.is_dir() and language_dir.fullmatch(path.name[7:]):
+                  shutil.rmtree(path)
 
-          # Add proper 10-second vector controls while preserving existing resource identifiers.
-          d = root / 'app/src/main/res/drawable'
-          d.mkdir(parents=True, exist_ok=True)
-          (d / 'ic_replay_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
+          # Proper vector icons for the existing 10-second seek controls.
+          drawable = root / 'app/src/main/res/drawable'
+          drawable.mkdir(parents=True, exist_ok=True)
+          (drawable / 'ic_replay_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
               <path android:fillColor="#FFFFFFFF" android:pathData="M15,5A11,11 0,1 0,25.5 19h-3.2A8,8 0,1 1,15 8c2.4,0 4.6,1.1 6,3l-3,3h9V5l-3.5,3.5A10.9,10.9 0,0 0,15 5z"/>
               <path android:fillColor="#FFFFFFFF" android:pathData="M12,13h2v6h5v2h-7z"/>
           </vector>
           ''', encoding='utf-8')
-          (d / 'ic_forward_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
+          (drawable / 'ic_forward_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M17,5A11,11 0,1 1,6.5 19h3.2A8,8 0,1 0,17 8c-2.4,0-4.6 1.1-6 3l3,3H5V5l3.5,3.5A10.9,10.9 0,0 1,17 5z"/>
+              <path android:fillColor="#FFFFFFFF" android:pathData="M17,5A11,11 0,1 1,6.5 19h3.2A8,8 0,1 0,17 8c-2.4,0-4.6,1.1-6 3l3,3H5V5l3.5,3.5A10.9,10.9 0,0 1,17 5z"/>
               <path android:fillColor="#FFFFFFFF" android:pathData="M20,13h-2v6h-5v2h7z"/>
           </vector>
           ''', encoding='utf-8')
 
-          # EliteStocks TV palette: black, warm orange/gold, white.
-          for p in [root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt', root / 'app/src/main/java/com/streamvault/app/ui/theme/Color.kt']:
-              if not p.exists():
-                  continue
-              text = p.read_text(encoding='utf-8')
-              for old, new in {
-                  '0xFF07111B':'0xFF070608', '0xFF0B1622':'0xFF0D0A08', '0xFF0F1B29':'0xFF15100B',
-                  '0xFF162338':'0xFF20160B', '0xFF1D2E46':'0xFF2A1B0A', '0xFF223754':'0xFF3A250A',
-                  '0xFF69A8FF':'0xFFFFA000', '0xFF8BBCFF':'0xFFFFB52E', '0xFF57C9FF':'0xFFFFB52E',
-                  '0xFFFFC766':'0xFFFFB52E', '0xCC07111B':'0xCC070608', '0xF207111B':'0xF2070608'
-              }.items():
-                  text = text.replace(old, new)
-              p.write_text(text, encoding='utf-8')
+          # EliteStocks TV palette: near-black background, warm orange/gold accent, white text.
+          palette = {
+              '0xFF07111B':'0xFF070608', '0xFF0B1622':'0xFF0D0A08', '0xFF0F1B29':'0xFF15100B',
+              '0xFF162338':'0xFF20160B', '0xFF1D2E46':'0xFF2A1B0A', '0xFF223754':'0xFF3A250A',
+              '0xFF69A8FF':'0xFFFFA000', '0xFF8BBCFF':'0xFFFFB52E', '0xFF57C9FF':'0xFFFFB52E',
+              '0xFFFFC766':'0xFFFFB52E', '0xCC07111B':'0xCC070608', '0xF207111B':'0xF2070608'
+          }
+          for path in [root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt',
+                       root / 'app/src/main/java/com/streamvault/app/ui/theme/Color.kt']:
+              if path.exists():
+                  text = path.read_text(encoding='utf-8')
+                  for old, new in palette.items():
+                      text = text.replace(old, new)
+                  path.write_text(text, encoding='utf-8')
 
-          # Preserve package/class/resource identifiers. Audit visible string literals for the old brand.
+          # Audit user-facing branding. Legal attribution, technical package/path identifiers,
+          # and upstream URLs are intentionally allowed to retain the original project name.
           hits = []
-          for p in root.rglob('*'):
-              if not p.is_file() or '.git' in p.parts or p.suffix.lower() not in text_exts:
+          for path in root.rglob('*'):
+              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
+                  continue
+              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml'):
                   continue
               try:
-                  text = p.read_text(encoding='utf-8')
+                  text = path.read_text(encoding='utf-8')
               except Exception:
                   continue
-              for n, line in enumerate(text.splitlines(), 1):
+              for number, line in enumerate(text.splitlines(), 1):
                   low = line.lower()
-                  if 'streamvault' in low and not any(x in low for x in ('package com.streamvault', 'import com.streamvault', 'com.streamvault.', 'streamvault://')):
-                      hits.append(f'{p}:{n}:{line.strip()}')
+                  if 'streamvault' not in low:
+                      continue
+                  if ('package com.streamvault' in low or 'import com.streamvault' in low or
+                      'com.streamvault.' in low or 'streamvault://' in low or
+                      ('https://' in low and 'streamvault' in low)):
+                      continue
+                  hits.append(f'{path}:{number}:{line.strip()}')
+
           if hits:
               print('Remaining non-technical branding references:')
               print('\n'.join(hits[:100]))
               raise SystemExit(1)
-          print(f'Migration changed {len(changed)} files.')
+          print('Branding/resource migration passed.')
 
       - name: Verify Kotlin tests and debug APK
         run: |
