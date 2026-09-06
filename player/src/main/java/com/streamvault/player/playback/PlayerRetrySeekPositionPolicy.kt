@@ -2,6 +2,13 @@ package com.streamvault.player.playback
 
 import androidx.media3.common.C
 
+/**
+ * Chooses the position to restore after a playback error.
+ *
+ * VOD retries must never silently restart from zero once playback has started.
+ * ExoPlayer can reset its public currentPosition while dispatching an error, so
+ * callers should provide the most recent engine position as the fallback value.
+ */
 internal fun resolveRetrySeekPositionMs(
     category: PlaybackErrorCategory,
     resolvedStreamType: ResolvedStreamType,
