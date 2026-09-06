@@ -21,29 +21,29 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :player:generateDebugResources
 > Task :player:packageDebugResources
 > Task :player:parseDebugLocalResources
-> Task :player:preDebugUnitTestBuild
 > Task :player:javaPreCompileDebug
+> Task :player:preDebugUnitTestBuild
 > Task :player:koverFindJar
 > Task :app:preBuild UP-TO-DATE
+> Task :player:javaPreCompileDebugUnitTest
 > Task :app:preDebugBuild UP-TO-DATE
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :player:javaPreCompileDebugUnitTest
 > Task :app:generateDebugBuildConfig
 > Task :data:preBuild UP-TO-DATE
 > Task :data:preDebugBuild UP-TO-DATE
 > Task :player:generateDebugRFile
-> Task :data:writeDebugAarMetadata
 > Task :player:writeDebugAarMetadata
-> Task :app:generateDebugResValues
+> Task :data:writeDebugAarMetadata
 > Task :player:generateDebugUnitTestStubRFile
 
 > Task :domain:compileKotlin
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/java/com/streamvault/domain/usecase/GetCustomCategories.kt:38:18 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
 
-> Task :app:checkDebugAarMetadata
 > Task :domain:compileJava NO-SOURCE
 > Task :domain:classes UP-TO-DATE
+> Task :app:checkDebugAarMetadata
 > Task :domain:jar
+> Task :app:generateDebugResValues
 > Task :data:generateDebugResValues
 > Task :data:generateDebugResources
 > Task :data:packageDebugResources
@@ -67,11 +67,10 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/ja
 > Task :data:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :data:generateDebugRFile
 > Task :data:javaPreCompileDebug
-> Task :player:kspDebugKotlin
 > Task :app:processDebugResources
+> Task :app:javaPreCompileDebug
 > Task :app:koverFindJar
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :app:javaPreCompileDebug
 > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
 > Task :app:javaPreCompileDebugUnitTest
 > Task :app:mergeDebugShaders
@@ -81,6 +80,7 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/ja
 > Task :data:compileDebugShaders NO-SOURCE
 > Task :data:generateDebugAssets UP-TO-DATE
 > Task :data:mergeDebugAssets
+> Task :player:kspDebugKotlin
 > Task :player:mergeDebugShaders
 > Task :player:compileDebugShaders NO-SOURCE
 > Task :player:generateDebugAssets UP-TO-DATE
@@ -89,7 +89,7 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/ja
 > Task :app:compressDebugAssets
 > Task :app:desugarDebugFileDependencies
 > Task :app:checkDebugDuplicateClasses
-
+> Task :data:kspDebugKotlin
 > Task :player:compileDebugKotlin
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt:780:63 'class SingleSampleMediaSource : BaseMediaSource' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt:1331:34 'constructor(p0: Context, p1: MediaCodecSelector, p2: Long, p3: Boolean, p4: Handler?, p5: VideoRendererEventListener?, p6: Int): MediaCodecVideoRenderer' is deprecated. Deprecated in Java.
@@ -97,7 +97,6 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/ja
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/timeshift/LiveTimeshiftManager.kt:125:18 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/tracks/PlayerTrackController.kt:54:14 'fun setViewportSizeToPhysicalDisplaySize(p0: Context, p1: Boolean): TrackSelectionParameters.Builder' is deprecated. Deprecated in Java.
 
-> Task :data:kspDebugKotlin
 > Task :app:l8DexDesugarLibDebug
 > Task :app:mergeExtDexDebug
 WARNING: D8: Unexpected error during rewriting of Kotlin metadata for class 'kotlin.collections.CollectionsKt__MutableCollectionsKt':
@@ -143941,7 +143940,6 @@ com.android.tools.r8.internal.Lv0: Should never be called
 > Task :player:transformDebugClassesWithAsm
 > Task :player:bundleLibRuntimeToJarDebug
 > Task :player:bundleLibCompileToJarDebug
-> Task :player:kspDebugUnitTestKotlin
 > Task :player:bundleLibRuntimeToDirDebug
 > Task :app:mergeDebugJniLibFolders
 > Task :data:mergeDebugJniLibFolders
@@ -143950,13 +143948,15 @@ com.android.tools.r8.internal.Lv0: Should never be called
 > Task :player:mergeDebugJniLibFolders
 > Task :player:mergeDebugNativeLibs NO-SOURCE
 > Task :player:copyDebugJniLibsProjectOnly
+> Task :player:kspDebugUnitTestKotlin
 > Task :app:mergeDebugNativeLibs
-> Task :app:validateSigningDebug
-> Task :app:writeDebugAppMetadata
-> Task :app:writeDebugSigningConfigVersions
 
 > Task :app:stripDebugDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libffmpegJNI.so. Run with --info option to learn more.
+
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
 
 > Task :player:compileDebugUnitTestKotlin
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/test/java/com/streamvault/player/playback/LiveMpegTsFixtureTest.kt:28:30 'constructor(p0: Int): TsExtractor' is deprecated. Deprecated in Java.
@@ -144238,6 +144238,6 @@ OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader clas
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 9m 51s
+BUILD SUCCESSFUL in 8m 59s
 108 actionable tasks: 108 executed
 GRADLE_EXIT_CODE=0
