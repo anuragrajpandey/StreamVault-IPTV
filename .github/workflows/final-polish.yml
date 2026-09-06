@@ -23,9 +23,22 @@ jobs:
       - name: Test and build
         run: |
           chmod +x ./gradlew
-          ./gradlew :player:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug --stacktrace
+          set +e
+          ./gradlew :player:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug --stacktrace --console=plain 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          echo "GRADLE_EXIT_CODE=$status" >> build.log
+          exit $status
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EliteStocks-TV-build-log
+          path: build.log
+          if-no-files-found: warn
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: EliteStocks-TV-final-debug-apk
@@ -33,6 +46,7 @@ jobs:
           if-no-files-found: error
 
       - name: Commit final changes
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
