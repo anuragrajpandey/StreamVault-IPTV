@@ -57,7 +57,6 @@ def find_matching_brace(source, opening):
     raise RuntimeError('Unbalanced Kotlin braces')
 
 
-# Remove the unwanted blank/white canvas around the supplied EliteStocks TV logo.
 logo = ROOT / 'app/src/main/res/drawable/elitestocks_tv_logo.png'
 if logo.exists() and shutil.which('convert'):
     tmp = logo.with_suffix('.trimmed.png')
@@ -66,87 +65,72 @@ if logo.exists() and shutil.which('convert'):
     for p in ROOT.glob('app/src/main/res/mipmap-*/ic_launcher_vault.png'):
         shutil.copyfile(logo, p)
 
-# Make the transparent player overlay deterministic. The previous patch relied on an
-# exact newline sequence and could silently leave the old chrome in place.
 chrome = ROOT / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
 s = read(chrome)
 match = re.search(r'@Composable\s+fun PlayerControlsOverlay\s*\(', s)
 if not match:
     raise RuntimeError('PlayerControlsOverlay declaration not found')
-opening = s.find('{', match.end())
-if opening < 0:
+
+# The parameter list contains default lambdas such as `= {}`. Never search for the
+# first brace after the declaration. Find the declaration's closing parenthesis first.
+start_paren = match.end() - 1
+depth = 0
+quote = None
+i = start_paren
+while i < len(s):
+    c = s[i]
+    if quote:
+        if c == '\\':
+            i += 2
+            continue
+        if c == quote:
+            quote = None
+    else:
+        if c in ('"', "'"):
+            quote = c
+        elif c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+            if depth == 0:
+                signature_end = i
+                break
+    i += 1
+else:
+    raise RuntimeError('PlayerControlsOverlay parameter list is unbalanced')
+
+body_match = re.search(r'\s*\{', s[signature_end + 1:])
+if not body_match:
     raise RuntimeError('PlayerControlsOverlay body not found')
+opening = signature_end + 1 + body_match.start() + body_match.group(0).find('{')
 closing = find_matching_brace(s, opening)
-body = '''{
-    PlayerCleanControls(
-        visible = visible,
-        title = title,
-        contentType = contentType,
-        isCatchUpPlayback = isCatchUpPlayback,
-        isPlaying = isPlaying,
-        currentProgram = currentProgram,
-        currentChannel = currentChannel,
-        currentChannelName = currentChannelName,
-        displayChannelNumber = displayChannelNumber,
-        currentPosition = currentPosition,
-        duration = duration,
-        aspectRatioLabel = aspectRatioLabel,
-        subtitleTrackCount = subtitleTrackCount,
-        liveTranslationAvailable = liveTranslationAvailable,
-        audioTrackCount = audioTrackCount,
-        videoQualityCount = videoQualityCount,
-        currentRecordingStatus = currentRecordingStatus,
-        isMuted = isMuted,
-        playbackSpeed = playbackSpeed,
-        mediaTitle = mediaTitle,
-        sleepTimerUiState = sleepTimerUiState,
-        timeshiftUiState = timeshiftUiState,
-        playButtonFocusRequester = playButtonFocusRequester,
-        quickActionsFocusRequester = quickActionsFocusRequester,
-        onClose = onClose,
-        onTogglePlayPause = onTogglePlayPause,
-        onSeekBackward = onSeekBackward,
-        onSeekForward = onSeekForward,
-        onRestartProgram = onRestartProgram,
-        onOpenArchive = onOpenArchive,
-        onStartRecording = onStartRecording,
-        onStopRecording = onStopRecording,
-        onScheduleRecording = onScheduleRecording,
-        onScheduleDailyRecording = onScheduleDailyRecording,
-        onScheduleWeeklyRecording = onScheduleWeeklyRecording,
-        onToggleAspectRatio = onToggleAspectRatio,
-        onOpenSubtitleTracks = onOpenSubtitleTracks,
-        onOpenAudioTracks = onOpenAudioTracks,
-        onOpenVideoTracks = onOpenVideoTracks,
-        onOpenPlaybackSpeed = onOpenPlaybackSpeed,
-        onOpenStopPlaybackTimer = onOpenStopPlaybackTimer,
-        onOpenIdleStandbyTimer = onOpenIdleStandbyTimer,
-        onOpenAudioVideoSync = onOpenAudioVideoSync,
-        audioVideoSyncEnabled = audioVideoSyncEnabled,
-        showEpisodesAction = showEpisodesAction,
-        onOpenEpisodes = onOpenEpisodes,
-        onOpenSplitScreen = onOpenSplitScreen,
-        onEnterPictureInPicture = onEnterPictureInPicture,
-        onToggleMute = onToggleMute,
-        isCastConnected = isCastConnected,
-        onCast = onCast,
-        onStopCasting = onStopCasting,
-        onSeekToLiveEdge = onSeekToLiveEdge,
-        onSeekToPosition = onSeekToPosition,
-        onSetScrubbingMode = onSetScrubbingMode,
-        showExternalPlayerAction = showExternalPlayerAction,
-        onOpenExternalPlayer = onOpenExternalPlayer,
-        seekPreview = seekPreview,
-        onSeekPreviewPositionChanged = onSeekPreviewPositionChanged,
-        onUserInteraction = onUserInteraction,
-        modifier = modifier
-    )
-}'''
+
+args = [
+    'visible', 'title', 'contentType', 'isCatchUpPlayback', 'isPlaying',
+    'currentProgram', 'currentChannel', 'currentChannelName', 'displayChannelNumber',
+    'currentPosition', 'duration', 'aspectRatioLabel', 'subtitleTrackCount',
+    'liveTranslationAvailable', 'audioTrackCount', 'videoQualityCount',
+    'currentRecordingStatus', 'isMuted', 'playbackSpeed', 'mediaTitle',
+    'sleepTimerUiState', 'timeshiftUiState', 'playButtonFocusRequester',
+    'quickActionsFocusRequester', 'onClose', 'onTogglePlayPause', 'onSeekBackward',
+    'onSeekForward', 'onRestartProgram', 'onOpenArchive', 'onStartRecording',
+    'onStopRecording', 'onScheduleRecording', 'onScheduleDailyRecording',
+    'onScheduleWeeklyRecording', 'onToggleAspectRatio', 'onOpenSubtitleTracks',
+    'onOpenAudioTracks', 'onOpenVideoTracks', 'onOpenPlaybackSpeed',
+    'onOpenStopPlaybackTimer', 'onOpenIdleStandbyTimer', 'onOpenAudioVideoSync',
+    'audioVideoSyncEnabled', 'showEpisodesAction', 'onOpenEpisodes',
+    'onOpenSplitScreen', 'onEnterPictureInPicture', 'onToggleMute',
+    'isCastConnected', 'onCast', 'onStopCasting', 'onSeekToLiveEdge',
+    'onSeekToPosition', 'onSetScrubbingMode', 'showExternalPlayerAction',
+    'onOpenExternalPlayer', 'seekPreview', 'onSeekPreviewPositionChanged',
+    'onUserInteraction', 'modifier'
+]
+
+call = ',\n'.join(f'        {name} = {name}' for name in args)
+body = f'''{{\n    PlayerCleanControls(\n{call}\n    )\n}}'''
 s = s[:opening] + body + s[closing + 1:]
 write(chrome, s)
 
-# Compose semantics lambdas are not @Composable. Remove the resource lookup from
-# the slider semantics while keeping the player UI accessible.
 clean = ROOT / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt'
 clean_text = read(clean)
 clean_text = clean_text.replace(
