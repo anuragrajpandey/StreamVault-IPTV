@@ -56,9 +56,14 @@ jobs:
           ]
           for old, new, label in replacements:
               count = text.count(old)
-              if count != 1:
+              if count == 0:
+                  raise SystemExit(f'{label}: pattern not found in {chrome}')
+              if label in {'rewind vector', 'forward vector'}:
+                  text = text.replace(old, new)
+              elif count != 1:
                   raise SystemExit(f'{label}: expected 1 match in {chrome}, found {count}')
-              text = text.replace(old, new)
+              else:
+                  text = text.replace(old, new)
           if 'import androidx.compose.ui.res.painterResource' not in text:
               text = text.replace('import androidx.compose.ui.res.stringResource\n', 'import androidx.compose.ui.res.painterResource\nimport androidx.compose.ui.res.stringResource\n', 1)
           chrome.write_text(text, encoding='utf-8')
@@ -86,6 +91,7 @@ jobs:
               'README.md',
               'docs/PLUGIN_API.md',
               'docs/CHANGELOG.md',
+              'docs/GOOGLE_DRIVE_SETUP.md',
               'app/src/main/java/com/streamvault/app/pairing/ProviderQrPairingManager.kt',
           ]:
               path = root / relative
