@@ -94,6 +94,7 @@ fun PlayerModernVodInfo(
     val latestSeek by rememberUpdatedState(onSeekToPosition)
     val latestScrub by rememberUpdatedState(onSetScrubbingMode)
     val latestPreview by rememberUpdatedState(onSeekPreviewPositionChanged)
+    val playbackAccessibilityLabel = stringResource(R.string.player_playback_label)
 
     LaunchedEffect(duration, currentPosition, scrubbing) {
         if (!scrubbing) sliderValue = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
@@ -108,7 +109,7 @@ fun PlayerModernVodInfo(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            PlayerMetaPill(
+            PlayerModernMetaPill(
                 text = if (contentType == "MOVIE") stringResource(R.string.player_type_movie)
                 else stringResource(R.string.player_type_series),
                 accent = true
@@ -173,7 +174,7 @@ fun PlayerModernVodInfo(
                             latestPreview(null)
                         },
                         modifier = Modifier.weight(1f).padding(horizontal = 10.dp).semantics {
-                            contentDescription = stringResource(R.string.player_playback_label)
+                            contentDescription = playbackAccessibilityLabel
                         },
                         enabled = duration > 0,
                         colors = SliderDefaults.colors(
@@ -314,4 +315,27 @@ private fun formatDurationModern(ms: Long): String {
     val seconds = totalSeconds % 60L
     return if (hours > 0L) String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     else String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+}
+
+
+@Composable
+private fun PlayerModernMetaPill(
+    text: String,
+    accent: Boolean
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        colors = SurfaceDefaults.colors(
+            containerColor = if (accent) Primary.copy(alpha = 0.18f)
+            else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)
+        )
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (accent) Primary else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.78f),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+        )
+    }
 }

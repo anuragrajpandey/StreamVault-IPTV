@@ -2430,7 +2430,7 @@ class Media3PlayerEngine @Inject constructor(
             val retrySeekPositionMs = resolveRetrySeekPositionMs(
                 category = category,
                 resolvedStreamType = currentResolvedStreamType,
-                currentPositionMs = player?.currentPosition,
+                currentPositionMs = maxOf(player?.currentPosition ?: 0L, _currentPosition.value).takeIf { it > 0L },
                 durationMs = player?.duration,
                 isCurrentMediaItemLive = player?.isCurrentMediaItemLive == true,
                 playbackStarted = effectivePlaybackStarted

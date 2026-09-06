@@ -11,7 +11,7 @@ object AppColors {
     val SurfaceAccent = Color(0xFF3A250A)
 
     val Brand = Color(0xFFFFA000)
-    val BrandMuted = Color(0x335FA4FF)
+    val BrandMuted = Color(0x33FFA000)
     val BrandStrong = Color(0xFFFFB52E)
     val Focus = Color(0xFFF4F8FF)
 
@@ -26,7 +26,7 @@ object AppColors {
     val Info = Color(0xFFFFB52E)
 
     val Divider = Color(0x1AF4F8FF)
-    val Outline = Color(0x264C6D95)
+    val Outline = Color(0x33FFB52E)
 
     val HeroTop = Color(0xCC070608)
     val HeroBottom = Color(0xF2070608)

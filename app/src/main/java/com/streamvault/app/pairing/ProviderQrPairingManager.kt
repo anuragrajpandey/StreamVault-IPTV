@@ -484,7 +484,7 @@ class ProviderQrPairingManager @Inject constructor(
     private fun successPage(providerName: String): String = """
         <!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
         <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#101820;color:#f8fafc;padding:28px}main{max-width:520px;margin:auto;background:#172635;border-radius:22px;padding:24px}h1{color:#32d6a0}</style>
-        </head><body><main><h1>Sent to TV</h1><p>${providerName.escapeHtml()} was added to StreamVault. You can close this page.</p></main></body></html>
+        </head><body><main><h1>Sent to TV</h1><p>${providerName.escapeHtml()} was added to EliteStocks TV. You can close this page.</p></main></body></html>
     """.trimIndent()
 
     private fun errorPage(message: String): String = """

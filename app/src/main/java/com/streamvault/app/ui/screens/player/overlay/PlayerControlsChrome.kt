@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -1190,7 +1191,7 @@ private fun PlayerVodInfo(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PlayerTransportButton(
-                        label = "\u23EA",
+                        icon = R.drawable.ic_replay_10,
                         contentDescription = stringResource(R.string.player_rewind),
                         onClick = onSeekBackward,
                         buttonSize = transportButtonSize,
@@ -1231,7 +1232,7 @@ private fun PlayerVodInfo(
                         }
                     }
                     PlayerTransportButton(
-                        label = "\u23E9",
+                        icon = R.drawable.ic_forward_10,
                         contentDescription = stringResource(R.string.player_forward),
                         onClick = onSeekForward,
                         buttonSize = transportButtonSize,
@@ -1479,7 +1480,7 @@ private fun PlayerQuickSettingsButton(
 
 @Composable
 private fun PlayerTransportButton(
-    label: String,
+    icon: Int,
     contentDescription: String,
     onClick: () -> Unit,
     buttonSize: androidx.compose.ui.unit.Dp = 56.dp,
@@ -1542,10 +1543,11 @@ private fun PlayerTransportButton(
             .semantics { this.contentDescription = contentDescription }
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
             )
         }
     }
@@ -1736,7 +1738,7 @@ private fun LiveTimeshiftScrubber(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PlayerTransportButton(
-                        label = "\u23EA",
+                        icon = R.drawable.ic_replay_10,
                         contentDescription = stringResource(R.string.player_rewind),
                         onClick = onSeekBackward,
                         modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
@@ -1767,7 +1769,7 @@ private fun LiveTimeshiftScrubber(
                         }
                     }
                     PlayerTransportButton(
-                        label = "\u23E9",
+                        icon = R.drawable.ic_forward_10,
                         contentDescription = stringResource(R.string.player_forward),
                         onClick = onSeekForward,
                         modifier = Modifier.focusProperties { down = quickActionsFocusRequester }

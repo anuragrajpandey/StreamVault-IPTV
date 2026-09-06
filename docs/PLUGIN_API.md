@@ -54,7 +54,7 @@ Example manifest for host-rendered configuration:
   "name": "Example Plugin",
   "versionName": "1.0.0",
   "versionCode": 1,
-  "description": "Adds external capabilities to StreamVault.",
+  "description": "Adds external capabilities to EliteStocks TV.",
   "providerName": "Example Provider",
   "configurationMode": "host.schema",
   "configurationActivityAction": "",
@@ -94,7 +94,7 @@ Recommended fallback metadata:
 <meta-data android:name="com.streamvault.plugin.NAME" android:value="Example Plugin" />
 <meta-data android:name="com.streamvault.plugin.VERSION_NAME" android:value="1.0.0" />
 <meta-data android:name="com.streamvault.plugin.VERSION_CODE" android:value="1" />
-<meta-data android:name="com.streamvault.plugin.DESCRIPTION" android:value="Adds external capabilities to StreamVault." />
+<meta-data android:name="com.streamvault.plugin.DESCRIPTION" android:value="Adds external capabilities to EliteStocks TV." />
 <meta-data android:name="com.streamvault.plugin.PROVIDER_NAME" android:value="Example Provider" />
 <meta-data android:name="com.streamvault.plugin.CONFIGURATION_MODE" android:value="host.schema" />
 <meta-data android:name="com.streamvault.plugin.CONFIGURATION_ACTIVITY_ACTION" android:value="" />
@@ -211,7 +211,7 @@ configuration surface, for example:
 - Embedded logs.
 - Native pairing, sign-in, or device setup.
 - Custom layouts that must look the same when opened directly and from
-  StreamVault.
+  EliteStocks TV.
 
 Do not advertise `configuration.schema` for a partial or stale schema. If
 `configurationMode` is `activity`, EliteStocks TV treats the Activity as the active
@@ -239,7 +239,7 @@ Schema response:
 {
   "schemaVersion": 1,
   "title": "Example Plugin",
-  "description": "Settings rendered by StreamVault.",
+  "description": "Settings rendered by EliteStocks TV.",
   "sections": [
     {
       "id": "connection",
@@ -296,7 +296,7 @@ Schema response:
 
 Supported field types:
 
-- `info`: read-only text rendered by StreamVault.
+- `info`: read-only text rendered by EliteStocks TV.
 - `text`: single-line text.
 - `password`: single-line secret text.
 - `url`: URL text field.

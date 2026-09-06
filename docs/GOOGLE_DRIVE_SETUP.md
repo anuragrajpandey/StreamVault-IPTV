@@ -33,7 +33,7 @@ silently with `ApiException` status `DEVELOPER_ERROR (10)`.
 ### 1. Create a Cloud project
 
 Open <https://console.cloud.google.com/projectcreate> and create a project of
-your choice (e.g. `streamvault-dev-<your-handle>`). Select it.
+your choice (e.g. `elitestocks-tv-dev-<your-handle>`). Select it.
 
 ### 2. Enable the Google Drive API
 

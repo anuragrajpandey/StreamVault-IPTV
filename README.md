@@ -162,7 +162,7 @@ Built for Android TV first, EliteStocks TV focuses on the things generic IPTV ap
 
 ## Download
 
-- [Download latest StreamVault.apk](https://github.com/Davidona/StreamVault-IPTV/releases/latest/download/StreamVault.apk)
+- [Download latest EliteStocks TV.apk](https://github.com/Davidona/StreamVault-IPTV/releases/latest/download/StreamVault.apk)
 - The app can also detect and download newer releases in-app through GitHub Releases.
 - GitHub Actions still runs build and test validation on pushes and pull requests.
 - GitHub Releases are now published only when the workflow is started manually with `workflow_dispatch`, so versioned releases do not get created by mistake on every push.
@@ -210,3 +210,6 @@ This project was originally released without an explicit license.
 As of April 2026, all usage, modification, and distribution are governed by the EliteStocks TV Source-Available License (Non-Commercial).
 
 Any use of this project must comply with the terms defined in the LICENSE file.
+
+
+> Legal attribution: Based on StreamVault by David Nashash / Davidona. See LICENSE for the original license terms.
