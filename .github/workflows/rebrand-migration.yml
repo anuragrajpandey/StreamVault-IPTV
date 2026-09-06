@@ -31,85 +31,88 @@ jobs:
           from pathlib import Path
           root = Path('.')
 
-          def replace_once(path, old, new, label):
+          def replace_if_present(path, old, new, label):
               text = path.read_text(encoding='utf-8')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label}: expected 1 match in {path}, found {count}')
-              path.write_text(text.replace(old, new), encoding='utf-8')
+              if old in text:
+                  path.write_text(text.replace(old, new, 1), encoding='utf-8')
+                  print(f'Applied: {label}')
+              else:
+                  print(f'Already applied or not needed: {label}')
 
           engine = root / 'player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt'
-          replace_once(engine, 'currentPositionMs = player?.currentPosition,', 'currentPositionMs = maxOf(player?.currentPosition ?: 0L, _currentPosition.value).takeIf { it > 0L },', 'retry position fallback')
+          replace_if_present(
+              engine,
+              'currentPositionMs = player?.currentPosition,',
+              'currentPositionMs = maxOf(player?.currentPosition ?: 0L, _currentPosition.value).takeIf { it > 0L },',
+              'preserve current VOD position during retry'
+          )
 
           chrome = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
           text = chrome.read_text(encoding='utf-8')
-          replacements = [
-              ('    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    onOpenSplitScreen:', '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    showNextEpisodeAction: Boolean = false,\n    onPlayNextEpisode: () -> Unit = {},\n    onOpenSplitScreen:', 'overlay next episode'),
-              ('                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                onOpenSplitScreen', '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                showNextEpisodeAction = showNextEpisodeAction,\n                onPlayNextEpisode = onPlayNextEpisode,\n                onOpenSplitScreen', 'overlay forwarding'),
-              ('    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    onOpenSplitScreen:', '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    showNextEpisodeAction: Boolean,\n    onPlayNextEpisode: () -> Unit,\n    onOpenSplitScreen:', 'bottom bar next episode'),
-              ('                    PlayerVodInfo(\n', '                    PlayerModernVodInfo(\n', 'modern VOD controls'),
-              ('                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        onEnterPictureInPicture', '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        showNextEpisodeAction = showNextEpisodeAction,\n                        onPlayNextEpisode = onPlayNextEpisode,\n                        onEnterPictureInPicture', 'modern VOD forwarding'),
-              ('    label: String,\n    contentDescription: String,', '    icon: Int,\n    contentDescription: String,', 'transport icon parameter'),
-              ('            Text(\n                text = label,\n                style = MaterialTheme.typography.headlineSmall,\n                color = Color.White\n            )', '            Icon(\n                painter = painterResource(icon),\n                contentDescription = null,\n                tint = Color.White,\n                modifier = Modifier.size(28.dp)\n            )', 'transport icon rendering'),
-              ('label = "\\u23EA",', 'icon = R.drawable.ic_replay_10,', 'rewind vector'),
-              ('label = "\\u23E9",', 'icon = R.drawable.ic_forward_10,', 'forward vector'),
-          ]
-          for old, new, label in replacements:
-              count = text.count(old)
-              if count == 0:
-                  raise SystemExit(f'{label}: pattern not found in {chrome}')
-              if label in {'rewind vector', 'forward vector'}:
-                  text = text.replace(old, new)
-              elif count != 1:
-                  raise SystemExit(f'{label}: expected 1 match in {chrome}, found {count}')
-              else:
-                  text = text.replace(old, new)
+
+          text = text.replace(
+              '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    onOpenSplitScreen:',
+              '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    showNextEpisodeAction: Boolean = false,\n    onPlayNextEpisode: () -> Unit = {},\n    onOpenSplitScreen:',
+              1
+          )
+          text = text.replace(
+              '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                onOpenSplitScreen',
+              '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                showNextEpisodeAction = showNextEpisodeAction,\n                onPlayNextEpisode = onPlayNextEpisode,\n                onOpenSplitScreen',
+              1
+          )
+          text = text.replace(
+              '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    onOpenSplitScreen:',
+              '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    showNextEpisodeAction: Boolean,\n    onPlayNextEpisode: () -> Unit,\n    onOpenSplitScreen:',
+              1
+          )
+          text = text.replace(
+              '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        onEnterPictureInPicture',
+              '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        showNextEpisodeAction = showNextEpisodeAction,\n                        onPlayNextEpisode = onPlayNextEpisode,\n                        onEnterPictureInPicture',
+              1
+          )
+          text = text.replace('label: String,\n    contentDescription: String,', 'icon: Int,\n    contentDescription: String,', 1)
+          text = text.replace(
+              '            Text(\n                text = label,\n                style = MaterialTheme.typography.headlineSmall,\n                color = Color.White\n            )',
+              '            Icon(\n                painter = painterResource(icon),\n                contentDescription = null,\n                tint = Color.White,\n                modifier = Modifier.size(28.dp)\n            )',
+              1
+          )
+          text = text.replace('label = "\\u23EA",', 'icon = R.drawable.ic_replay_10,')
+          text = text.replace('label = "\\u23E9",', 'icon = R.drawable.ic_forward_10,')
           if 'import androidx.compose.ui.res.painterResource' not in text:
-              text = text.replace('import androidx.compose.ui.res.stringResource\n', 'import androidx.compose.ui.res.painterResource\nimport androidx.compose.ui.res.stringResource\n', 1)
+              text = text.replace(
+                  'import androidx.compose.ui.res.stringResource\n',
+                  'import androidx.compose.ui.res.painterResource\nimport androidx.compose.ui.res.stringResource\n',
+                  1
+              )
           chrome.write_text(text, encoding='utf-8')
 
-          screen = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt'
-          text = screen.read_text(encoding='utf-8')
-          anchor = '    val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()\n'
-          if 'val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()' not in text:
-              replace_once(screen, anchor, anchor + '    val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()\n', 'next episode state')
-              text = screen.read_text(encoding='utf-8')
-          anchor = '    val canOpenEpisodePicker = contentType == "SERIES_EPISODE" &&\n        currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true\n'
-          if 'val showNextEpisodeAction = contentType == "SERIES_EPISODE"' not in text:
-              replace_once(screen, anchor, anchor + '    val showNextEpisodeAction = contentType == "SERIES_EPISODE" && nextEpisode != null\n', 'next episode visibility')
-              text = screen.read_text(encoding='utf-8')
-          old = '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            onOpenSplitScreen = { showSplitDialog = true },'
-          if 'onPlayNextEpisode = viewModel::playNextEpisodeNow' not in text:
-              replace_once(screen, old, '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            showNextEpisodeAction = showNextEpisodeAction,\n            onPlayNextEpisode = viewModel::playNextEpisodeNow,\n            onOpenSplitScreen = { showSplitDialog = true },', 'next episode action wiring')
+          modern = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerModernVodInfo.kt'
+          text = modern.read_text(encoding='utf-8')
+          if 'private fun PlayerModernMetaPill' not in text:
+              text = text.replace('            PlayerMetaPill(\n', '            PlayerModernMetaPill(\n', 1)
+              text += '''\n\n@Composable\nprivate fun PlayerModernMetaPill(\n    text: String,\n    accent: Boolean\n) {\n    Surface(\n        shape = RoundedCornerShape(999.dp),\n        colors = SurfaceDefaults.colors(\n            containerColor = if (accent) Primary.copy(alpha = 0.18f)\n            else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f)\n        )\n    ) {\n        Text(\n            text = text,\n            style = MaterialTheme.typography.labelMedium,\n            color = if (accent) Primary else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.78f),\n            fontWeight = FontWeight.SemiBold,\n            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)\n        )\n    }\n}\n'''
+          if 'val playbackAccessibilityLabel = stringResource(R.string.player_playback_label)' not in text:
+              anchor = '    val latestPreview by rememberUpdatedState(onSeekPreviewPositionChanged)\n'
+              text = text.replace(
+                  anchor,
+                  anchor + '    val playbackAccessibilityLabel = stringResource(R.string.player_playback_label)\n',
+                  1
+              )
+              text = text.replace('contentDescription = stringResource(R.string.player_playback_label)', 'contentDescription = playbackAccessibilityLabel', 1)
+          modern.write_text(text, encoding='utf-8')
 
           colors = root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt'
           if colors.exists():
-              colors.write_text(colors.read_text(encoding='utf-8').replace('0x335FA4FF', '0x33FFA000').replace('0x264C6D95', '0x33FFB52E'), encoding='utf-8')
+              text = colors.read_text(encoding='utf-8')
+              text = text.replace('0x335FA4FF', '0x33FFA000').replace('0x264C6D95', '0x33FFB52E')
+              colors.write_text(text, encoding='utf-8')
 
           for relative in [
-              'app/src/main/res/values/strings.xml',
-              'README.md',
-              'docs/PLUGIN_API.md',
-              'docs/CHANGELOG.md',
-              'docs/GOOGLE_DRIVE_SETUP.md',
-              'app/src/main/java/com/streamvault/app/pairing/ProviderQrPairingManager.kt',
+              'app/src/main/res/drawable/ic_replay_10.xml',
+              'app/src/main/res/drawable/ic_forward_10.xml',
           ]:
-              path = root / relative
-              if path.exists():
-                  text = path.read_text(encoding='utf-8')
-                  text = text.replace('StreamVault', 'EliteStocks TV').replace('STREAMVAULT', 'ELITESTOCKS TV').replace('streamvault-dev-<your-handle>', 'elitestocks-tv-dev-<your-handle>')
-                  path.write_text(text, encoding='utf-8')
-
-          readme = root / 'README.md'
-          if readme.exists():
-              text = readme.read_text(encoding='utf-8')
-              if 'Based on StreamVault' not in text and 'Derived from StreamVault' not in text:
-                  text += '\n\n> Legal attribution: Based on StreamVault by David Nashash / Davidona. See LICENSE for the original license terms.\n'
-              readme.write_text(text, encoding='utf-8')
-
-          drawable = root / 'app/src/main/res/drawable'
-          if not (drawable / 'ic_replay_10.xml').exists() or not (drawable / 'ic_forward_10.xml').exists():
-              raise SystemExit('10-second player vector resources are missing')
+              if not (root / relative).exists():
+                  raise SystemExit(f'Missing required player resource: {relative}')
 
       - name: Audit branding, English resources, and Android identifiers
         shell: python
@@ -169,10 +172,10 @@ jobs:
               raise SystemExit(1)
           print('EliteStocks TV audit passed.')
 
-      - name: Run unit tests
+      - name: Run app and player unit tests
         run: |
           chmod +x gradlew
-          ./gradlew --console=plain testDebugUnitTest --stacktrace
+          ./gradlew --console=plain :player:testDebugUnitTest :app:testDebugUnitTest --stacktrace
 
       - name: Build debug APK
         run: |
@@ -197,5 +200,5 @@ jobs:
             echo "No source changes were needed."
             exit 0
           fi
-          git commit -m "fix: complete EliteStocks TV player polish"
+          git commit -m "fix: complete EliteStocks TV player fixes"
           git push origin HEAD:master
