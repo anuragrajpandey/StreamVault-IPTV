@@ -44,10 +44,6 @@ jobs:
 
           chrome = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
           text = chrome.read_text(encoding='utf-8')
-          text = text.replace('    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    onOpenSplitScreen:', '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    showNextEpisodeAction: Boolean = false,\n    onPlayNextEpisode: () -> Unit = {},\n    onOpenSplitScreen:', 1)
-          text = text.replace('                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                onOpenSplitScreen', '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                showNextEpisodeAction = showNextEpisodeAction,\n                onPlayNextEpisode = onPlayNextEpisode,\n                onOpenSplitScreen', 1)
-          text = text.replace('    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    onOpenSplitScreen:', '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    showNextEpisodeAction: Boolean,\n    onPlayNextEpisode: () -> Unit,\n    onOpenSplitScreen:', 1)
-          text = text.replace('                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        onEnterPictureInPicture', '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        showNextEpisodeAction = showNextEpisodeAction,\n                        onPlayNextEpisode = onPlayNextEpisode,\n                        onEnterPictureInPicture', 1)
           text = text.replace('label: String,\n    contentDescription: String,', 'icon: Int,\n    contentDescription: String,', 1)
           text = text.replace('            Text(\n                text = label,\n                style = MaterialTheme.typography.headlineSmall,\n                color = Color.White\n            )', '            Icon(\n                painter = painterResource(icon),\n                contentDescription = null,\n                tint = Color.White,\n                modifier = Modifier.size(28.dp)\n            )', 1)
           text = text.replace('label = "\\u23EA",', 'icon = R.drawable.ic_replay_10,')
@@ -79,43 +75,29 @@ jobs:
           from pathlib import Path
           root = Path('.')
           replacements = {
-              'README.md': [
-                  ('Download latest StreamVault.apk', 'Download latest EliteStocks TV.apk'),
-              ],
-              'docs/GOOGLE_DRIVE_SETUP.md': [
-                  ('streamvault-dev-<your-handle>', 'elitestocks-tv-dev-<your-handle>'),
-              ],
-              'docs/PLUGIN_API.md': [
-                  ('StreamVault', 'EliteStocks TV'),
-              ],
-              'docs/CHANGELOG.md': [
-                  ('StreamVault', 'EliteStocks TV'),
-              ],
-              'app/src/main/java/com/streamvault/app/pairing/ProviderQrPairingManager.kt': [
-                  ('was added to StreamVault.', 'was added to EliteStocks TV.'),
-              ],
+              'README.md': [('Download latest StreamVault.apk', 'Download latest EliteStocks TV.apk')],
+              'docs/GOOGLE_DRIVE_SETUP.md': [('streamvault-dev-<your-handle>', 'elitestocks-tv-dev-<your-handle>')],
+              'docs/PLUGIN_API.md': [('StreamVault', 'EliteStocks TV')],
+              'docs/CHANGELOG.md': [('StreamVault', 'EliteStocks TV')],
+              'app/src/main/java/com/streamvault/app/pairing/ProviderQrPairingManager.kt': [('was added to StreamVault.', 'was added to EliteStocks TV.')],
               'app/src/main/res/values/strings.xml': [
                   ('open a backup file with StreamVault.', 'open a backup file with EliteStocks TV.'),
                   ('backups created by StreamVault.', 'backups created by EliteStocks TV.'),
-                  ('No StreamVault-created local backups found.', 'No EliteStocks TV-created local backups found.'),
-              ],
+                  ('No StreamVault-created local backups found.', 'No EliteStocks TV-created local backups found.')],
           }
           for relative, pairs in replacements.items():
               path = root / relative
-              if not path.exists():
-                  continue
-              text = path.read_text(encoding='utf-8')
-              for old, new in pairs:
-                  text = text.replace(old, new)
-              path.write_text(text, encoding='utf-8')
-
+              if path.exists():
+                  text = path.read_text(encoding='utf-8')
+                  for old, new in pairs:
+                      text = text.replace(old, new)
+                  path.write_text(text, encoding='utf-8')
           readme = root / 'README.md'
           if readme.exists():
               text = readme.read_text(encoding='utf-8')
               if 'Based on StreamVault' not in text and 'Derived from StreamVault' not in text:
                   text += '\n\n> Legal attribution: Based on StreamVault by David Nashash / Davidona. See LICENSE for the original license terms.\n'
               readme.write_text(text, encoding='utf-8')
-
           for relative in ['app/src/main/res/drawable/ic_replay_10.xml', 'app/src/main/res/drawable/ic_forward_10.xml']:
               if not (root / relative).exists():
                   raise SystemExit(f'Missing required player resource: {relative}')
@@ -127,55 +109,24 @@ jobs:
           import re
           root = Path('.')
           text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
-          technical_paths = {
-              'settings.gradle.kts',
-              'data/src/androidTest/java/com/streamvault/data/local/StreamVaultDatabaseMigrationTest.kt',
-              'data/src/main/java/com/streamvault/data/manager/GoogleDriveBackupSyncManager.kt',
-              'data/src/test/java/com/streamvault/data/manager/BackupManagerImplTest.kt',
-              'data/src/test/java/com/streamvault/data/manager/GoogleDriveBackupSyncManagerTest.kt',
-              'app/src/main/java/com/streamvault/app/update/GitHubReleaseChecker.kt',
-              'app/src/main/java/com/streamvault/app/update/AppUpdateInstaller.kt',
-              'app/src/main/java/com/streamvault/app/di/DatabaseModule.kt',
-          }
-          technical = re.compile(r'''(?x)
-              https?://[^\s"'<>]+ |
-              com\.streamvault(?:\.[A-Za-z0-9_$]+)+ |
-              streamvault://[^\s"'<>]+ |
-              @(?:style|id|string|drawable|mipmap|layout|color|xml|raw|font|menu|navigation)/[A-Za-z0-9_.-]*streamvault[A-Za-z0-9_.-]* |
-              R\.[A-Za-z0-9_]+\.[A-Za-z0-9_]*streamvault[A-Za-z0-9_]* |
-              [A-Za-z0-9_$.-]+\.(?:StreamVault|streamvault)(?:\.[A-Za-z0-9_$.-]+)* |
-              (?<![A-Za-z0-9_$])(?:StreamVault|streamvault)[A-Za-z0-9_$]+ |
-              [A-Za-z0-9_$]+(?:StreamVault|streamvault)(?![A-Za-z0-9_$])
-          ''')
+          technical_paths = {'settings.gradle.kts','data/src/androidTest/java/com/streamvault/data/local/StreamVaultDatabaseMigrationTest.kt','data/src/main/java/com/streamvault/data/manager/GoogleDriveBackupSyncManager.kt','data/src/test/java/com/streamvault/data/manager/BackupManagerImplTest.kt','data/src/test/java/com/streamvault/data/manager/GoogleDriveBackupSyncManagerTest.kt','app/src/main/java/com/streamvault/app/update/GitHubReleaseChecker.kt','app/src/main/java/com/streamvault/app/update/AppUpdateInstaller.kt','app/src/main/java/com/streamvault/app/di/DatabaseModule.kt'}
+          technical = re.compile(r'''(?x)https?://[^\s"'<>]+|com\.streamvault(?:\.[A-Za-z0-9_$]+)+|streamvault://[^\s"'<>]+|@(style|id|string|drawable|mipmap|layout|color|xml|raw|font|menu|navigation)/[A-Za-z0-9_.-]*streamvault[A-Za-z0-9_.-]*|R\.[A-Za-z0-9_]+\.[A-Za-z0-9_]*streamvault[A-Za-z0-9_]*|[A-Za-z0-9_$.-]+\.(?:StreamVault|streamvault)(?:\.[A-Za-z0-9_$.-]+)*|(?<![A-Za-z0-9_$])(?:StreamVault|streamvault)[A-Za-z0-9_$]+|[A-Za-z0-9_$]+(?:StreamVault|streamvault)(?![A-Za-z0-9_$])''')
           visible = re.compile(r'(?i)\bstreamvault\b')
-          hits = []
-          broken = []
+          hits=[]; broken=[]
           for path in root.rglob('*'):
-              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
-                  continue
-              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml') or str(path) in technical_paths:
-                  continue
-              try:
-                  text = path.read_text(encoding='utf-8')
-              except Exception:
-                  continue
-              for line_no, line in enumerate(technical.sub('', text).splitlines(), 1):
-                  if visible.search(line) and 'Based on StreamVault' not in line and 'Derived from StreamVault' not in line:
-                      hits.append(f'{path}:{line_no}:{line.strip()}')
-              if path.suffix.lower() == '.xml':
-                  for line_no, line in enumerate(text.splitlines(), 1):
-                      if re.search(r'(?i)(?:name|parent|style|id|resource|theme)\s*=\s*"[^"]*EliteStocks TV', line):
-                          broken.append(f'{path}:{line_no}:{line.strip()}')
-          language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
+              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts: continue
+              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml') or str(path) in technical_paths: continue
+              try: text=path.read_text(encoding='utf-8')
+              except Exception: continue
+              for line_no,line in enumerate(technical.sub('',text).splitlines(),1):
+                  if visible.search(line) and 'Based on StreamVault' not in line and 'Derived from StreamVault' not in line: hits.append(f'{path}:{line_no}:{line.strip()}')
+              if path.suffix.lower()=='.xml':
+                  for line_no,line in enumerate(text.splitlines(),1):
+                      if re.search(r'(?i)(?:name|parent|style|id|resource|theme)\s*=\s*"[^"]*EliteStocks TV',line): broken.append(f'{path}:{line_no}:{line.strip()}')
+          language_dir=re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
           broken.extend(str(p) for p in root.rglob('values-*') if p.is_dir() and language_dir.fullmatch(p.name[7:]))
-          if hits:
-              print('Unexpected user-facing StreamVault references:')
-              print('\n'.join(hits[:200]))
-              raise SystemExit(1)
-          if broken:
-              print('Broken identifiers or language-specific resources:')
-              print('\n'.join(broken[:200]))
-              raise SystemExit(1)
+          if hits: print('Unexpected user-facing StreamVault references:\n'+'\n'.join(hits[:200])); raise SystemExit(1)
+          if broken: print('Broken identifiers or language-specific resources:\n'+'\n'.join(broken[:200])); raise SystemExit(1)
           print('EliteStocks TV audit passed.')
 
       - name: Run app and player unit tests
@@ -202,9 +153,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo "No source changes were needed."
-            exit 0
-          fi
+          if git diff --cached --quiet; then echo "No source changes were needed."; exit 0; fi
           git commit -m "fix: complete EliteStocks TV player fixes"
           git push origin HEAD:master
