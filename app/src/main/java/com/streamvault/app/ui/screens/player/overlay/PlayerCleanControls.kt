@@ -233,7 +233,7 @@ fun PlayerCleanControls(
                             onSeekPreviewPositionChanged(null)
                             scrubbing = false
                         },
-                        modifier = Modifier.weight(1f).padding(horizontal = 10.dp).semantics { contentDescription = stringResource(R.string.player_playback_label) },
+                        modifier = Modifier.weight(1f).padding(horizontal = 10.dp).semantics { contentDescription = "Playback position" },
                         colors = SliderDefaults.colors(
                             activeTrackColor = Primary,
                             inactiveTrackColor = ClearWhite.copy(alpha = 0.26f),
