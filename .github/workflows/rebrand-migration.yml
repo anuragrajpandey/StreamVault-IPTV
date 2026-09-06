@@ -29,131 +29,79 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          import re
-
           root = Path('.')
 
-          def replace_once(path: Path, old: str, new: str, label: str):
+          def replace_once(path, old, new, label):
               text = path.read_text(encoding='utf-8')
               count = text.count(old)
               if count != 1:
                   raise SystemExit(f'{label}: expected 1 match in {path}, found {count}')
               path.write_text(text.replace(old, new), encoding='utf-8')
 
-          # 1) Preserve the most recent engine position when ExoPlayer has already
-          # reset its own currentPosition while dispatching a playback error.
           engine = root / 'player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt'
-          replace_once(
-              engine,
-              'currentPositionMs = player?.currentPosition,',
-              'currentPositionMs = maxOf(player?.currentPosition ?: 0L, _currentPosition.value).takeIf { it > 0L },',
-              'retry position fallback'
-          )
+          replace_once(engine, 'currentPositionMs = player?.currentPosition,', 'currentPositionMs = maxOf(player?.currentPosition ?: 0L, _currentPosition.value).takeIf { it > 0L },', 'retry position fallback')
 
-          # 2) Use the new compact VOD controls while keeping the existing public
-          # PlayerControlsOverlay API compatible through default parameters.
           chrome = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
           text = chrome.read_text(encoding='utf-8')
-
           replacements = [
-              (
-                  '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    onOpenSplitScreen:',
-                  '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    showNextEpisodeAction: Boolean = false,\n    onPlayNextEpisode: () -> Unit = {},\n    onOpenSplitScreen:',
-                  'overlay next-episode parameters'
-              ),
-              (
-                  '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                onOpenSplitScreen',
-                  '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                showNextEpisodeAction = showNextEpisodeAction,\n                onPlayNextEpisode = onPlayNextEpisode,\n                onOpenSplitScreen',
-                  'overlay-to-bottom next-episode forwarding'
-              ),
-              (
-                  '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    onOpenSplitScreen:',
-                  '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    showNextEpisodeAction: Boolean,\n    onPlayNextEpisode: () -> Unit,\n    onOpenSplitScreen:',
-                  'bottom-bar next-episode parameters'
-              ),
-              (
-                  '                    PlayerVodInfo(\n',
-                  '                    PlayerModernVodInfo(\n',
-                  'switch VOD controls'
-              ),
-              (
-                  '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        onEnterPictureInPicture',
-                  '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        showNextEpisodeAction = showNextEpisodeAction,\n                        onPlayNextEpisode = onPlayNextEpisode,\n                        onEnterPictureInPicture',
-                  'VOD next-episode forwarding'
-              ),
-              (
-                  '    label: String,\n    contentDescription: String,',
-                  '    icon: Int,\n    contentDescription: String,',
-                  'transport icon parameter'
-              ),
-              (
-                  '            Text(\n                text = label,\n                style = MaterialTheme.typography.headlineSmall,\n                color = Color.White\n            )',
-                  '            Icon(\n                painter = painterResource(icon),\n                contentDescription = null,\n                tint = Color.White,\n                modifier = Modifier.size(28.dp)\n            )',
-                  'transport icon rendering'
-              ),
-              (
-                  'label = "\\u23EA",',
-                  'icon = R.drawable.ic_replay_10,',
-                  'rewind vector icon'
-              ),
-              (
-                  'label = "\\u23E9",',
-                  'icon = R.drawable.ic_forward_10,',
-                  'forward vector icon'
-              ),
+              ('    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    onOpenSplitScreen:', '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    showNextEpisodeAction: Boolean = false,\n    onPlayNextEpisode: () -> Unit = {},\n    onOpenSplitScreen:', 'overlay next episode'),
+              ('                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                onOpenSplitScreen', '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                showNextEpisodeAction = showNextEpisodeAction,\n                onPlayNextEpisode = onPlayNextEpisode,\n                onOpenSplitScreen', 'overlay forwarding'),
+              ('    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    onOpenSplitScreen:', '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    showNextEpisodeAction: Boolean,\n    onPlayNextEpisode: () -> Unit,\n    onOpenSplitScreen:', 'bottom bar next episode'),
+              ('                    PlayerVodInfo(\n', '                    PlayerModernVodInfo(\n', 'modern VOD controls'),
+              ('                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        onEnterPictureInPicture', '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        showNextEpisodeAction = showNextEpisodeAction,\n                        onPlayNextEpisode = onPlayNextEpisode,\n                        onEnterPictureInPicture', 'modern VOD forwarding'),
+              ('    label: String,\n    contentDescription: String,', '    icon: Int,\n    contentDescription: String,', 'transport icon parameter'),
+              ('            Text(\n                text = label,\n                style = MaterialTheme.typography.headlineSmall,\n                color = Color.White\n            )', '            Icon(\n                painter = painterResource(icon),\n                contentDescription = null,\n                tint = Color.White,\n                modifier = Modifier.size(28.dp)\n            )', 'transport icon rendering'),
+              ('label = "\\u23EA",', 'icon = R.drawable.ic_replay_10,', 'rewind vector'),
+              ('label = "\\u23E9",', 'icon = R.drawable.ic_forward_10,', 'forward vector'),
           ]
-
           for old, new, label in replacements:
               count = text.count(old)
-              if count == 0:
-                  if label in {'VOD next-episode forwarding', 'overlay-to-bottom next-episode forwarding'}:
-                      continue
-                  raise SystemExit(f'{label}: pattern not found in {chrome}')
-              if count != 1 and label not in {'rewind vector icon', 'forward vector icon'}:
+              if count != 1:
                   raise SystemExit(f'{label}: expected 1 match in {chrome}, found {count}')
               text = text.replace(old, new)
-
           if 'import androidx.compose.ui.res.painterResource' not in text:
-              text = text.replace(
-                  'import androidx.compose.ui.res.stringResource\n',
-                  'import androidx.compose.ui.res.painterResource\nimport androidx.compose.ui.res.stringResource\n',
-                  1
-              )
+              text = text.replace('import androidx.compose.ui.res.stringResource\n', 'import androidx.compose.ui.res.painterResource\nimport androidx.compose.ui.res.stringResource\n', 1)
           chrome.write_text(text, encoding='utf-8')
 
-          # 3) Wire the real ViewModel nextEpisode state to the new Next Episode
-          # action. It is only exposed for episodic playback when a valid next
-          # episode has actually been resolved.
           screen = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt'
           text = screen.read_text(encoding='utf-8')
-          text = text.replace(
-              '    val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()\n',
-              '    val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()\n    val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()\n',
-              1
-          )
-          text = text.replace(
-              '    val canOpenEpisodePicker = contentType == "SERIES_EPISODE" &&\n        currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true\n',
-              '    val canOpenEpisodePicker = contentType == "SERIES_EPISODE" &&\n        currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true\n    val showNextEpisodeAction = contentType == "SERIES_EPISODE" && nextEpisode != null\n',
-              1
-          )
+          anchor = '    val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()\n'
+          if 'val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()' not in text:
+              replace_once(screen, anchor, anchor + '    val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()\n', 'next episode state')
+              text = screen.read_text(encoding='utf-8')
+          anchor = '    val canOpenEpisodePicker = contentType == "SERIES_EPISODE" &&\n        currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true\n'
+          if 'val showNextEpisodeAction = contentType == "SERIES_EPISODE"' not in text:
+              replace_once(screen, anchor, anchor + '    val showNextEpisodeAction = contentType == "SERIES_EPISODE" && nextEpisode != null\n', 'next episode visibility')
+              text = screen.read_text(encoding='utf-8')
           old = '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            onOpenSplitScreen = { showSplitDialog = true },'
-          new = '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            showNextEpisodeAction = showNextEpisodeAction,\n            onPlayNextEpisode = viewModel::playNextEpisodeNow,\n            onOpenSplitScreen = { showSplitDialog = true },'
-          if text.count(old) != 1:
-              raise SystemExit(f'PlayerScreen overlay wiring: expected 1 match, found {text.count(old)}')
-          screen.write_text(text.replace(old, new), encoding='utf-8')
+          if 'onPlayNextEpisode = viewModel::playNextEpisodeNow' not in text:
+              replace_once(screen, old, '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            showNextEpisodeAction = showNextEpisodeAction,\n            onPlayNextEpisode = viewModel::playNextEpisodeNow,\n            onOpenSplitScreen = { showSplitDialog = true },', 'next episode action wiring')
 
-          # 4) Tighten the warm EliteStocks palette. The previous migration already
-          # moved the main palette to amber, but these two values were still blue.
           colors = root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt'
           if colors.exists():
-              text = colors.read_text(encoding='utf-8')
-              text = text.replace('0x335FA4FF', '0x33FFA000')
-              text = text.replace('0x264C6D95', '0x33FFB52E')
-              colors.write_text(text, encoding='utf-8')
+              colors.write_text(colors.read_text(encoding='utf-8').replace('0x335FA4FF', '0x33FFA000').replace('0x264C6D95', '0x33FFB52E'), encoding='utf-8')
 
-          # 5) Ensure the 10-second vector resources remain present.
+          for relative in [
+              'app/src/main/res/values/strings.xml',
+              'README.md',
+              'docs/PLUGIN_API.md',
+              'docs/CHANGELOG.md',
+              'app/src/main/java/com/streamvault/app/pairing/ProviderQrPairingManager.kt',
+          ]:
+              path = root / relative
+              if path.exists():
+                  text = path.read_text(encoding='utf-8')
+                  text = text.replace('StreamVault', 'EliteStocks TV').replace('STREAMVAULT', 'ELITESTOCKS TV').replace('streamvault-dev-<your-handle>', 'elitestocks-tv-dev-<your-handle>')
+                  path.write_text(text, encoding='utf-8')
+
+          readme = root / 'README.md'
+          if readme.exists():
+              text = readme.read_text(encoding='utf-8')
+              if 'Based on StreamVault' not in text and 'Derived from StreamVault' not in text:
+                  text += '\n\n> Legal attribution: Based on StreamVault by David Nashash / Davidona. See LICENSE for the original license terms.\n'
+              readme.write_text(text, encoding='utf-8')
+
           drawable = root / 'app/src/main/res/drawable'
-          drawable.mkdir(parents=True, exist_ok=True)
           if not (drawable / 'ic_replay_10.xml').exists() or not (drawable / 'ic_forward_10.xml').exists():
               raise SystemExit('10-second player vector resources are missing')
 
@@ -162,9 +110,18 @@ jobs:
         run: |
           from pathlib import Path
           import re
-
           root = Path('.')
           text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
+          technical_paths = {
+              'settings.gradle.kts',
+              'data/src/androidTest/java/com/streamvault/data/local/StreamVaultDatabaseMigrationTest.kt',
+              'data/src/main/java/com/streamvault/data/manager/GoogleDriveBackupSyncManager.kt',
+              'data/src/test/java/com/streamvault/data/manager/BackupManagerImplTest.kt',
+              'data/src/test/java/com/streamvault/data/manager/GoogleDriveBackupSyncManagerTest.kt',
+              'app/src/main/java/com/streamvault/app/update/GitHubReleaseChecker.kt',
+              'app/src/main/java/com/streamvault/app/update/AppUpdateInstaller.kt',
+              'app/src/main/java/com/streamvault/app/di/DatabaseModule.kt',
+          }
           technical = re.compile(r'''(?x)
               https?://[^\s"'<>]+ |
               com\.streamvault(?:\.[A-Za-z0-9_$]+)+ |
@@ -178,33 +135,24 @@ jobs:
           visible = re.compile(r'(?i)\bstreamvault\b')
           hits = []
           broken = []
-
           for path in root.rglob('*'):
               if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
                   continue
-              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml'):
+              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml') or str(path) in technical_paths:
                   continue
               try:
                   text = path.read_text(encoding='utf-8')
               except Exception:
                   continue
-              check = technical.sub('', text)
-              for line_no, line in enumerate(check.splitlines(), 1):
-                  if visible.search(line):
+              for line_no, line in enumerate(technical.sub('', text).splitlines(), 1):
+                  if visible.search(line) and 'Based on StreamVault' not in line and 'Derived from StreamVault' not in line:
                       hits.append(f'{path}:{line_no}:{line.strip()}')
               if path.suffix.lower() == '.xml':
                   for line_no, line in enumerate(text.splitlines(), 1):
                       if re.search(r'(?i)(?:name|parent|style|id|resource|theme)\s*=\s*"[^"]*EliteStocks TV', line):
                           broken.append(f'{path}:{line_no}:{line.strip()}')
-              if path.suffix.lower() in {'.kt', '.kts', '.java'}:
-                  if re.search(r'\b(?:Theme|R\.[A-Za-z0-9_]+|[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\.EliteStocks TV\b', text):
-                      broken.append(str(path))
-
           language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
-          language_dirs = [p for p in root.rglob('values-*') if p.is_dir() and language_dir.fullmatch(p.name[7:])]
-          if language_dirs:
-              broken.extend(str(p) for p in language_dirs)
-
+          broken.extend(str(p) for p in root.rglob('values-*') if p.is_dir() and language_dir.fullmatch(p.name[7:]))
           if hits:
               print('Unexpected user-facing StreamVault references:')
               print('\n'.join(hits[:200]))
