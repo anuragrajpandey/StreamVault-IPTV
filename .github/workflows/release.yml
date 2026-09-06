@@ -24,12 +24,10 @@ jobs:
         run: |
           VERSION_NAME=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -n 1)
           VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)
-
           if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
             echo "Failed to read app version from app/build.gradle.kts"
             exit 1
           fi
-
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "release_tag=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
@@ -56,13 +54,7 @@ jobs:
           if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_STORE_PASSWORD" ] && [ -n "$RELEASE_KEY_ALIAS" ] && [ -n "$RELEASE_KEY_PASSWORD" ]; then
             mkdir -p keystore
             echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > keystore/release.jks
-            printf '%s\n' \
-              'storeFile=keystore/release.jks' \
-              "storePassword=$RELEASE_STORE_PASSWORD" \
-              "keyAlias=$RELEASE_KEY_ALIAS" \
-              "keyPassword=$RELEASE_KEY_PASSWORD" \
-              > keystore.properties
-            echo "Release signing files prepared."
+            printf '%s\n' 'storeFile=keystore/release.jks' "storePassword=$RELEASE_STORE_PASSWORD" "keyAlias=$RELEASE_KEY_ALIAS" "keyPassword=$RELEASE_KEY_PASSWORD" > keystore.properties
           else
             echo "No signing secrets configured. Building unsigned release APK."
           fi
@@ -87,7 +79,6 @@ jobs:
         run: ./gradlew --console=plain :app:assembleRelease
 
       - name: Prepare release artifact
-        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           mkdir -p dist
@@ -100,7 +91,6 @@ jobs:
           cp "$APK_PATH" dist/StreamVault.apk
 
       - name: Upload release APK artifact
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
@@ -124,77 +114,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
-          path: |
-            build/reports/kover/
-
-  publish-release:
-    if: github.event_name == 'workflow_dispatch'
-    needs: [build, platform-smoke]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download release APK artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: release-apk
-          path: dist
-
-      - name: Read app version
-        id: app_version
-        shell: bash
-        run: |
-          VERSION_NAME=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -n 1)
-          VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)
-
-          if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
-            echo "Failed to read app version from app/build.gradle.kts"
-            exit 1
-          fi
-
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "release_tag=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "apk_name=StreamVault-$VERSION_NAME.apk" >> "$GITHUB_OUTPUT"
-
-      - name: Extract changelog entry
-        id: changelog
-        shell: bash
-        run: |
-          VERSION="${{ steps.app_version.outputs.version_name }}"
-          echo "Extracting notes for version $VERSION"
-          
-          # Extract lines between the header and the next header (or EOF)
-          # Supports both "## [1.0.5] - date" and legacy "## 1.0.5 date" styles.
-          {
-            echo "notes<<EOF"
-            awk -v ver="$VERSION" '
-              $0 ~ ("^## \\[" ver "\\]") || $0 ~ ("^## " ver " ") { p=1; next }
-              $0 ~ "^## " && p { p=0 }
-              p { print }
-            ' docs/CHANGELOG.md
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          path: build/reports/kover/
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.app_version.outputs.release_tag }}
-          name: StreamVault ${{ steps.app_version.outputs.version_name }}
-          body: |
-            ${{ steps.changelog.outputs.notes }}
-            
-            ---
-            Built from `${{ github.sha }}`.
-          files: |
-            dist/${{ steps.app_version.outputs.apk_name }}
-            dist/StreamVault.apk
-          make_latest: true
-          generate_release_notes: false
-
-  platform-smoke:
-    needs: build
-    permissions:
-      contents: read
-    uses: ./.github/workflows/platform-smoke.yml
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.app_version.outputs.version_name }}"
+          NOTES=$(awk -v ver="$VERSION" '$0 ~ ("^## \\[" ver "\\]") || $0 ~ ("^## " ver " ") { p=1; next } $0 ~ "^## " && p { p=0 } p { print }' docs/CHANGELOG.md)
+          gh release create "${{ steps.app_version.outputs.release_tag }}" \
+            "dist/${{ steps.app_version.outputs.apk_name }}" \
+            dist/StreamVault.apk \
+            --title "StreamVault $VERSION" \
+            --notes "$NOTES" \
+            --latest
