@@ -67,6 +67,12 @@ jobs:
         run: |
           python3 tools/final_polish.py
 
+      - name: Normalize internal source paths in tests
+        shell: bash
+        run: |
+          find data/src/test app/src/test -type f -name '*.kt' -print0 2>/dev/null |
+            xargs -0 -r sed -i 's#com/EliteStocks TV#com/streamvault#g'
+
       - name: Verify player/icon polish was applied
         shell: bash
         run: |
