@@ -33,7 +33,7 @@ object BackupFileBridge {
     )
 
     /**
-     * Lists files that StreamVault created itself and can therefore delete
+     * Lists files that EliteStocks TV created itself and can therefore delete
      * safely. Arbitrary JSON files in a user-selected folder are intentionally
      * excluded; those remain under the user's normal file-manager control.
      */
@@ -46,7 +46,7 @@ object BackupFileBridge {
                     MediaStore.MediaColumns.DISPLAY_NAME,
                     MediaStore.MediaColumns.DATE_MODIFIED,
                 )
-                val relativePath = Environment.DIRECTORY_DOWNLOADS + "/StreamVault/"
+                val relativePath = Environment.DIRECTORY_DOWNLOADS + "/EliteStocks TV/"
                 context.contentResolver.query(
                     MediaStore.Downloads.EXTERNAL_CONTENT_URI,
                     projection,
@@ -133,7 +133,7 @@ object BackupFileBridge {
                 put(MediaStore.MediaColumns.MIME_TYPE, MIME_TYPE_JSON)
                 put(
                     MediaStore.MediaColumns.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS + "/StreamVault/"
+                    Environment.DIRECTORY_DOWNLOADS + "/EliteStocks TV/"
                 )
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
@@ -169,7 +169,7 @@ object BackupFileBridge {
     }
 
     /**
-     * Finds backups that StreamVault can import without launching a document
+     * Finds backups that EliteStocks TV can import without launching a document
      * picker. This includes visible MediaStore downloads and the
      * app-specific fallback directory used on older Android versions.
      */
@@ -322,7 +322,7 @@ object BackupFileBridge {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        return Intent.createChooser(sendIntent, "Share StreamVault backup")
+        return Intent.createChooser(sendIntent, "Share EliteStocks TV backup")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 

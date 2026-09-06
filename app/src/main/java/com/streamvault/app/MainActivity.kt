@@ -522,7 +522,7 @@ private fun DatabaseStartupScreen(
                 }
                 is DatabaseStartupState.Failed -> {
                     Text(
-                        text = "StreamVault couldn't open your library",
+                        text = "EliteStocks TV couldn't open your library",
                         style = MaterialTheme.typography.headlineSmall,
                         textAlign = TextAlign.Center
                     )

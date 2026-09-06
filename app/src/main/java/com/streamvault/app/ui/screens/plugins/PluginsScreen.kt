@@ -166,7 +166,7 @@ fun PluginsScreen(
                     if (uiState.plugins.isEmpty() && !uiState.isLoading) {
                         item {
                             Text(
-                                text = "No compatible StreamVault plugins are installed.",
+                                text = "No compatible EliteStocks TV plugins are installed.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AppColors.TextSecondary
                             )
@@ -281,7 +281,7 @@ private fun PluginInstallPanel(
             }
         }
         Text(
-            text = "Manual installs are detected when this screen refreshes. Compatible plugins expose the StreamVault plugin service.",
+            text = "Manual installs are detected when this screen refreshes. Compatible plugins expose the EliteStocks TV plugin service.",
             style = MaterialTheme.typography.bodySmall,
             color = AppColors.TextTertiary
         )
@@ -314,7 +314,7 @@ private fun PluginInstallUrlDialog(
 
     PremiumDialog(
         title = "Install plugin from URL",
-        subtitle = "Enter the direct APK URL. StreamVault will download it and open the installer.",
+        subtitle = "Enter the direct APK URL. EliteStocks TV will download it and open the installer.",
         onDismissRequest = {
             keyboardController?.hide()
             if (!isInstalling) onDismiss()

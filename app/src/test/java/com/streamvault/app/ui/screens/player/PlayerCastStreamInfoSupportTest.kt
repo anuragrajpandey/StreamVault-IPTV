@@ -12,7 +12,7 @@ class PlayerCastStreamInfoSupportTest {
         val active = StreamInfo(
             url = "https://example.test/active.m3u8",
             headers = mapOf("Cookie" to "session=abc"),
-            userAgent = "StreamVault",
+            userAgent = "EliteStocks TV",
             streamType = StreamType.HLS
         )
         val fallback = StreamInfo(

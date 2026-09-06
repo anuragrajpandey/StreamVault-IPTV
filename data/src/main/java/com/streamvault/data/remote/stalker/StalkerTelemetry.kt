@@ -189,7 +189,7 @@ internal object StalkerTelemetry {
     }
 
     private fun providerHash(providerId: Long): String = MessageDigest.getInstance("SHA-256")
-        .digest("streamvault/stalker/provider/$providerId".toByteArray(Charsets.UTF_8))
+        .digest("EliteStocks TV/stalker/provider/$providerId".toByteArray(Charsets.UTF_8))
         .take(8)
         .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
 

@@ -132,7 +132,7 @@ class Media3PlayerEngine @Inject constructor(
         private const val TEXTURE_VIEW_BUFFERED_STARTUP_THRESHOLD_MS = 4_000L
         private const val LIVE_HLS_STARTUP_GRACE_MS = 15_000L
         private const val KNOWN_BAD_FAILURE_THRESHOLD = 3
-        private const val MEDIA_SESSION_ID_PREFIX = "streamvault"
+        private const val MEDIA_SESSION_ID_PREFIX = "EliteStocks TV"
         private val nextMediaSessionInstanceId = AtomicLong(1L)
     }
 
@@ -2212,7 +2212,7 @@ class Media3PlayerEngine @Inject constructor(
     }
 
     private fun buildPlaybackSupportSnapshot(): String = buildString {
-        appendLine("StreamVault Playback Support Snapshot")
+        appendLine("EliteStocks TV Playback Support Snapshot")
         appendLine("requestedAudioDecoderMode=$requestedAudioDecoderMode")
         appendLine("requestedVideoDecoderMode=$requestedVideoDecoderMode")
         appendLine("activeAudioDecoderMode=$activeAudioDecoderMode")

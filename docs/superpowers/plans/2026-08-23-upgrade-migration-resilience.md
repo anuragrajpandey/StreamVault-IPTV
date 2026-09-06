@@ -23,10 +23,10 @@
 ### Task 1: Collision-safe migration identities and legacy types
 
 **Files:**
-- Modify: `data/src/main/java/com/streamvault/data/local/MigrationSupport.kt`
-- Modify: `data/src/main/java/com/streamvault/data/local/FeatureMigrationsV49To75.kt`
-- Create: `data/src/test/java/com/streamvault/data/local/MigrationSupportTest.kt`
-- Modify: `data/src/androidTest/java/com/streamvault/data/local/StreamVaultDatabaseMigrationTest.kt`
+- Modify: `data/src/main/java/com/EliteStocks TV/data/local/MigrationSupport.kt`
+- Modify: `data/src/main/java/com/EliteStocks TV/data/local/FeatureMigrationsV49To75.kt`
+- Create: `data/src/test/java/com/EliteStocks TV/data/local/MigrationSupportTest.kt`
+- Modify: `data/src/androidTest/java/com/EliteStocks TV/data/local/StreamVaultDatabaseMigrationTest.kt`
 
 **Interfaces:**
 - Produces: `canonicalLegacyProviderType(String): String`
@@ -44,8 +44,8 @@
 ### Task 2: Prevent runtime configuration replacement across providers
 
 **Files:**
-- Modify: `data/src/main/java/com/streamvault/data/local/dao/ProviderSnapshotDao.kt`
-- Modify: `data/src/test/java/com/streamvault/data/local/ProviderSnapshotDaoTest.kt`
+- Modify: `data/src/main/java/com/EliteStocks TV/data/local/dao/ProviderSnapshotDao.kt`
+- Modify: `data/src/test/java/com/EliteStocks TV/data/local/ProviderSnapshotDaoTest.kt`
 
 **Interfaces:**
 - Consumes: persisted disambiguated keys created by Task 1.
@@ -59,8 +59,8 @@
 ### Task 3: Scope migration foreign-key validation
 
 **Files:**
-- Modify: `data/src/main/java/com/streamvault/data/local/FeatureMigrationsV49To75.kt`
-- Modify: `data/src/androidTest/java/com/streamvault/data/local/StreamVaultDatabaseMigrationTest.kt`
+- Modify: `data/src/main/java/com/EliteStocks TV/data/local/FeatureMigrationsV49To75.kt`
+- Modify: `data/src/androidTest/java/com/EliteStocks TV/data/local/StreamVaultDatabaseMigrationTest.kt`
 
 **Interfaces:**
 - Consumes: `ProviderDependentBackup.table` from the existing rebuild.
@@ -74,11 +74,11 @@
 ### Task 4: Gate startup on database readiness
 
 **Files:**
-- Create: `app/src/main/java/com/streamvault/app/startup/DatabaseStartupCoordinator.kt`
-- Create: `app/src/main/java/com/streamvault/app/startup/DatabaseStartupScreen.kt`
-- Create: `app/src/test/java/com/streamvault/app/startup/DatabaseStartupCoordinatorTest.kt`
-- Modify: `app/src/main/java/com/streamvault/app/StreamVaultApp.kt`
-- Modify: `app/src/main/java/com/streamvault/app/MainActivity.kt`
+- Create: `app/src/main/java/com/EliteStocks TV/app/startup/DatabaseStartupCoordinator.kt`
+- Create: `app/src/main/java/com/EliteStocks TV/app/startup/DatabaseStartupScreen.kt`
+- Create: `app/src/test/java/com/EliteStocks TV/app/startup/DatabaseStartupCoordinatorTest.kt`
+- Modify: `app/src/main/java/com/EliteStocks TV/app/StreamVaultApp.kt`
+- Modify: `app/src/main/java/com/EliteStocks TV/app/MainActivity.kt`
 - Modify: `app/src/main/res/values/strings.xml`
 
 **Interfaces:**

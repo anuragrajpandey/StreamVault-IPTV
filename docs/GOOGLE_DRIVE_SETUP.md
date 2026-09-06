@@ -1,6 +1,6 @@
 # Google Drive backup sync — setup guide
 
-StreamVault can sync its backup file to a private folder of your Google Drive
+EliteStocks TV can sync its backup file to a private folder of your Google Drive
 (scope `drive.appdata`). The folder is owned by the app, **invisible** in the
 standard Drive UI, and **wiped automatically** when the user uninstalls the app.
 
@@ -45,7 +45,7 @@ your choice (e.g. `streamvault-dev-<your-handle>`). Select it.
 <https://console.cloud.google.com/apis/credentials/consent>
 
 - **User type** → External
-- **App name** → `StreamVault` (or your fork name)
+- **App name** → `EliteStocks TV` (or your fork name)
 - **User support email** + **Developer contact** → your email
 - **Scopes** → add `https://www.googleapis.com/auth/drive.appdata`
 - **Test users** → add the Google account(s) you'll sign in with on the device
@@ -61,7 +61,7 @@ flow to all users, see the publishing section below.
 
 | Field | Value |
 |---|---|
-| Name | `StreamVault — debug (<your handle>)` |
+| Name | `EliteStocks TV — debug (<your handle>)` |
 | Package name | `com.streamvault.app` |
 | SHA-1 certificate fingerprint | from `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` |
 

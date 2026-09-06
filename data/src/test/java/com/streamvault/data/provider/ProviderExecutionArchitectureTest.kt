@@ -19,9 +19,9 @@ class ProviderExecutionArchitectureTest {
     @Test
     fun `protocol clients are constructed only by the typed client factory`() {
         val allowed = setOf(
-            "data/src/main/java/com/streamvault/data/provider/TypedProviderClientFactory.kt",
-            "data/src/main/java/com/streamvault/data/remote/stalker/StalkerProvider.kt",
-            "data/src/main/java/com/streamvault/data/remote/xtream/XtreamProvider.kt"
+            "data/src/main/java/com/EliteStocks TV/data/provider/TypedProviderClientFactory.kt",
+            "data/src/main/java/com/EliteStocks TV/data/remote/stalker/StalkerProvider.kt",
+            "data/src/main/java/com/EliteStocks TV/data/remote/xtream/XtreamProvider.kt"
         )
         val constructorPattern = Regex("\\b(?:StalkerProvider|XtreamProvider)\\s*\\(")
         val violations = productionKotlinFiles()
@@ -37,9 +37,9 @@ class ProviderExecutionArchitectureTest {
     @Test
     fun `runtime resolver boundaries do not branch on provider type`() {
         val boundaries = listOf(
-            "data/src/main/java/com/streamvault/data/remote/xtream/XtreamStreamUrlResolver.kt",
-            "data/src/main/java/com/streamvault/data/manager/RecordingManagerImpl.kt",
-            "data/src/main/java/com/streamvault/data/epg/EpgResolutionEngine.kt"
+            "data/src/main/java/com/EliteStocks TV/data/remote/xtream/XtreamStreamUrlResolver.kt",
+            "data/src/main/java/com/EliteStocks TV/data/manager/RecordingManagerImpl.kt",
+            "data/src/main/java/com/EliteStocks TV/data/epg/EpgResolutionEngine.kt"
         )
         val violations = boundaries.filter { relative ->
             repositoryRoot.resolve(relative).readText().contains("ProviderType.")
@@ -51,7 +51,7 @@ class ProviderExecutionArchitectureTest {
     @Test
     fun `sync execution does not redispatch on provider type after registry resolution`() {
         val source = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncManager.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncManager.kt"
         ).readText()
         val providerTypeDispatch = Regex(
             """when\s*\(\s*(?:provider|providerEntity)\.type\s*\)"""
@@ -63,10 +63,10 @@ class ProviderExecutionArchitectureTest {
         assertThat(source).contains("syncCoordinator.syncGuide(")
         assertThat(source).contains("continuationScheduler = ProviderContinuationScheduler(providerSyncWorkScheduler)")
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncManagerPlanDelegate.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncManagerPlanDelegate.kt"
         ).readText()).contains("providerEpgExecutor.syncXtreamProviderEpg")
         val continuationScheduler = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/ProviderContinuationScheduler.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/ProviderContinuationScheduler.kt"
         ).readText()
         assertThat(continuationScheduler).contains("workScheduler.scheduleBackgroundEpg(providerId)")
         assertThat(continuationScheduler).contains("workScheduler.scheduleXtreamIndex(")
@@ -83,7 +83,7 @@ class ProviderExecutionArchitectureTest {
         ).isTrue()
         assertThat(source).contains("vodCategoryHydrationCoordinator")
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/VodCategoryHydrationCoordinator.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/VodCategoryHydrationCoordinator.kt"
         ).readText()).contains("providerSyncLocks.withVodCategoryLock(")
         assertThat(source).doesNotContain("providerSyncMutexes")
         assertThat(source).doesNotContain("providerEpgMutexes")
@@ -99,7 +99,7 @@ class ProviderExecutionArchitectureTest {
     @Test
     fun `sync manager does not perform compatibility model projection`() {
         val manager = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncManager.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncManager.kt"
         ).readText()
 
         assertThat(manager).contains("SyncProviderSnapshotAdapter")
@@ -112,7 +112,7 @@ class ProviderExecutionArchitectureTest {
     @Test
     fun `index checkpoint and recovery helpers live outside sync manager`() {
         val manager = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncManager.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncManager.kt"
         ).readText()
 
         assertThat(manager).doesNotContain("getStalkerHydrationSnapshot")
@@ -123,29 +123,29 @@ class ProviderExecutionArchitectureTest {
         assertThat(manager).doesNotContain("shouldRunXtreamSummaryIndex")
         assertThat(manager).doesNotContain("xtreamIndexFailureState")
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerIndexCheckpointStore.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIndexCheckpointStore.kt"
         ).readText()).contains("class StalkerIndexCheckpointStore")
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerIndexRecoveryPolicy.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIndexRecoveryPolicy.kt"
         ).readText()).contains("object StalkerIndexRecoveryPolicy")
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/XtreamIndexRecoveryPolicy.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/XtreamIndexRecoveryPolicy.kt"
         ).readText()).contains("object XtreamIndexRecoveryPolicy")
     }
 
     @Test
     fun `workers and repositories consume narrow sync ports`() {
         val consumerPaths = listOf(
-            "data/src/main/java/com/streamvault/data/repository/MovieRepositoryImpl.kt",
-            "data/src/main/java/com/streamvault/data/repository/SeriesRepositoryImpl.kt",
-            "data/src/main/java/com/streamvault/data/repository/VodRepositoryImpl.kt",
-            "data/src/main/java/com/streamvault/data/repository/ProviderRepositoryImpl.kt",
-            "data/src/main/java/com/streamvault/data/repository/ProviderDeletionCleanupWorker.kt",
-            "data/src/main/java/com/streamvault/data/sync/ProviderSyncWorker.kt",
-            "data/src/main/java/com/streamvault/data/sync/BackgroundEpgSyncWorker.kt",
-            "data/src/main/java/com/streamvault/data/sync/XtreamIndexWorker.kt",
-            "data/src/main/java/com/streamvault/data/sync/StalkerIndexWorker.kt",
-            "data/src/main/java/com/streamvault/data/sync/ProviderSyncStateReaderImpl.kt"
+            "data/src/main/java/com/EliteStocks TV/data/repository/MovieRepositoryImpl.kt",
+            "data/src/main/java/com/EliteStocks TV/data/repository/SeriesRepositoryImpl.kt",
+            "data/src/main/java/com/EliteStocks TV/data/repository/VodRepositoryImpl.kt",
+            "data/src/main/java/com/EliteStocks TV/data/repository/ProviderRepositoryImpl.kt",
+            "data/src/main/java/com/EliteStocks TV/data/repository/ProviderDeletionCleanupWorker.kt",
+            "data/src/main/java/com/EliteStocks TV/data/sync/ProviderSyncWorker.kt",
+            "data/src/main/java/com/EliteStocks TV/data/sync/BackgroundEpgSyncWorker.kt",
+            "data/src/main/java/com/EliteStocks TV/data/sync/XtreamIndexWorker.kt",
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIndexWorker.kt",
+            "data/src/main/java/com/EliteStocks TV/data/sync/ProviderSyncStateReaderImpl.kt"
         )
 
         consumerPaths.forEach { relative ->
@@ -155,14 +155,14 @@ class ProviderExecutionArchitectureTest {
         }
 
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/ProviderSyncPorts.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/ProviderSyncPorts.kt"
         ).toFile().isFile).isTrue()
     }
 
     @Test
     fun `small provider execution lives outside the sync manager`() {
         val manager = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncManager.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncManager.kt"
         ).readText()
 
         assertThat(manager).doesNotContain("private suspend fun syncM3u(")
@@ -193,7 +193,7 @@ class ProviderExecutionArchitectureTest {
         assertThat(manager).doesNotContain("toLegacyJobState")
 
         val stalkerIndexJobStore = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerIndexJobStore.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIndexJobStore.kt"
         ).readText()
         assertThat(stalkerIndexJobStore).contains("class StalkerIndexJobStore")
         assertThat(stalkerIndexJobStore).contains("StalkerIndexJobUpdate")
@@ -201,32 +201,32 @@ class ProviderExecutionArchitectureTest {
         assertThat(stalkerIndexJobStore).contains("fun upsertLegacy")
 
         val epgExecutor = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/ProviderEpgSyncExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/ProviderEpgSyncExecutor.kt"
         ).readText()
         assertThat(epgExecutor).contains("private suspend fun syncStalkerPreferredEpg(")
         assertThat(epgExecutor).contains("private suspend fun syncStalkerPortalEpg(")
         assertThat(epgExecutor).contains("stalkerRequestCoordinator.execute(")
 
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/M3uCatalogSyncExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/M3uCatalogSyncExecutor.kt"
         ).toFile().isFile).isTrue()
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/JellyfinCatalogSyncExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/JellyfinCatalogSyncExecutor.kt"
         ).toFile().isFile).isTrue()
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/XtreamCatalogSectionExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/XtreamCatalogSectionExecutor.kt"
         ).toFile().isFile).isTrue()
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/XtreamCatalogSyncExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/XtreamCatalogSyncExecutor.kt"
         ).toFile().isFile).isTrue()
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerCatalogSectionExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerCatalogSectionExecutor.kt"
         ).toFile().isFile).isTrue()
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerCatalogSyncExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerCatalogSyncExecutor.kt"
         ).toFile().isFile).isTrue()
         assertThat(repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/ProviderEpgSyncExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/ProviderEpgSyncExecutor.kt"
         ).toFile().isFile).isTrue()
     }
 
@@ -234,7 +234,7 @@ class ProviderExecutionArchitectureTest {
     fun `major sync coordinators stay within explicit dependency budgets`() {
         val budgets = listOf(
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/SyncManager.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/SyncManager.kt",
                 className = "SyncManager",
                 // SyncManager currently assembles the provider executors, catalog/index
                 // lifecycle, and durable backup-restore hooks. Keep this explicit rather
@@ -242,32 +242,32 @@ class ProviderExecutionArchitectureTest {
                 maxConstructorDependencies = 43
             ),
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/SyncCoordinator.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/SyncCoordinator.kt",
                 className = "SyncCoordinator",
                 maxConstructorDependencies = 2
             ),
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/VodCategoryHydrationCoordinator.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/VodCategoryHydrationCoordinator.kt",
                 className = "VodCategoryHydrationCoordinator",
                 maxConstructorDependencies = 11
             ),
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/StalkerIndexContinuationCoordinator.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIndexContinuationCoordinator.kt",
                 className = "StalkerIndexContinuationCoordinator",
                 maxConstructorDependencies = 11
             ),
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/StalkerIncrementalIndexExecutor.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIncrementalIndexExecutor.kt",
                 className = "StalkerIncrementalIndexExecutor",
                 maxConstructorDependencies = 1
             ),
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/XtreamIncrementalIndexExecutor.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/XtreamIncrementalIndexExecutor.kt",
                 className = "XtreamIncrementalIndexExecutor",
                 maxConstructorDependencies = 1
             ),
             DependencyBudget(
-                path = "data/src/main/java/com/streamvault/data/sync/SyncStatusPublicationCoordinator.kt",
+                path = "data/src/main/java/com/EliteStocks TV/data/sync/SyncStatusPublicationCoordinator.kt",
                 className = "SyncStatusPublicationCoordinator",
                 maxConstructorDependencies = 3
             )
@@ -280,10 +280,10 @@ class ProviderExecutionArchitectureTest {
         }
 
         val manager = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncManager.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncManager.kt"
         ).readText()
         val continuation = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerIndexContinuationCoordinator.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIndexContinuationCoordinator.kt"
         ).readText()
         assertThat(manager).contains("stalkerIndexContinuationCoordinator")
         assertThat(manager).contains("stalkerIncrementalIndexExecutor")
@@ -300,21 +300,21 @@ class ProviderExecutionArchitectureTest {
         assertThat(continuation).contains("StalkerIndexPolicy.nextRetryDelaySeconds")
 
         val incremental = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/StalkerIncrementalIndexExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/StalkerIncrementalIndexExecutor.kt"
         ).readText()
         assertThat(incremental).contains("suspend fun processSummary(")
         assertThat(incremental).contains("private suspend fun processWildcard(")
         assertThat(incremental).contains("StalkerIndexPolicy.detectPageAnomaly")
 
         val xtreamIncremental = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/XtreamIncrementalIndexExecutor.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/XtreamIncrementalIndexExecutor.kt"
         ).readText()
         assertThat(xtreamIncremental).contains("suspend fun processSummary(")
         assertThat(xtreamIncremental).contains("private suspend fun streamFullSummary(")
         assertThat(xtreamIncremental).contains("shouldAttemptFullStream")
 
         val publication = repositoryRoot.resolve(
-            "data/src/main/java/com/streamvault/data/sync/SyncStatusPublicationCoordinator.kt"
+            "data/src/main/java/com/EliteStocks TV/data/sync/SyncStatusPublicationCoordinator.kt"
         ).readText()
         assertThat(publication).contains("suspend fun updateSummaryMetadata(")
         assertThat(publication).contains("suspend fun markMovieIndexRebuildAttempt(")

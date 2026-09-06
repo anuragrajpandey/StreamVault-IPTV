@@ -82,7 +82,7 @@ object CrashReportStore {
         runCatching {
             latestReportFile(context).writeText(
                 buildReport(context, Thread.currentThread(), throwable)
-                    .replaceFirst("StreamVault Crash Report", "StreamVault Failure Report")
+                    .replaceFirst("EliteStocks TV Crash Report", "EliteStocks TV Failure Report")
                     .plus("\nOperation: ${sanitize(operation)}\n"),
                 Charsets.UTF_8
             )
@@ -98,13 +98,13 @@ object CrashReportStore {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        return Intent.createChooser(sendIntent, "Share StreamVault crash report")
+        return Intent.createChooser(sendIntent, "Share EliteStocks TV crash report")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
     private fun buildReport(context: Context, thread: Thread, throwable: Throwable): String {
         return buildString {
-            appendLine("StreamVault Crash Report")
+            appendLine("EliteStocks TV Crash Report")
             appendLine("========================")
             appendLine("Timestamp: ${OffsetDateTime.now().format(formatter)}")
             appendLine("App Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")

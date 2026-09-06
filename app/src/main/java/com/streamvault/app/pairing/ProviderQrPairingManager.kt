@@ -289,11 +289,11 @@ class ProviderQrPairingManager @Inject constructor(
                 ProviderPairingSubmitResult.Error(result.message)
             is ValidateAndAddProviderResult.TransportConsentRequired ->
                 ProviderPairingSubmitResult.Error(
-                    "Open StreamVault on the TV to review this provider's connection warning."
+                    "Open EliteStocks TV on the TV to review this provider's connection warning."
                 )
             is ValidateAndAddProviderResult.VerificationInconclusive ->
                 ProviderPairingSubmitResult.Error(
-                    "Open StreamVault on the TV to decide whether to save this provider with verification pending."
+                    "Open EliteStocks TV on the TV to decide whether to save this provider with verification pending."
                 )
             is ValidateAndAddProviderResult.Error ->
                 ProviderPairingSubmitResult.Error(result.message)
@@ -419,7 +419,7 @@ class ProviderQrPairingManager @Inject constructor(
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>StreamVault Pairing</title>
+          <title>EliteStocks TV Pairing</title>
           <style>
             body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#101820;color:#f8fafc;margin:0;padding:24px}
             main{max-width:560px;margin:0 auto;background:#172635;border:1px solid #2b4258;border-radius:22px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.35)}
@@ -432,7 +432,7 @@ class ProviderQrPairingManager @Inject constructor(
         </head>
         <body>
         <main>
-          <h1>Add provider to StreamVault</h1>
+          <h1>Add provider to EliteStocks TV</h1>
           <p>Enter details on your phone. They are sent directly to your TV over your local Wi-Fi only.</p>
           <form method="post" action="/submit">
             <input type="hidden" name="token" value="${token.escapeHtml()}">

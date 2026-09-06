@@ -17,7 +17,7 @@ class Wp1CancellationPolicyTest {
             "ProviderSyncWorker.kt",
             "StalkerIndexWorker.kt",
             "XtreamIndexWorker.kt"
-        ).map { root.resolve("data/src/main/java/com/streamvault/data/sync/$it") }
+        ).map { root.resolve("data/src/main/java/com/EliteStocks TV/data/sync/$it") }
         workers.forEach { file ->
             val source = file.readText()
             assertWithMessage("${file.name} must rethrow cancellation before broad worker catches")
@@ -27,7 +27,7 @@ class Wp1CancellationPolicyTest {
         }
 
         val stalker = root.resolve(
-            "data/src/main/java/com/streamvault/data/remote/stalker/OkHttpStalkerApiService.kt"
+            "data/src/main/java/com/EliteStocks TV/data/remote/stalker/OkHttpStalkerApiService.kt"
         ).readText()
         assertWithMessage("Stalker suspend transport must not use blocking execute()")
             .that(stalker).doesNotContain(".execute()")
@@ -35,13 +35,13 @@ class Wp1CancellationPolicyTest {
             .that(stalker).doesNotContain("runCatching {\n                            requestJson(")
 
         val xtream = root.resolve(
-            "data/src/main/java/com/streamvault/data/remote/xtream/XtreamProvider.kt"
+            "data/src/main/java/com/EliteStocks TV/data/remote/xtream/XtreamProvider.kt"
         ).readText()
         assertWithMessage("Xtream compatibility fallback must preserve cancellation")
             .that(xtream).doesNotContain("runCatching { requestSeriesInfo(")
 
         val plugins = root.resolve(
-            "app/src/main/java/com/streamvault/app/plugins/StreamVaultPluginManager.kt"
+            "app/src/main/java/com/EliteStocks TV/app/plugins/StreamVaultPluginManager.kt"
         ).readText()
         assertWithMessage("Plugin IPC must not use raw runCatching")
             .that(plugins).doesNotContain("runCatching {\n            messengerClient.send(")

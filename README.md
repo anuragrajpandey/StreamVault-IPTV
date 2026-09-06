@@ -1,21 +1,21 @@
-# StreamVault
+# EliteStocks TV
 
 <p align="center">
-	<a href="https://github.com/Davidona/StreamVault-IPTV/releases/latest/download/StreamVault.apk"><img src="https://img.shields.io/badge/Download-StreamVault.apk-2ea44f?style=for-the-badge&logo=android" alt="Download StreamVault APK" /></a>
-	<a href="https://github.com/Davidona/StreamVault-IPTV/releases/latest"><img src="https://img.shields.io/github/v/release/Davidona/StreamVault-IPTV?display_name=tag&style=for-the-badge&color=0f766e" alt="Latest StreamVault release" /></a>
+	<a href="https://github.com/Davidona/StreamVault-IPTV/releases/latest/download/StreamVault.apk"><img src="https://img.shields.io/badge/Download-StreamVault.apk-2ea44f?style=for-the-badge&logo=android" alt="Download EliteStocks TV APK" /></a>
+	<a href="https://github.com/Davidona/StreamVault-IPTV/releases/latest"><img src="https://img.shields.io/github/v/release/Davidona/StreamVault-IPTV?display_name=tag&style=for-the-badge&color=0f766e" alt="Latest EliteStocks TV release" /></a>
 	<a href="https://github.com/Davidona/StreamVault-IPTV/releases"><img src="https://img.shields.io/github/downloads/Davidona/StreamVault-IPTV/total?style=for-the-badge&color=8b5cf6" alt="Total Downloads" /></a>
-	<a href="https://discord.gg/eGPBMygcb"><img src="https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join the StreamVault Discord" /></a>
+	<a href="https://discord.gg/eGPBMygcb"><img src="https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join the EliteStocks TV Discord" /></a>
 	<a href="docs/CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-View-2563eb?style=for-the-badge" alt="View changelog" /></a>
 	<a href="https://github.com/Davidona/StreamVault-IPTV/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/Davidona/StreamVault-IPTV/release.yml?branch=master&style=for-the-badge&label=CI" alt="GitHub Actions status" /></a>
 	<a href="https://ko-fi.com/davidona"><img src="https://img.shields.io/badge/Support-Ko--fi-ff5f5f?style=for-the-badge&logo=kofi" alt="Support on Ko-fi" /></a>
 	<a href="LICENSE"><img src="https://img.shields.io/badge/License-StreamVault_OSL-0284c7?style=for-the-badge" alt="License" /></a>
 </p>
 
-StreamVault is a TV-first IPTV player for Android TV built with Kotlin, Jetpack Compose, Room, Hilt, and Media3.
+EliteStocks TV is a TV-first IPTV player for Android TV built with Kotlin, Jetpack Compose, Room, Hilt, and Media3.
 
-It is designed for large playlists, remote-friendly browsing, fast provider switching, and a polished living-room playback experience. StreamVault supports `M3U` playlists, `Xtream Codes`, `Stalker Portal`, and `Jellyfin` providers, with dedicated flows for `Live TV`, `Movies`, and `Series`.
+It is designed for large playlists, remote-friendly browsing, fast provider switching, and a polished living-room playback experience. EliteStocks TV supports `M3U` playlists, `Xtream Codes`, `Stalker Portal`, and `Jellyfin` providers, with dedicated flows for `Live TV`, `Movies`, and `Series`.
 
-Built for Android TV first, StreamVault focuses on the things generic IPTV apps usually get wrong: D-pad navigation, quick channel movement, large-library organization, and a player that still feels good to use from the couch. Phone and tablet installs are also supported, but the primary UX target is TV.
+Built for Android TV first, EliteStocks TV focuses on the things generic IPTV apps usually get wrong: D-pad navigation, quick channel movement, large-library organization, and a player that still feels good to use from the couch. Phone and tablet installs are also supported, but the primary UX target is TV.
 
 ## Preview
 <p align="center">
@@ -147,9 +147,9 @@ Built for Android TV first, StreamVault focuses on the things generic IPTV apps 
 
 ### Plugins
 
-- StreamVault can be extended with companion Android APK plugins.
+- EliteStocks TV can be extended with companion Android APK plugins.
 - Plugin developers can expose provider, playback, Cast URL rewrite, and host-rendered or native configuration capabilities.
-- See the [StreamVault Plugin API](docs/PLUGIN_API.md) docs to create compatible plugins.
+- See the [EliteStocks TV Plugin API](docs/PLUGIN_API.md) docs to create compatible plugins.
 
 ## Quick TV Tips
 
@@ -169,7 +169,7 @@ Built for Android TV first, StreamVault focuses on the things generic IPTV apps 
 
 ## Support
 
-If StreamVault is useful to you, you can support development here:
+If EliteStocks TV is useful to you, you can support development here:
 
 - [Support on Ko-fi](https://ko-fi.com/davidona)
 
@@ -200,13 +200,13 @@ Useful commands:
 
 ## Notes
 
-- StreamVault is an IPTV client, not a content provider.
+- EliteStocks TV is an IPTV client, not a content provider.
 - Use only playlists, streams, and guide sources you are authorized to access.
 - Local configuration and signing files are intentionally excluded from git.
 
 ## License
 
 This project was originally released without an explicit license.  
-As of April 2026, all usage, modification, and distribution are governed by the StreamVault Source-Available License (Non-Commercial).
+As of April 2026, all usage, modification, and distribution are governed by the EliteStocks TV Source-Available License (Non-Commercial).
 
 Any use of this project must comply with the terms defined in the LICENSE file.

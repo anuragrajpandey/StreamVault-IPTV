@@ -6,7 +6,7 @@ All notable product changes are recorded in this document.
 
 ### Added
 
-- Added picker-free Android TV local backup export and restore, publishing exports to `Downloads/StreamVault` when available and falling back to app-managed storage when a system document picker is unavailable.
+- Added picker-free Android TV local backup export and restore, publishing exports to `Downloads/EliteStocks TV` when available and falling back to app-managed storage when a system document picker is unavailable.
 - Added provider credential snapshots to new local backup exports so restored providers can sync without manual password re-entry.
 - Added local backup management with confirmation-based deletion for StreamVault-created Downloads, app-private, registered SAF, and supported Fire TV USB exports.
 - Added timestamped Google Drive backup bundles containing the exact exported JSON and its matching provider credentials, with newest-first snapshot selection, ten-backup retention, and compatibility with legacy Drive backup formats.

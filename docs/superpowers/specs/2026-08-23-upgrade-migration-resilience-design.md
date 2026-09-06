@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make upgrades from StreamVault 1.0.14 and later preserve all user data, tolerate legacy provider representations, and avoid a process crash loop when Room cannot open the database.
+Make upgrades from EliteStocks TV 1.0.14 and later preserve all user data, tolerate legacy provider representations, and avoid a process crash loop when Room cannot open the database.
 
 ## Scope
 

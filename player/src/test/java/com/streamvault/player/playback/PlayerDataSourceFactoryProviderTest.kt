@@ -24,7 +24,7 @@ class PlayerDataSourceFactoryProviderTest {
     fun `effective playback request properties replace case insensitive user agent header`() {
         val headers = effectivePlaybackRequestProperties(
             headers = mapOf(
-                "user-agent" to "StreamVault/1.0.12-beta",
+                "user-agent" to "EliteStocks TV/1.0.12-beta",
                 "Origin" to "https://portal.example.com"
             ),
             userAgent = "CustomAgent/9.0"

@@ -182,8 +182,8 @@ class AppUpdateInstaller @Inject constructor(
             }
 
             val request = DownloadManager.Request(Uri.parse(downloadUrl))
-                .setTitle("StreamVault ${releaseInfo.versionName}")
-                .setDescription("Downloading the latest StreamVault update")
+                .setTitle("EliteStocks TV ${releaseInfo.versionName}")
+                .setDescription("Downloading the latest EliteStocks TV update")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setMimeType("application/vnd.android.package-archive")
                 .setAllowedOverMetered(true)

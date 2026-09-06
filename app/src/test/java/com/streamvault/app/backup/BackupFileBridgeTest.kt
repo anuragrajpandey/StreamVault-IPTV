@@ -90,7 +90,7 @@ class BackupFileBridgeTest {
         val backup = BackupFileBridge.createExportFile(context).apply {
             writeText("{}")
         }
-        File(cacheDir, "Backups/not-created-by-streamvault.json").apply {
+        File(cacheDir, "Backups/not-created-by-EliteStocks TV.json").apply {
             parentFile?.mkdirs()
             writeText("{}")
         }
