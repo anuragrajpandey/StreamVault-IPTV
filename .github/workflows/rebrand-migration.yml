@@ -1,16 +1,23 @@
-name: EliteStocks TV Migration
+name: EliteStocks TV Build & Verify
 
 on:
   push:
     paths:
       - .github/workflows/rebrand-migration.yml
+      - app/**
+      - player/**
+      - data/**
+      - domain/**
   workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m
+
 jobs:
-  migrate:
+  verify-and-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,129 +25,170 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply EliteStocks TV branding and player resources
+      - name: Apply final player fixes and EliteStocks TV polish
         shell: python
         run: |
           from pathlib import Path
           import re
-          import shutil
 
           root = Path('.')
-          text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
-          skip_names = {'LICENSE', 'rebrand-migration.yml'}
 
-          technical = re.compile(r'''(?x)
-              https?://[^\s"'<>]+ |
-              com\.streamvault(?:\.[A-Za-z0-9_$]+)+ |
-              streamvault://[^\s"'<>]+ |
-              (?:name|parent|style|id|resource|theme)\s*=\s*"[^"]*?(?:StreamVault|streamvault)[^"]*" |
-              @(?:style|id|string|drawable|mipmap|layout|color|xml|raw|font|menu|navigation)/[A-Za-z0-9_.-]*streamvault[A-Za-z0-9_.-]* |
-              R\.[A-Za-z0-9_]+\.[A-Za-z0-9_]*streamvault[A-Za-z0-9_]* |
-              [A-Za-z0-9_$.-]+\.(?:StreamVault|streamvault)(?:\.[A-Za-z0-9_$.-]+)* |
-              (?<![A-Za-z0-9_$])(?:StreamVault|streamvault)[A-Za-z0-9_$]+ |
-              [A-Za-z0-9_$]+(?:StreamVault|streamvault)(?![A-Za-z0-9_$]) |
-              (?<![A-Za-z0-9_-])(?:StreamVault|streamvault)[A-Za-z0-9_.-]+(?![A-Za-z0-9_-])
-          ''')
+          def replace_once(path: Path, old: str, new: str, label: str):
+              text = path.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 match in {path}, found {count}')
+              path.write_text(text.replace(old, new), encoding='utf-8')
 
-          def protect(text):
-              saved = []
-              def repl(match):
-                  token = f'__SVTECH_{len(saved)}__'
-                  saved.append(match.group(0))
-                  return token
-              return technical.sub(repl, text), saved
+          # 1) Preserve the most recent engine position when ExoPlayer has already
+          # reset its own currentPosition while dispatching a playback error.
+          engine = root / 'player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt'
+          replace_once(
+              engine,
+              'currentPositionMs = player?.currentPosition,',
+              'currentPositionMs = maxOf(player?.currentPosition ?: 0L, _currentPosition.value).takeIf { it > 0L },',
+              'retry position fallback'
+          )
 
-          def restore(text, saved):
-              for i, value in enumerate(saved):
-                  text = text.replace(f'__SVTECH_{i}__', value)
-              return text
+          # 2) Use the new compact VOD controls while keeping the existing public
+          # PlayerControlsOverlay API compatible through default parameters.
+          chrome = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
+          text = chrome.read_text(encoding='utf-8')
 
-          def brand_visible(text):
-              text = re.sub(r'(?i)streamvault\s+live\s+channels', 'EliteStocks TV Live Channels', text)
-              text = re.sub(r'(?i)streamvault\s+tv', 'EliteStocks TV', text)
-              return re.sub(r'(?i)\bstreamvault\b', 'EliteStocks TV', text)
+          replacements = [
+              (
+                  '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    onOpenSplitScreen:',
+                  '    showEpisodesAction: Boolean = false,\n    onOpenEpisodes: () -> Unit = {},\n    showNextEpisodeAction: Boolean = false,\n    onPlayNextEpisode: () -> Unit = {},\n    onOpenSplitScreen:',
+                  'overlay next-episode parameters'
+              ),
+              (
+                  '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                onOpenSplitScreen',
+                  '                showEpisodesAction = showEpisodesAction,\n                onOpenEpisodes = onOpenEpisodes,\n                showNextEpisodeAction = showNextEpisodeAction,\n                onPlayNextEpisode = onPlayNextEpisode,\n                onOpenSplitScreen',
+                  'overlay-to-bottom next-episode forwarding'
+              ),
+              (
+                  '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    onOpenSplitScreen:',
+                  '    showEpisodesAction: Boolean,\n    onOpenEpisodes: () -> Unit,\n    showNextEpisodeAction: Boolean,\n    onPlayNextEpisode: () -> Unit,\n    onOpenSplitScreen:',
+                  'bottom-bar next-episode parameters'
+              ),
+              (
+                  '                    PlayerVodInfo(\n',
+                  '                    PlayerModernVodInfo(\n',
+                  'switch VOD controls'
+              ),
+              (
+                  '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        onEnterPictureInPicture',
+                  '                        showEpisodesAction = showEpisodesAction,\n                        onOpenEpisodes = onOpenEpisodes,\n                        showNextEpisodeAction = showNextEpisodeAction,\n                        onPlayNextEpisode = onPlayNextEpisode,\n                        onEnterPictureInPicture',
+                  'VOD next-episode forwarding'
+              ),
+              (
+                  '    label: String,\n    contentDescription: String,',
+                  '    icon: Int,\n    contentDescription: String,',
+                  'transport icon parameter'
+              ),
+              (
+                  '            Text(\n                text = label,\n                style = MaterialTheme.typography.headlineSmall,\n                color = Color.White\n            )',
+                  '            Icon(\n                painter = painterResource(icon),\n                contentDescription = null,\n                tint = Color.White,\n                modifier = Modifier.size(28.dp)\n            )',
+                  'transport icon rendering'
+              ),
+              (
+                  'label = "\\u23EA",',
+                  'icon = R.drawable.ic_replay_10,',
+                  'rewind vector icon'
+              ),
+              (
+                  'label = "\\u23E9",',
+                  'icon = R.drawable.ic_forward_10,',
+                  'forward vector icon'
+              ),
+          ]
 
-          for path in root.rglob('*'):
-              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
-                  continue
-              if path.name in skip_names or path.name.endswith('lint-baseline.xml'):
-                  continue
-              try:
-                  old = path.read_text(encoding='utf-8')
-              except Exception:
-                  continue
-              if 'streamvault' not in old.lower():
-                  continue
-              protected, saved = protect(old)
-              new = restore(brand_visible(protected), saved)
-              if new != old:
-                  path.write_text(new, encoding='utf-8')
+          for old, new, label in replacements:
+              count = text.count(old)
+              if count == 0:
+                  if label in {'VOD next-episode forwarding', 'overlay-to-bottom next-episode forwarding'}:
+                      continue
+                  raise SystemExit(f'{label}: pattern not found in {chrome}')
+              if count != 1 and label not in {'rewind vector icon', 'forward vector icon'}:
+                  raise SystemExit(f'{label}: expected 1 match in {chrome}, found {count}')
+              text = text.replace(old, new)
 
-          language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
-          for path in sorted(root.rglob('values-*'), key=lambda p: len(p.parts), reverse=True):
-              if path.is_dir() and language_dir.fullmatch(path.name[7:]):
-                  shutil.rmtree(path)
+          if 'import androidx.compose.ui.res.painterResource' not in text:
+              text = text.replace(
+                  'import androidx.compose.ui.res.stringResource\n',
+                  'import androidx.compose.ui.res.painterResource\nimport androidx.compose.ui.res.stringResource\n',
+                  1
+              )
+          chrome.write_text(text, encoding='utf-8')
 
+          # 3) Wire the real ViewModel nextEpisode state to the new Next Episode
+          # action. It is only exposed for episodic playback when a valid next
+          # episode has actually been resolved.
+          screen = root / 'app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt'
+          text = screen.read_text(encoding='utf-8')
+          text = text.replace(
+              '    val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()\n',
+              '    val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()\n    val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()\n',
+              1
+          )
+          text = text.replace(
+              '    val canOpenEpisodePicker = contentType == "SERIES_EPISODE" &&\n        currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true\n',
+              '    val canOpenEpisodePicker = contentType == "SERIES_EPISODE" &&\n        currentSeriesSeasons?.any { it.episodes.isNotEmpty() } == true\n    val showNextEpisodeAction = contentType == "SERIES_EPISODE" && nextEpisode != null\n',
+              1
+          )
+          old = '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            onOpenSplitScreen = { showSplitDialog = true },'
+          new = '            showEpisodesAction = canOpenEpisodePicker,\n            onOpenEpisodes = { showEpisodePicker = true },\n            showNextEpisodeAction = showNextEpisodeAction,\n            onPlayNextEpisode = viewModel::playNextEpisodeNow,\n            onOpenSplitScreen = { showSplitDialog = true },'
+          if text.count(old) != 1:
+              raise SystemExit(f'PlayerScreen overlay wiring: expected 1 match, found {text.count(old)}')
+          screen.write_text(text.replace(old, new), encoding='utf-8')
+
+          # 4) Tighten the warm EliteStocks palette. The previous migration already
+          # moved the main palette to amber, but these two values were still blue.
+          colors = root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt'
+          if colors.exists():
+              text = colors.read_text(encoding='utf-8')
+              text = text.replace('0x335FA4FF', '0x33FFA000')
+              text = text.replace('0x264C6D95', '0x33FFB52E')
+              colors.write_text(text, encoding='utf-8')
+
+          # 5) Ensure the 10-second vector resources remain present.
           drawable = root / 'app/src/main/res/drawable'
           drawable.mkdir(parents=True, exist_ok=True)
-          (drawable / 'ic_replay_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M15,5A11,11 0,1 0,25.5 19h-3.2A8,8 0,1 1,15 8c2.4,0 4.6 1.1 6 3l-3,3h9V5l-3.5,3.5A10.9,10.9 0,0 0,15 5z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M12,13h2v6h5v2h-7z"/>
-          </vector>
-          ''', encoding='utf-8')
-          (drawable / 'ic_forward_10.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
-              <path android:fillColor="#FFFFFFFF" android:pathData="M17,5A11,11 0,1 1,6.5 19h3.2A8,8 0,1 0,17 8c-2.4,0-4.6 1.1-6 3l3,3H5V5l3.5,3.5A10.9,10.9 0,0 1,17 5z"/>
-              <path android:fillColor="#FFFFFFFF" android:pathData="M20,13h-2v6h-5v2h7z"/>
-          </vector>
-          ''', encoding='utf-8')
+          if not (drawable / 'ic_replay_10.xml').exists() or not (drawable / 'ic_forward_10.xml').exists():
+              raise SystemExit('10-second player vector resources are missing')
 
-          palette = {
-              '0xFF07111B':'0xFF070608', '0xFF0B1622':'0xFF0D0A08', '0xFF0F1B29':'0xFF15100B',
-              '0xFF162338':'0xFF20160B', '0xFF1D2E46':'0xFF2A1B0A', '0xFF223754':'0xFF3A250A',
-              '0xFF69A8FF':'0xFFFFA000', '0xFF8BBCFF':'0xFFFFB52E', '0xFF57C9FF':'0xFFFFB52E',
-              '0xFFFFC766':'0xFFFFB52E', '0xCC07111B':'0xCC070608', '0xF207111B':'0xF2070608'
-          }
-          for path in [root / 'app/src/main/java/com/streamvault/app/ui/design/AppColors.kt', root / 'app/src/main/java/com/streamvault/app/ui/theme/Color.kt']:
-              if path.exists():
-                  text = path.read_text(encoding='utf-8')
-                  for old, new in palette.items():
-                      text = text.replace(old, new)
-                  path.write_text(text, encoding='utf-8')
-
-      - name: Verify branding and technical identifiers
+      - name: Audit branding, English resources, and Android identifiers
         shell: python
         run: |
           from pathlib import Path
           import re
+
           root = Path('.')
           text_exts = {'.kt', '.kts', '.java', '.xml', '.gradle', '.properties', '.md', '.txt', '.json', '.toml', '.pro', '.cfg', '.ini', '.sh'}
           technical = re.compile(r'''(?x)
               https?://[^\s"'<>]+ |
               com\.streamvault(?:\.[A-Za-z0-9_$]+)+ |
               streamvault://[^\s"'<>]+ |
-              (?:name|parent|style|id|resource|theme)\s*=\s*"[^"]*?(?:StreamVault|streamvault)[^"]*" |
               @(?:style|id|string|drawable|mipmap|layout|color|xml|raw|font|menu|navigation)/[A-Za-z0-9_.-]*streamvault[A-Za-z0-9_.-]* |
               R\.[A-Za-z0-9_]+\.[A-Za-z0-9_]*streamvault[A-Za-z0-9_]* |
               [A-Za-z0-9_$.-]+\.(?:StreamVault|streamvault)(?:\.[A-Za-z0-9_$.-]+)* |
               (?<![A-Za-z0-9_$])(?:StreamVault|streamvault)[A-Za-z0-9_$]+ |
-              [A-Za-z0-9_$]+(?:StreamVault|streamvault)(?![A-Za-z0-9_$]) |
-              (?<![A-Za-z0-9_-])(?:StreamVault|streamvault)[A-Za-z0-9_.-]+(?![A-Za-z0-9_-])
+              [A-Za-z0-9_$]+(?:StreamVault|streamvault)(?![A-Za-z0-9_$])
           ''')
           visible = re.compile(r'(?i)\bstreamvault\b')
           hits = []
           broken = []
+
           for path in root.rglob('*'):
               if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_exts:
                   continue
-              if path.name in {'LICENSE', 'rebrand-migration.yml'} or path.name.endswith('lint-baseline.xml'):
+              if path.name == 'LICENSE' or path.name.endswith('lint-baseline.xml'):
                   continue
               try:
                   text = path.read_text(encoding='utf-8')
               except Exception:
                   continue
-              check = technical.sub(lambda m: f'__SVTECH_{m.start()}__', text)
+              check = technical.sub('', text)
               for line_no, line in enumerate(check.splitlines(), 1):
                   if visible.search(line):
                       hits.append(f'{path}:{line_no}:{line.strip()}')
@@ -151,16 +199,23 @@ jobs:
               if path.suffix.lower() in {'.kt', '.kts', '.java'}:
                   if re.search(r'\b(?:Theme|R\.[A-Za-z0-9_]+|[A-Za-z0-9_]+\.[A-Za-z0-9_]+)\.EliteStocks TV\b', text):
                       broken.append(str(path))
+
+          language_dir = re.compile(r'^(?:[a-z]{2,3}(?:-r[A-Z]{2})?|b\+[A-Za-z0-9+]+)$')
+          language_dirs = [p for p in root.rglob('values-*') if p.is_dir() and language_dir.fullmatch(p.name[7:])]
+          if language_dirs:
+              broken.extend(str(p) for p in language_dirs)
+
           if hits:
+              print('Unexpected user-facing StreamVault references:')
               print('\n'.join(hits[:200]))
               raise SystemExit(1)
           if broken:
+              print('Broken identifiers or language-specific resources:')
               print('\n'.join(broken[:200]))
               raise SystemExit(1)
-          print('EliteStocks TV branding and identifier audit passed.')
+          print('EliteStocks TV audit passed.')
 
       - name: Run unit tests
-        continue-on-error: true
         run: |
           chmod +x gradlew
           ./gradlew --console=plain testDebugUnitTest --stacktrace
@@ -178,15 +233,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Commit migration
+      - name: Commit final fixes
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "No migration changes detected."
+            echo "No source changes were needed."
             exit 0
           fi
-          git commit -m "feat: rebrand Android app to EliteStocks TV"
+          git commit -m "fix: complete EliteStocks TV player polish"
           git push origin HEAD:master
