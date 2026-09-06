@@ -64,54 +64,9 @@ if p.exists():
 p = ROOT / 'app/build.gradle.kts'
 write(p, read(p).replace('            versionNameSuffix = "-debug"\n', ''))
 
-p = ROOT / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
-s = read(p)
-modern = '''PlayerModernVodInfo(
-                        title = title,
-                        contentType = contentType,
-                        isPlaying = isPlaying,
-                        currentPosition = currentPosition,
-                        duration = duration,
-                        aspectRatioLabel = aspectRatioLabel,
-                        subtitleTrackCount = subtitleTrackCount,
-                        audioTrackCount = audioTrackCount,
-                        videoQualityCount = videoQualityCount,
-                        isMuted = isMuted,
-                        playbackSpeed = playbackSpeed,
-                        sleepTimerUiState = sleepTimerUiState,
-                        audioVideoSyncEnabled = audioVideoSyncEnabled,
-                        playButtonFocusRequester = playButtonFocusRequester,
-                        quickActionsFocusRequester = quickActionsFocusRequester,
-                        onSeekToPosition = onSeekToPosition,
-                        onSetScrubbingMode = onSetScrubbingMode,
-                        onToggleAspectRatio = onToggleAspectRatio,
-                        onOpenSubtitleTracks = onOpenSubtitleTracks,
-                        onOpenAudioTracks = onOpenAudioTracks,
-                        onOpenVideoTracks = onOpenVideoTracks,
-                        onOpenPlaybackSpeed = onOpenPlaybackSpeed,
-                        onOpenStopPlaybackTimer = onOpenStopPlaybackTimer,
-                        onOpenIdleStandbyTimer = onOpenIdleStandbyTimer,
-                        onOpenAudioVideoSync = onOpenAudioVideoSync,
-                        showEpisodesAction = showEpisodesAction,
-                        onOpenEpisodes = onOpenEpisodes,
-                        showNextEpisodeAction = false,
-                        onPlayNextEpisode = {},
-                        onEnterPictureInPicture = onEnterPictureInPicture,
-                        onToggleMute = onToggleMute,
-                        isCastConnected = isCastConnected,
-                        onCast = onCast,
-                        onStopCasting = onStopCasting,
-                        onTogglePlayPause = onTogglePlayPause,
-                        onSeekBackward = onSeekBackward,
-                        onSeekForward = onSeekForward,
-                        seekPreview = seekPreview,
-                        onSeekPreviewPositionChanged = onSeekPreviewPositionChanged,
-                        showExternalPlayerAction = showExternalPlayerAction,
-                        onOpenExternalPlayer = onOpenExternalPlayer
-                    )'''
-if 'PlayerVodInfo(' in s:
-    s = replace_call(s, 'PlayerVodInfo', modern)
-write(p, s)
+# PlayerControlsChrome already contains the intended PlayerModernVodInfo call in source.
+# Do not use replace_call here: its first match is the PlayerVodInfo declaration itself,
+# which would turn a valid Kotlin function declaration into invalid call syntax.
 
 p = ROOT / 'app/src/main/java/com/streamvault/app/ui/screens/provider/ProviderSetupScreen.kt'
 s = read(p)
