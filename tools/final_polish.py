@@ -58,8 +58,8 @@ if adaptive.exists():
 </adaptive-icon>
 ''')
 
-# PlayerControlsChrome: use the proper Material pause glyph instead of a text
-# placeholder, keeping TV focus/click behavior unchanged.
+# PlayerControlsChrome: replace the text pause placeholder with the proper
+# Material pause glyph while preserving the existing TV focus/click behavior.
 p = ROOT / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
 if p.exists():
     s = read(p)
@@ -74,7 +74,7 @@ if p.exists():
                             } else {''', '''if (isPlaying) {
                                 Icon(
                                     imageVector = Icons.Default.Pause,
-                                    contentDescription = stringResource(R.string.player_pause),
+                                    contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(playIconSize)
                                 )
@@ -84,7 +84,7 @@ if p.exists():
                             } else {''', '''if (isPlaying) {
                                 Icon(
                                     imageVector = Icons.Default.Pause,
-                                    contentDescription = stringResource(R.string.player_pause),
+                                    contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(30.dp)
                                 )
