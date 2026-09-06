@@ -45,8 +45,8 @@ if dst.exists():
 manifest = ROOT / 'app/src/main/AndroidManifest.xml'
 if manifest.exists():
     s = read(manifest)
-    s = re.sub(r'android:icon="@[^"]+"', 'android:icon="@drawable/elitestocks_tv_logo"', s)
-    s = re.sub(r'android:roundIcon="@[^"]+"', 'android:roundIcon="@drawable/elitestocks_tv_logo"', s)
+    s = re.sub(r'android:icon="@[^"]+"', 'android:icon="@mipmap/ic_launcher_vault"', s)
+    s = re.sub(r'android:roundIcon="@[^"]+"', 'android:roundIcon="@mipmap/ic_launcher_vault"', s)
     write(manifest, s)
 
 adaptive = ROOT / 'app/src/main/res/mipmap-anydpi-v26/ic_launcher_vault.xml'
@@ -57,6 +57,39 @@ if adaptive.exists():
     <foreground android:drawable="@drawable/elitestocks_tv_logo"/>
 </adaptive-icon>
 ''')
+
+# PlayerControlsChrome: use the proper Material pause glyph instead of a text
+# placeholder, keeping TV focus/click behavior unchanged.
+p = ROOT / 'app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt'
+if p.exists():
+    s = read(p)
+    if 'import androidx.compose.material.icons.filled.Pause' not in s:
+        s = s.replace('import androidx.compose.material.icons.filled.PlayArrow\n', 'import androidx.compose.material.icons.filled.Pause\nimport androidx.compose.material.icons.filled.PlayArrow\n')
+    s = s.replace('''if (isPlaying) {
+                                Text(
+                                    text = "II",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = Color.White
+                                )
+                            } else {''', '''if (isPlaying) {
+                                Icon(
+                                    imageVector = Icons.Default.Pause,
+                                    contentDescription = stringResource(R.string.player_pause),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(playIconSize)
+                                )
+                            } else {''')
+    s = s.replace('''if (isPlaying) {
+                                Text(text = "II", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                            } else {''', '''if (isPlaying) {
+                                Icon(
+                                    imageVector = Icons.Default.Pause,
+                                    contentDescription = stringResource(R.string.player_pause),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            } else {''')
+    write(p, s)
 
 p = ROOT / 'app/src/debug/res/values/strings.xml'
 if p.exists():
