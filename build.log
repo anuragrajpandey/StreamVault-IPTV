@@ -21,8 +21,8 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :player:generateDebugResources
 > Task :player:packageDebugResources
 > Task :player:parseDebugLocalResources
-> Task :player:javaPreCompileDebug
 > Task :player:preDebugUnitTestBuild
+> Task :player:javaPreCompileDebug
 > Task :player:koverFindJar
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
@@ -31,19 +31,19 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :app:generateDebugBuildConfig
 > Task :data:preBuild UP-TO-DATE
 > Task :data:preDebugBuild UP-TO-DATE
+> Task :player:generateDebugRFile
 > Task :data:writeDebugAarMetadata
 > Task :player:writeDebugAarMetadata
 > Task :app:generateDebugResValues
-> Task :player:generateDebugRFile
+> Task :player:generateDebugUnitTestStubRFile
 
 > Task :domain:compileKotlin
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/java/com/streamvault/domain/usecase/GetCustomCategories.kt:38:18 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
 
+> Task :app:checkDebugAarMetadata
 > Task :domain:compileJava NO-SOURCE
 > Task :domain:classes UP-TO-DATE
-> Task :app:checkDebugAarMetadata
 > Task :domain:jar
-> Task :player:generateDebugUnitTestStubRFile
 > Task :data:generateDebugResValues
 > Task :data:generateDebugResources
 > Task :data:packageDebugResources
@@ -54,24 +54,24 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/ja
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
 > Task :data:extractDeepLinksDebug
-> Task :player:extractDeepLinksDebug
-> Task :player:processDebugManifest
-> Task :data:processDebugManifest
 > Task :app:mergeDebugResources
+> Task :player:extractDeepLinksDebug
+> Task :data:processDebugManifest
+> Task :player:processDebugManifest
 > Task :data:compileDebugLibraryResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
 > Task :app:processDebugManifestForPackage
-> Task :data:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :data:parseDebugLocalResources
 > Task :player:compileDebugLibraryResources
-> Task :data:javaPreCompileDebug
+> Task :data:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :data:generateDebugRFile
-> Task :app:javaPreCompileDebug
+> Task :data:javaPreCompileDebug
 > Task :player:kspDebugKotlin
 > Task :app:processDebugResources
 > Task :app:koverFindJar
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebug
 > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
 > Task :app:javaPreCompileDebugUnitTest
 > Task :app:mergeDebugShaders
@@ -89,7 +89,6 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/domain/src/main/ja
 > Task :app:compressDebugAssets
 > Task :app:desugarDebugFileDependencies
 > Task :app:checkDebugDuplicateClasses
-> Task :data:kspDebugKotlin
 
 > Task :player:compileDebugKotlin
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt:780:63 'class SingleSampleMediaSource : BaseMediaSource' is deprecated. Deprecated in Java.
@@ -98,6 +97,7 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/ja
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/timeshift/LiveTimeshiftManager.kt:125:18 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/main/java/com/streamvault/player/tracks/PlayerTrackController.kt:54:14 'fun setViewportSizeToPhysicalDisplaySize(p0: Context, p1: Boolean): TrackSelectionParameters.Builder' is deprecated. Deprecated in Java.
 
+> Task :data:kspDebugKotlin
 > Task :app:l8DexDesugarLibDebug
 > Task :app:mergeExtDexDebug
 WARNING: D8: Unexpected error during rewriting of Kotlin metadata for class 'kotlin.collections.CollectionsKt__MutableCollectionsKt':
@@ -143951,13 +143951,12 @@ com.android.tools.r8.internal.Lv0: Should never be called
 > Task :player:mergeDebugNativeLibs NO-SOURCE
 > Task :player:copyDebugJniLibsProjectOnly
 > Task :app:mergeDebugNativeLibs
-
-> Task :app:stripDebugDebugSymbols
-Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libffmpegJNI.so. Run with --info option to learn more.
-
 > Task :app:validateSigningDebug
 > Task :app:writeDebugAppMetadata
 > Task :app:writeDebugSigningConfigVersions
+
+> Task :app:stripDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so, libffmpegJNI.so. Run with --info option to learn more.
 
 > Task :player:compileDebugUnitTestKotlin
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/player/src/test/java/com/streamvault/player/playback/LiveMpegTsFixtureTest.kt:28:30 'constructor(p0: Int): TsExtractor' is deprecated. Deprecated in Java.
@@ -144165,9 +144164,9 @@ w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/
 - To keep applying to the value parameter only, use the '@param:' annotation target.
 
 See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
-w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt:206:47 'val Icons.Filled.KeyboardArrowRight: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.KeyboardArrowRight.
-w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt:256:60 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
-w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt:256:89 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt:214:47 'val Icons.Filled.KeyboardArrowRight: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.KeyboardArrowRight.
+w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt:264:60 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt:264:89 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/series/SeriesScreen.kt:452:35 Condition is always 'true'.
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/series/SeriesScreen.kt:674:47 Condition is always 'true'.
 w: file:///home/runner/work/StreamVault-IPTV/StreamVault-IPTV/app/src/main/java/com/streamvault/app/ui/screens/series/SeriesScreen.kt:1115:47 Condition is always 'true'.
@@ -144239,6 +144238,6 @@ OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader clas
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 > Task :app:testDebugUnitTest
 
-BUILD SUCCESSFUL in 9m 4s
+BUILD SUCCESSFUL in 9m 51s
 108 actionable tasks: 108 executed
 GRADLE_EXIT_CODE=0

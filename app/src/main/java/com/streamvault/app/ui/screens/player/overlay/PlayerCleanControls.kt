@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -141,6 +143,12 @@ fun PlayerCleanControls(
     }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Transparent)) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .aspectRatio(16f / 9f, matchHeightConstraintsFirst = true)
+                .align(Alignment.Center)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(horizontal = 32.dp, vertical = 24.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -260,6 +268,7 @@ fun PlayerCleanControls(
                 CleanIconButton(Icons.Default.AspectRatio, aspectRatioLabel, onToggleAspectRatio)
                 CleanIconButton(Icons.Default.PictureInPictureAlt, "Picture in picture", onEnterPictureInPicture)
             }
+        }
         }
     }
 }

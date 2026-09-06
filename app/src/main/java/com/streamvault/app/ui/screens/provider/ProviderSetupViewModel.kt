@@ -617,7 +617,7 @@ class ProviderSetupViewModel @Inject constructor(
                     name = name,
                     httpUserAgent = httpUserAgent,
                     httpHeaders = httpHeaders,
-                    xtreamFastSyncEnabled = false,
+                    xtreamFastSyncEnabled = true,
                     epgSyncMode = _uiState.value.epgSyncMode,
                     xtreamLiveSyncMode = _uiState.value.xtreamLiveSyncMode,
                     guideSourcePolicy = _uiState.value.guideSourcePolicy,
