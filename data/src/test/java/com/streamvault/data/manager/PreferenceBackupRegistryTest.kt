@@ -8,8 +8,8 @@ class PreferenceBackupRegistryTest {
     @Test
     fun `every datastore preference has a classification and portable codec`() {
         val source = sequenceOf(
-            File("src/main/java/com/EliteStocks TV/data/preferences/PreferencesRepository.kt"),
-            File("data/src/main/java/com/EliteStocks TV/data/preferences/PreferencesRepository.kt")
+            File("src/main/java/com/streamvault/data/preferences/PreferencesRepository.kt"),
+            File("data/src/main/java/com/streamvault/data/preferences/PreferencesRepository.kt")
         ).first { it.isFile }.readText()
 
         val literalKeys = Regex("(?:boolean|int|long|float|double|string)PreferencesKey\\(\"([^\"]+)\"\\)")
