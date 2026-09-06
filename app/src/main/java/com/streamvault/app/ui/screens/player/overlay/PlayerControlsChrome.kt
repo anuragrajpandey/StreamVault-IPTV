@@ -682,7 +682,7 @@ private fun PlayerBottomBar(
                         onOpenExternalPlayer = onOpenExternalPlayer
                     )
                 } else {
-                    PlayerVodInfo(
+                    PlayerModernVodInfo(
                         title = title,
                         contentType = contentType,
                         isPlaying = isPlaying,
@@ -695,6 +695,7 @@ private fun PlayerBottomBar(
                         isMuted = isMuted,
                         playbackSpeed = playbackSpeed,
                         sleepTimerUiState = sleepTimerUiState,
+                        audioVideoSyncEnabled = audioVideoSyncEnabled,
                         playButtonFocusRequester = playButtonFocusRequester,
                         quickActionsFocusRequester = quickActionsFocusRequester,
                         onSeekToPosition = onSeekToPosition,
@@ -707,9 +708,10 @@ private fun PlayerBottomBar(
                         onOpenStopPlaybackTimer = onOpenStopPlaybackTimer,
                         onOpenIdleStandbyTimer = onOpenIdleStandbyTimer,
                         onOpenAudioVideoSync = onOpenAudioVideoSync,
-                        audioVideoSyncEnabled = audioVideoSyncEnabled,
                         showEpisodesAction = showEpisodesAction,
                         onOpenEpisodes = onOpenEpisodes,
+                        showNextEpisodeAction = false,
+                        onPlayNextEpisode = {},
                         onEnterPictureInPicture = onEnterPictureInPicture,
                         onToggleMute = onToggleMute,
                         isCastConnected = isCastConnected,

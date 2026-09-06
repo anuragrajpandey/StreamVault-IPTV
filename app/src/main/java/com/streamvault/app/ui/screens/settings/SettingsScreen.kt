@@ -26,7 +26,6 @@ import com.streamvault.app.device.isFireTvDevice
 import com.streamvault.app.device.isTelevisionDevice
 import com.streamvault.app.device.removableAppStorageDirs
 import java.io.File
-import com.streamvault.app.diagnostics.CrashReportStore
 import com.streamvault.app.util.OfficialBuildVerifier
 import com.streamvault.app.ui.components.shell.AppTopBarCloseAction
 import com.streamvault.app.ui.components.shell.AppNavigationChrome
@@ -286,17 +285,6 @@ fun SettingsScreen(
         }
     }
 
-    fun shareCrashReport() {
-        val file = CrashReportStore.latestReportFile(context)
-        if (!file.isFile || file.length() <= 0L) {
-            viewModel.showUserMessage(context.getString(R.string.settings_crash_report_missing))
-            viewModel.refreshCrashReport()
-            return
-        }
-        val uri = CrashReportStore.providerUriForFile(context, file)
-        runCatching { context.startActivity(CrashReportStore.buildShareIntent(uri)) }
-            .onFailure { viewModel.showUserMessage(context.getString(R.string.settings_crash_report_share_failed)) }
-    }
 
     val driveSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -433,9 +421,9 @@ fun SettingsScreen(
                     },
                     onManageLocalBackups = ::manageLocalBackups,
                     onShareBackup = ::shareBackup,
-                    onViewCrashReport = viewModel::viewCrashReport,
-                    onShareCrashReport = ::shareCrashReport,
-                    onDeleteCrashReport = viewModel::deleteCrashReport,
+                    onViewCrashReport = {},
+                    onShareCrashReport = {},
+                    onDeleteCrashReport = {},
                     onRestoreBackup = {
                         if (context.isTelevisionDevice()) {
                             restoreBackupFromLocalStorage()

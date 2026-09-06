@@ -2551,95 +2551,23 @@ private fun SourceTypeSelectorPanel(
     onImportClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = SurfaceDefaults.colors(containerColor = Surface.copy(alpha = 0.92f))
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = isEditLabel,
-                style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary
-            )
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_shell_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim
-            )
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_source_type_label),
-                style = MaterialTheme.typography.labelSmall,
-                color = TextTertiary
-            )
+    Surface(modifier = modifier, shape = RoundedCornerShape(20.dp), colors = SurfaceDefaults.colors(containerColor = Surface.copy(alpha = 0.92f))) {
+        Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = isEditLabel, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+            Text(text = stringResource(R.string.setup_shell_subtitle), style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim)
+            Text(text = stringResource(R.string.setup_source_type_label), style = MaterialTheme.typography.labelSmall, color = TextTertiary)
             if (!isEditing || sourceType == SourceType.XTREAM) {
-                SourceTypeCard(
-                    title = androidx.compose.ui.res.stringResource(R.string.setup_xtream),
-                    subtitle = androidx.compose.ui.res.stringResource(R.string.setup_info_xtream_body),
-                    selected = sourceType == SourceType.XTREAM,
-                    enabled = !isEditing,
-                    onClick = { onSelect(SourceType.XTREAM) }
-                )
-            }
-            if (!isEditing || sourceType == SourceType.STALKER) {
-                SourceTypeCard(
-                    title = androidx.compose.ui.res.stringResource(R.string.setup_stalker),
-                    badge = androidx.compose.ui.res.stringResource(R.string.badge_beta),
-                    subtitle = androidx.compose.ui.res.stringResource(R.string.setup_info_stalker_body),
-                    selected = sourceType == SourceType.STALKER,
-                    enabled = !isEditing,
-                    onClick = { onSelect(SourceType.STALKER) }
-                )
+                SourceTypeCard(title = stringResource(R.string.setup_xtream), subtitle = stringResource(R.string.setup_info_xtream_body), selected = sourceType == SourceType.XTREAM, enabled = !isEditing, onClick = { onSelect(SourceType.XTREAM) })
             }
             if (!isEditing || sourceType == SourceType.M3U_URL) {
-                SourceTypeCard(
-                    title = androidx.compose.ui.res.stringResource(R.string.setup_tab_url),
-                    subtitle = androidx.compose.ui.res.stringResource(R.string.setup_info_m3u_body),
-                    selected = sourceType == SourceType.M3U_URL,
-                    enabled = !isEditing,
-                    onClick = { onSelect(SourceType.M3U_URL) }
-                )
-            }
-            if (!isEditing || sourceType == SourceType.M3U_FILE) {
-                SourceTypeCard(
-                    title = androidx.compose.ui.res.stringResource(R.string.setup_tab_file),
-                    subtitle = androidx.compose.ui.res.stringResource(R.string.setup_file_browse_hint),
-                    selected = sourceType == SourceType.M3U_FILE,
-                    enabled = !isEditing,
-                    onClick = { onSelect(SourceType.M3U_FILE) }
-                )
-            }
-            if (!isEditing || sourceType == SourceType.JELLYFIN) {
-                SourceTypeCard(
-                    title = androidx.compose.ui.res.stringResource(R.string.setup_tab_jellyfin),
-                    subtitle = "Jellyfin media server",
-                    selected = sourceType == SourceType.JELLYFIN,
-                    enabled = !isEditing,
-                    onClick = { onSelect(SourceType.JELLYFIN) }
-                )
+                SourceTypeCard(title = stringResource(R.string.setup_tab_url), subtitle = stringResource(R.string.setup_info_m3u_body), selected = sourceType == SourceType.M3U_URL, enabled = !isEditing, onClick = { onSelect(SourceType.M3U_URL) })
             }
             if (!isEditing) {
-                ImportOptionsButton(
-                    text = stringResource(R.string.settings_restore_data),
-                    onClick = onImportClick,
-                    compact = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                ImportOptionsButton(text = stringResource(R.string.settings_restore_data), onClick = onImportClick, compact = true, modifier = Modifier.fillMaxWidth())
             }
             Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_info_manage_title),
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim
-            )
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_info_manage_body),
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim.copy(alpha = 0.55f)
-            )
+            Text(text = stringResource(R.string.setup_info_manage_title), style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim)
+            Text(text = stringResource(R.string.setup_info_manage_body), style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim.copy(alpha = 0.55f))
         }
     }
 }
@@ -2706,40 +2634,10 @@ private fun SourceTypeTabRow(
 ) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (!isEditing || sourceType == SourceType.XTREAM) {
-            TabButton(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_xtream),
-                isSelected = sourceType == SourceType.XTREAM,
-                onClick = { if (!isEditing) onSelect(SourceType.XTREAM) }
-            )
-        }
-        if (!isEditing || sourceType == SourceType.STALKER) {
-            TabButton(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_stalker),
-                badge = androidx.compose.ui.res.stringResource(R.string.badge_beta),
-                isSelected = sourceType == SourceType.STALKER,
-                onClick = { if (!isEditing) onSelect(SourceType.STALKER) }
-            )
+            TabButton(text = stringResource(R.string.setup_xtream), isSelected = sourceType == SourceType.XTREAM, onClick = { if (!isEditing) onSelect(SourceType.XTREAM) })
         }
         if (!isEditing || sourceType == SourceType.M3U_URL) {
-            TabButton(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_tab_url),
-                isSelected = sourceType == SourceType.M3U_URL,
-                onClick = { if (!isEditing) onSelect(SourceType.M3U_URL) }
-            )
-        }
-        if (!isEditing || sourceType == SourceType.M3U_FILE) {
-            TabButton(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_tab_file),
-                isSelected = sourceType == SourceType.M3U_FILE,
-                onClick = { if (!isEditing) onSelect(SourceType.M3U_FILE) }
-            )
-        }
-        if (!isEditing || sourceType == SourceType.JELLYFIN) {
-            TabButton(
-                text = androidx.compose.ui.res.stringResource(R.string.setup_tab_jellyfin),
-                isSelected = sourceType == SourceType.JELLYFIN,
-                onClick = { if (!isEditing) onSelect(SourceType.JELLYFIN) }
-            )
+            TabButton(text = stringResource(R.string.setup_tab_url), isSelected = sourceType == SourceType.M3U_URL, onClick = { if (!isEditing) onSelect(SourceType.M3U_URL) })
         }
     }
 }

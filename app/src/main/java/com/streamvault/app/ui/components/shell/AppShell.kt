@@ -842,13 +842,13 @@ private fun findActiveDestinationItem(
         ?: items.firstOrNull { it.route == currentRoute }
 
 private fun buildDestinationItems(): List<DestinationItem> =
-    AppTopLevelDestination.defaultOrder.map { it.toDestinationItem() }
+    AppTopLevelDestination.defaultOrder.filterNot { it == AppTopLevelDestination.GUIDE || it == AppTopLevelDestination.PLUGINS }.map { it.toDestinationItem() }
 
 private fun buildDestinationItems(
     configured: List<AppTopLevelDestination>,
     layout: CatalogLayout
 ): List<DestinationItem> {
-    if (layout == CatalogLayout.SPLIT) return configured.map { it.toDestinationItem() }
+    if (layout == CatalogLayout.SPLIT) return configured.filterNot { it == AppTopLevelDestination.GUIDE || it == AppTopLevelDestination.PLUGINS }.map { it.toDestinationItem() }
     var insertedVod = false
     return buildList {
         configured.forEach { destination ->

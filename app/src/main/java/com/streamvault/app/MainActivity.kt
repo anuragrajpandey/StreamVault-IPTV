@@ -73,7 +73,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.streamvault.app.diagnostics.CrashReportStore
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -204,7 +203,6 @@ class MainActivity : ComponentActivity() {
                             onRetry = {
                                 lifecycleScope.launch { databaseStartupCoordinator.open() }
                             },
-                            onShareReport = ::shareLatestFailureReport
                         )
                         DatabaseStartupState.Ready -> {
                             LaunchedEffect(Unit) {
@@ -384,14 +382,6 @@ class MainActivity : ComponentActivity() {
         _externalNavigationRequestFlow.value = request
     }
 
-    private fun shareLatestFailureReport() {
-        val file = CrashReportStore.latestReportFile(this)
-        if (!file.isFile || file.length() <= 0L) return
-        runCatching {
-            val uri = CrashReportStore.providerUriForFile(this, file)
-            startActivity(CrashReportStore.buildShareIntent(uri))
-        }
-    }
 
     private fun Intent.toExternalNavigationRequest(): ExternalNavigationRequest? {
         readPlayerRequestExtra()?.let { return ExternalNavigationRequest.Player(it) }
@@ -503,7 +493,6 @@ class MainActivity : ComponentActivity() {
 private fun DatabaseStartupScreen(
     state: DatabaseStartupState,
     onRetry: () -> Unit = {},
-    onShareReport: () -> Unit = {}
 ) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -536,7 +525,6 @@ private fun DatabaseStartupScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Button(onClick = onRetry) { Text("Retry") }
-                        Button(onClick = onShareReport) { Text("Share report") }
                     }
                 }
                 DatabaseStartupState.Ready -> Unit

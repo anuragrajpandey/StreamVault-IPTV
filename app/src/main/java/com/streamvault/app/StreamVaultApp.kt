@@ -9,7 +9,6 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
-import com.streamvault.app.diagnostics.CrashReportStore
 import com.streamvault.app.diagnostics.RuntimeDiagnosticsManager
 import com.streamvault.app.plugins.StreamVaultPluginManager
 import com.streamvault.app.ui.accessibility.isReducedMotionEnabled
@@ -79,7 +78,6 @@ class StreamVaultApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
-        CrashReportStore.install(this)
         runtimeDiagnosticsManager.start()
         applicationScope.launch {
             databaseStartupCoordinator.state
@@ -149,7 +147,7 @@ class StreamVaultApp : Application(), SingletonImageLoader.Factory {
             // Limit concurrent decoding and fetching to 6 for TV hardware constraints
             .fetcherCoroutineContext(Dispatchers.IO.limitedParallelism(6))
             .decoderCoroutineContext(Dispatchers.Default.limitedParallelism(4))
-            .crossfade(!isReducedMotionEnabled(context))
+            .crossfade(false)
             .build()
     }
 }

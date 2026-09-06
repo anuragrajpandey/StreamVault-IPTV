@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.streamvault.app.update.AppUpdateCheckWorker
 import com.streamvault.data.manager.recording.RecordingReconcileWorker
 import com.streamvault.data.repository.ProviderDeletionCleanupWorker
 import com.streamvault.data.sync.ProviderSyncWorker
@@ -24,7 +23,7 @@ class StartupWorkRegistry @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
     fun register() {
-        AppUpdateCheckWorker.enqueue(context)
+        WorkManager.getInstance(context).cancelUniqueWork("app-update-check")
 
         val dataMaintenance = PeriodicWorkRequestBuilder<SyncWorker>(24, TimeUnit.HOURS)
             .setConstraints(dataMaintenanceConstraints())
