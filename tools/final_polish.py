@@ -241,20 +241,6 @@ s = s.replace('onShareCrashReport = ::shareCrashReport,', 'onShareCrashReport = 
 s = s.replace('onDeleteCrashReport = viewModel::deleteCrashReport,', 'onDeleteCrashReport = {},')
 write(p, s)
 
-p = ROOT / 'player/src/main/java/com/streamvault/player/playback/PlaybackBufferPolicies.kt'
-s = read(p)
-for a, b in {
-    'LOW_MEMORY_VOD_MIN_BUFFER_MS = 15_000': 'LOW_MEMORY_VOD_MIN_BUFFER_MS = 8_000',
-    'LOW_MEMORY_VOD_MAX_BUFFER_MS = 45_000': 'LOW_MEMORY_VOD_MAX_BUFFER_MS = 30_000',
-    'LOW_MEMORY_REBUFFER_MS = 3_000': 'LOW_MEMORY_REBUFFER_MS = 2_500',
-    'VOD_MIN_BUFFER_MS = 90_000': 'VOD_MIN_BUFFER_MS = 20_000',
-    'VOD_MAX_BUFFER_MS = 240_000': 'VOD_MAX_BUFFER_MS = 90_000',
-    'VOD_PLAYBACK_BUFFER_MS = 8_000': 'VOD_PLAYBACK_BUFFER_MS = 2_500',
-    'VOD_REBUFFER_MS = 18_000': 'VOD_REBUFFER_MS = 4_000',
-}.items():
-    s = s.replace(a, b)
-write(p, s)
-
 p = ROOT / 'app/src/main/res/values/strings.xml'
 s = read(p)
 s = re.sub(r'<string name="settings_developer_name">.*?</string>', '<string name="settings_developer_name">EliteStocks</string>', s)
