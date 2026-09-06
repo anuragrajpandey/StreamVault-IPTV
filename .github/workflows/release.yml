@@ -117,7 +117,7 @@ jobs:
             dist/${{ steps.app_version.outputs.apk_name }}
             dist/StreamVault.apk
 
-      - name: Upload test reports
+      - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -127,6 +127,10 @@ jobs:
             data/build/reports/tests/
             domain/build/reports/tests/
             player/build/reports/tests/
+            app/build/reports/lint-results-debug.*
+            data/build/reports/lint-results-debug.*
+            player/build/reports/lint-results-debug.*
+          if-no-files-found: warn
 
       - name: Upload coverage reports
         if: always()
