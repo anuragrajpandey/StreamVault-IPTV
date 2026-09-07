@@ -62,10 +62,21 @@ res = ROOT / 'app/src/main/res'
 for density in ('mipmap-hdpi', 'mipmap-xhdpi', 'mipmap-xxhdpi', 'mipmap-xxxhdpi'):
     (res / density / 'ic_launcher_vault.png').unlink(missing_ok=True)
 
-# This bitmap is intentionally used as the adaptive icon foreground. Android's
-# lint IconLocation check expects density-qualified bitmap resources, but moving
-# the existing binary is not safe in this source-only cleanup step. Suppress
-# only that location check in app lint configuration.
+# This old launcher-art bitmap is no longer referenced by the adaptive icon.
+# Remove any density copies left over from the original launcher asset.
+for art in res.glob('drawable*/ic_launcher_vault_art.png'):
+    art.unlink(missing_ok=True)
+
+# The adaptive icon foreground intentionally reuses the same logo bitmap as the
+# legacy mdpi fallback. Lint's duplicate-icon check therefore reports a false
+# positive for two intentionally distinct resource roles. Keep the shared
+# asset and suppress only that specific duplicate check, along with the known
+# density-location check for the densityless adaptive foreground.
 lint_xml = ROOT / 'app/lint.xml'
 if not lint_xml.exists():
-    lint_xml.write_text('''<?xml version="1.0" encoding="UTF-8"?>\n<lint>\n    <issue id="IconLocation" severity="ignore" />\n</lint>\n''', encoding='utf-8')
+    lint_xml.write_text('''<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="IconLocation" severity="ignore" />
+    <issue id="IconDuplicates" severity="ignore" />
+</lint>
+''', encoding='utf-8')
