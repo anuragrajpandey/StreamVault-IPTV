@@ -43,7 +43,7 @@ jobs:
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "release_tag=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "apk_name=StreamVault-$VERSION_NAME.apk" >> "$GITHUB_OUTPUT"
+          echo "apk_name=EliteStocks.TV_${VERSION_NAME}.apk" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -96,8 +96,11 @@ jobs:
         run: |
           grep -q 'android:icon="@mipmap/ic_launcher_vault"' app/src/main/AndroidManifest.xml
           grep -q 'android:roundIcon="@mipmap/ic_launcher_vault"' app/src/main/AndroidManifest.xml
+          grep -q 'android:label="@string/app_name"' app/src/main/AndroidManifest.xml
+          grep -q '<string name="app_name">EliteStocks TV</string>' app/src/main/res/values/strings.xml
           grep -q 'Icons.Default.Pause' app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt
           test -f app/src/main/res/mipmap-anydpi-v26/ic_launcher_vault.xml
+          test -f app/src/main/res/drawable/elitestocks_tv_logo.png
 
       - name: Test CI helper scripts
         shell: bash
@@ -136,7 +139,7 @@ jobs:
             exit 1
           fi
           cp "$APK_PATH" "dist/${{ steps.app_version.outputs.apk_name }}"
-          cp "$APK_PATH" dist/StreamVault.apk
+          cp "$APK_PATH" dist/EliteStocks.TV.apk
 
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
@@ -144,7 +147,7 @@ jobs:
           name: release-apk
           path: |
             dist/${{ steps.app_version.outputs.apk_name }}
-            dist/StreamVault.apk
+            dist/EliteStocks.TV.apk
 
       - name: Upload test and lint reports
         if: always()
@@ -177,7 +180,7 @@ jobs:
           NOTES=$(awk -v ver="$VERSION" '$0 ~ ("^## \\[" ver "\\]") || $0 ~ ("^## " ver " ") { p=1; next } $0 ~ "^## " && p { p=0 } p { print }' docs/CHANGELOG.md)
           gh release create "${{ steps.app_version.outputs.release_tag }}" \
             "dist/${{ steps.app_version.outputs.apk_name }}" \
-            dist/StreamVault.apk \
-            --title "StreamVault $VERSION" \
+            dist/EliteStocks.TV.apk \
+            --title "EliteStocks TV $VERSION" \
             --notes "$NOTES" \
             --latest
