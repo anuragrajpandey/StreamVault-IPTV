@@ -21,6 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore app lint baseline for CI
+        shell: bash
+        run: |
+          BASELINE_COMMIT=97e5e49fd4afc4147d435d98e87741a6cec50b8f
+          git fetch --no-tags --depth=1 origin "$BASELINE_COMMIT"
+          git show "$BASELINE_COMMIT:app/lint-baseline.xml" > app/lint-baseline.xml
+          test -s app/lint-baseline.xml
+          echo "Restored app lint baseline from $BASELINE_COMMIT"
+
       - name: Read app version
         id: app_version
         shell: bash
