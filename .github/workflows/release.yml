@@ -177,10 +177,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.app_version.outputs.version_name }}"
+          TAG="${{ steps.app_version.outputs.release_tag }}"
+          APK_VERSIONED="dist/${{ steps.app_version.outputs.apk_name }}"
+          APK_LATEST="dist/EliteStocks.TV.apk"
           NOTES=$(awk -v ver="$VERSION" '$0 ~ ("^## \\[" ver "\\]") || $0 ~ ("^## " ver " ") { p=1; next } $0 ~ "^## " && p { p=0 } p { print }' docs/CHANGELOG.md)
-          gh release create "${{ steps.app_version.outputs.release_tag }}" \
-            "dist/${{ steps.app_version.outputs.apk_name }}" \
-            dist/EliteStocks.TV.apk \
-            --title "EliteStocks TV $VERSION" \
-            --notes "$NOTES" \
-            --latest
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Updating it instead of trying to create it again."
+
+            gh release edit "$TAG" \
+              --title "EliteStocks TV $VERSION" \
+              --notes "$NOTES" \
+              --latest
+
+            gh release upload "$TAG" "$APK_VERSIONED" "$APK_LATEST" --clobber
+
+            for OLD_ASSET in "StreamVault.apk" "StreamVault-${VERSION}.apk"; do
+              if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fxq "$OLD_ASSET"; then
+                echo "Removing obsolete release asset: $OLD_ASSET"
+                gh release delete-asset "$TAG" "$OLD_ASSET" --yes
+              fi
+            done
+          else
+            echo "Release $TAG does not exist. Creating it."
+            gh release create "$TAG" \
+              "$APK_VERSIONED" \
+              "$APK_LATEST" \
+              --title "EliteStocks TV $VERSION" \
+              --notes "$NOTES" \
+              --latest
+          fi
