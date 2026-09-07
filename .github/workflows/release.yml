@@ -68,8 +68,14 @@ jobs:
             echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > keystore/release.jks
             printf '%s\n' 'storeFile=keystore/release.jks' "storePassword=$RELEASE_STORE_PASSWORD" "keyAlias=$RELEASE_KEY_ALIAS" "keyPassword=$RELEASE_KEY_PASSWORD" > keystore.properties
           else
-            echo "No signing secrets configured. Building unsigned release APK."
+            echo "No release signing secrets configured. A CI signing key will be used after the release APK is built."
           fi
+
+      - name: Restore CI signing key cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: elitestocks-tv-ci-signing-v1
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -129,6 +135,51 @@ jobs:
       - name: Build release APK
         run: ./gradlew --console=plain :app:assembleRelease
 
+      - name: Sign and verify release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_PATH=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No release APK produced."
+            exit 1
+          fi
+
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          if [ -z "$APKSIGNER" ]; then
+            echo "apksigner was not found in the Android SDK build-tools."
+            exit 1
+          fi
+
+          if unzip -l "$APK_PATH" | grep -qE 'META-INF/[^/]+\.(RSA|DSA|EC|SF)$'; then
+            echo "Release APK is already signed by the configured release signing key."
+          else
+            echo "Release APK is unsigned. Signing it with the cached CI signing key."
+            DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
+            mkdir -p "$HOME/.android"
+            if [ ! -f "$DEBUG_KEYSTORE" ]; then
+              keytool -genkeypair -v \
+                -keystore "$DEBUG_KEYSTORE" \
+                -storepass android \
+                -keypass android \
+                -alias androiddebugkey \
+                -keyalg RSA \
+                -keysize 2048 \
+                -validity 10000 \
+                -dname 'CN=Android Debug,O=Android,C=US'
+            fi
+
+            "$APKSIGNER" sign \
+              --ks "$DEBUG_KEYSTORE" \
+              --ks-pass pass:android \
+              --key-pass pass:android \
+              --ks-key-alias androiddebugkey \
+              "$APK_PATH"
+          fi
+
+          "$APKSIGNER" verify --verbose "$APK_PATH"
+          echo "Verified installable signed APK: $APK_PATH"
+
       - name: Prepare release artifact
         shell: bash
         run: |
@@ -184,12 +235,7 @@ jobs:
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists. Updating it instead of trying to create it again."
-
-            gh release edit "$TAG" \
-              --title "EliteStocks TV $VERSION" \
-              --notes "$NOTES" \
-              --latest
-
+            gh release edit "$TAG" --title "EliteStocks TV $VERSION" --notes "$NOTES" --latest
             gh release upload "$TAG" "$APK_VERSIONED" "$APK_LATEST" --clobber
 
             for OLD_ASSET in "StreamVault.apk" "StreamVault-${VERSION}.apk"; do
