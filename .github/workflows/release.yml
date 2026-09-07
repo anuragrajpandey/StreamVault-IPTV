@@ -1,6 +1,9 @@
 name: Android CI and Release
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
