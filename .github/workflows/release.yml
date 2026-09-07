@@ -67,6 +67,13 @@ jobs:
         run: |
           python3 tools/final_polish.py
 
+      - name: Remove obsolete launcher resources
+        shell: bash
+        run: |
+          find app/src/main/res -type f -name 'ic_launcher_vault_art.png' -delete
+          find app/src/main/res/drawable-hdpi app/src/main/res/drawable-mdpi app/src/main/res/drawable-xhdpi app/src/main/res/drawable-xxhdpi app/src/main/res/drawable-xxxhdpi -type f -name 'app_banner.png' -delete 2>/dev/null || true
+          rm -f app/src/main/res/values/ic_launcher_background.xml
+
       - name: Normalize internal source paths in tests
         shell: bash
         run: |
@@ -90,6 +97,17 @@ jobs:
 
       - name: Run unit tests, lint, and coverage
         run: ./gradlew --console=plain testDebugUnitTest :app:lintDebug :data:lintDebug :player:lintDebug verifyLintBaseline koverXmlReportCi koverHtmlReportCi
+
+      - name: Print lint failures
+        if: always()
+        shell: bash
+        run: |
+          for report in app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt data/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt player/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; do
+            if [ -f "$report" ]; then
+              echo "===== $report ====="
+              grep -E '(^|: )(Error|Warning):|\[([A-Za-z0-9_]+)\]$' "$report" || cat "$report"
+            fi
+          done
 
       - name: Compile instrumentation release gates
         run: ./gradlew --console=plain :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest
