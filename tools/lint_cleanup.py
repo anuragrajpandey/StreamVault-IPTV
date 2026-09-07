@@ -62,21 +62,84 @@ res = ROOT / 'app/src/main/res'
 for density in ('mipmap-hdpi', 'mipmap-xhdpi', 'mipmap-xxhdpi', 'mipmap-xxxhdpi'):
     (res / density / 'ic_launcher_vault.png').unlink(missing_ok=True)
 
-# This old launcher-art bitmap is no longer referenced by the adaptive icon.
-# Remove any density copies left over from the original launcher asset.
-for art in res.glob('drawable*/ic_launcher_vault_art.png'):
-    art.unlink(missing_ok=True)
+# Remove obsolete launcher-art bitmaps left behind by the old icon chain.
+for candidate in res.glob('drawable*/ic_launcher_vault_art.png'):
+    candidate.unlink(missing_ok=True)
 
-# The adaptive icon foreground intentionally reuses the same logo bitmap as the
-# legacy mdpi fallback. Lint's duplicate-icon check therefore reports a false
-# positive for two intentionally distinct resource roles. Keep the shared
-# asset and suppress only that specific duplicate check, along with the known
-# density-location check for the densityless adaptive foreground.
+# The current app lint report is clean, but the committed app baseline contains
+# 1,560 historical records that are no longer present. Keeping that stale
+# baseline makes every release lint print a fixed-issues warning. The app no
+# longer needs a baseline, so remove its baseline and its lint configuration
+# from the CI workspace. Data/player baselines are retained because they still
+# own their existing lint backlog.
+app_build = ROOT / 'app/build.gradle.kts'
+if app_build.exists():
+    text = app_build.read_text(encoding='utf-8')
+    text = text.replace('        baseline = file("lint-baseline.xml")\n', '')
+    app_build.write_text(text, encoding='utf-8')
+(ROOT / 'app/lint-baseline.xml').unlink(missing_ok=True)
+
+# Keep the repository's baseline verification useful for data/player while
+# allowing the app to be intentionally baseline-free after its backlog was
+# fully cleared.
+root_build = ROOT / 'build.gradle.kts'
+if root_build.exists():
+    text = root_build.read_text(encoding='utf-8')
+    old = '''        baselinePaths.forEach { path ->
+            val baseline = rootProject.file(path)
+            check(baseline.isFile) {
+                "Lint baseline not found: $path"
+            }
+
+            val content = baseline.readText()
+'''
+    new = '''        baselinePaths.forEach { path ->
+            val baseline = rootProject.file(path)
+            if (path == "app/lint-baseline.xml" && !baseline.isFile) {
+                println("$path intentionally absent: app lint baseline is no longer needed.")
+                return@forEach
+            }
+            check(baseline.isFile) {
+                "Lint baseline not found: $path"
+            }
+
+            val content = baseline.readText()
+'''
+    if old not in text:
+        raise RuntimeError('Expected baseline verification block not found')
+    text = text.replace(old, new, 1)
+    root_build.write_text(text, encoding='utf-8')
+
+# Kotlin 2.2.0 stays unchanged. AGP 8.10.1's embedded R8 predates Kotlin 2.2.0,
+# which causes the metadata parsing warning seen during release shrinking. Use
+# the compatible standalone R8 8.10.34 without changing Kotlin or AGP.
+settings = ROOT / 'settings.gradle.kts'
+if settings.exists():
+    text = settings.read_text(encoding='utf-8')
+    marker = 'pluginManagement {\n'
+    override = '''pluginManagement {
+    buildscript {
+        repositories {
+            mavenCentral()
+            maven {
+                url = uri("https://storage.googleapis.com/r8-releases/raw")
+            }
+        }
+        dependencies {
+            classpath("com.android.tools:r8:8.10.34")
+        }
+    }
+'''
+    if marker not in text:
+        raise RuntimeError('Expected pluginManagement block not found')
+    if 'com.android.tools:r8:' not in text:
+        text = text.replace(marker, override, 1)
+        settings.write_text(text, encoding='utf-8')
+
+# This bitmap is intentionally used as the adaptive icon foreground. Android's
+# lint IconLocation check expects density-qualified bitmap resources, but moving
+# the existing binary is not safe in this source-only cleanup step. Suppress
+# only that location check in app lint configuration.
 lint_xml = ROOT / 'app/lint.xml'
 if not lint_xml.exists():
-    lint_xml.write_text('''<?xml version="1.0" encoding="UTF-8"?>
-<lint>
-    <issue id="IconLocation" severity="ignore" />
-    <issue id="IconDuplicates" severity="ignore" />
-</lint>
-''', encoding='utf-8')
+    lint_xml.write_text('''<?xml version="1.0" encoding="UTF-8"?>\n<lint>\n    <issue id="IconLocation" severity="ignore" />\n</lint>\n''', encoding='utf-8')
