@@ -66,8 +66,10 @@ import com.streamvault.domain.model.RecordingStatus
 import java.util.Locale
 
 private val ClearWhite = Color.White
-private val Glass = Color.White.copy(alpha = 0.075f)
-private val GlassStrong = Color.White.copy(alpha = 0.16f)
+private val Glass = Color.Black.copy(alpha = 0.34f)
+private val GlassStrong = Color.Black.copy(alpha = 0.58f)
+private val DockGlass = Color.Black.copy(alpha = 0.66f)
+private val SecondaryDockGlass = Color.Black.copy(alpha = 0.52f)
 
 @Composable
 fun PlayerCleanControls(
@@ -246,7 +248,7 @@ fun PlayerCleanControls(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Glass.copy(alpha = 0.78f), RoundedCornerShape(18.dp))
+                        .background(DockGlass, RoundedCornerShape(20.dp))
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -277,12 +279,17 @@ fun PlayerCleanControls(
                             .focusProperties { down = quickActionsFocusRequester }
                             .semantics { contentDescription = if (isPlaying) "Pause" else "Play" }
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = ClearWhite,
-                            modifier = Modifier.size(34.dp)
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = ClearWhite,
+                                modifier = Modifier.size(34.dp)
+                            )
+                        }
                     }
                     CleanIconButton(
                         Icons.Default.Forward10,
@@ -321,7 +328,7 @@ fun PlayerCleanControls(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Glass.copy(alpha = 0.52f), RoundedCornerShape(16.dp))
+                            .background(SecondaryDockGlass, RoundedCornerShape(18.dp))
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -384,7 +391,17 @@ private fun CleanIconButton(
             )
             .semantics { contentDescription = description }
     ) {
-        Icon(icon, contentDescription = null, tint = ClearWhite, modifier = Modifier.size(size * 0.5f))
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = ClearWhite,
+                modifier = Modifier.size(size * 0.5f)
+            )
+        }
     }
 }
 
