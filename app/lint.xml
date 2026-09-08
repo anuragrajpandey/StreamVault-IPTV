@@ -8,4 +8,10 @@
 
     <!-- KTX suggestions are stylistic and are not release-blocking for this module. -->
     <issue id="UseKtx" severity="ignore" />
+
+    <!-- This logo is intentionally a density-independent brand asset. -->
+    <issue id="IconLocation" severity="ignore" />
+
+    <!-- The launcher and in-app brand logo intentionally share the same bitmap. -->
+    <issue id="IconDuplicates" severity="ignore" />
 </lint>
