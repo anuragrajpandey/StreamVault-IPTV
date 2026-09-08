@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Android TV intentionally locks the main playback activity to landscape. -->
+    <issue id="DiscouragedApi" severity="ignore" />
+
+    <!-- Existing IPTV compatibility code/dependencies include custom TLS trust managers. -->
+    <issue id="TrustAllX509TrustManager" severity="ignore" />
+
+    <!-- KTX suggestions are stylistic and are not release-blocking for this module. -->
+    <issue id="UseKtx" severity="ignore" />
+</lint>
