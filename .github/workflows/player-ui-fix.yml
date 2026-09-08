@@ -1,0 +1,179 @@
+name: Apply Player TV UI Fix
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/player-ui-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch player controls
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path("app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt")
+          text = path.read_text()
+
+          text = text.replace(
+              "import androidx.compose.material.icons.filled.PlayArrow",
+              "import androidx.compose.material.icons.filled.Pause\nimport androidx.compose.material.icons.filled.PlayArrow"
+          )
+
+          text = text.replace(
+              "val bottomBarWidthFraction = if (isVod) 0.78f else 1f",
+              "val bottomBarWidthFraction = 1f"
+          )
+          text = text.replace(
+              """            modifier = if (isVod) {
+                Modifier
+                    .fillMaxWidth(bottomBarWidthFraction)
+                    .widthIn(max = 980.dp)
+                    .align(Alignment.Center)
+            } else {
+                Modifier.fillMaxWidth()
+            },""",
+              """            modifier = Modifier.fillMaxWidth(),"""
+          )
+
+          text = text.replace(
+              "compactControls -> 42.dp\n        tabletControls -> 46.dp\n        else -> 50.dp",
+              "compactControls -> 48.dp\n        tabletControls -> 54.dp\n        else -> 58.dp"
+          )
+          text = text.replace(
+              "compactControls -> 54.dp\n        tabletControls -> 58.dp\n        else -> 62.dp",
+              "compactControls -> 60.dp\n        tabletControls -> 66.dp\n        else -> 72.dp"
+          )
+          text = text.replace(
+              "compactControls -> 24.dp\n        tabletControls -> 26.dp\n        else -> 30.dp",
+              "compactControls -> 30.dp\n        tabletControls -> 34.dp\n        else -> 36.dp"
+          )
+
+          text = text.replace(
+              "modifier = Modifier.size(28.dp)",
+              "modifier = Modifier.size(34.dp)"
+          )
+
+          text = text.replace(
+              """                            if (isPlaying) {
+                                Text(
+                                    text = \"II\",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,""",
+              """                            if (isPlaying) {
+                                Icon(
+                                    imageVector = Icons.Default.Pause,
+                                    contentDescription = stringResource(R.string.player_pause),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(playIconSize)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,"""
+          )
+
+          start = text.index("@Composable\nprivate fun PlayerQuickSettingsButton")
+          end = text.index("@Composable\nprivate fun LiveTimeshiftScrubber", start)
+          replacement = r'''@Composable
+private fun PlayerQuickSettingsButton(
+    text: String,
+    onClick: () -> Unit,
+    compact: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    TvClickableSurface(
+        onClick = onClick,
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.White.copy(alpha = 0.10f),
+            focusedContainerColor = Primary.copy(alpha = 0.95f)
+        ),
+        modifier = modifier.height(if (compact) 52.dp else 58.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = if (compact) 16.dp else 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlayerQuickActionRows(
+    primaryActions: List<PlayerActionSpec>,
+    secondaryActions: List<PlayerActionSpec>,
+    firstActionFocusRequester: FocusRequester,
+    primaryActionsUpFocusRequester: FocusRequester? = null,
+    singleRow: Boolean = false,
+    compactButtons: Boolean = false
+) {
+    val actions = (primaryActions + secondaryActions)
+    if (actions.isEmpty()) return
+
+    Spacer(modifier = Modifier.height(if (compactButtons) 12.dp else 16.dp))
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(if (compactButtons) 10.dp else 12.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+    ) {
+        itemsIndexed(actions) { actionIndex, action ->
+            PlayerQuickSettingsButton(
+                text = action.label,
+                onClick = action.onClick,
+                compact = compactButtons,
+                modifier = Modifier
+                    .then(
+                        if (actionIndex == 0) {
+                            Modifier.focusRequester(firstActionFocusRequester)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .focusProperties {
+                        if (actionIndex == 0 && primaryActionsUpFocusRequester != null) {
+                            up = primaryActionsUpFocusRequester
+                        }
+                    }
+            )
+        }
+    }
+}
+
+'''
+          text = text[:start] + replacement + text[end:]
+
+          path.write_text(text)
+          print("Patched", path)
+
+      - name: Commit player TV UI fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt
+          git rm .github/workflows/player-ui-fix.yml
+          git commit -m "fix: make player controls TV-native"
+          git push origin master
