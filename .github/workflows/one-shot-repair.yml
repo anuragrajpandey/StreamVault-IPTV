@@ -1,0 +1,65 @@
+name: One Shot Repair
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair progressive onboarding synchronization
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          sync = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+          s = sync.read_text()
+          old_sig = '''): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{\n        if (trackInitialLiveOnboarding) {\n            return@lock awaitInitialCatalog(\n                providerId = providerId,\n                force = force,\n                movieFastSyncOverride = movieFastSyncOverride,\n                epgSyncModeOverride = epgSyncModeOverride,\n                onProgress = onProgress,\n                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                providerOverride = providerOverride,\n                afterCatalogApply = afterCatalogApply\n            )\n        }\n\n'''
+          new_sig = '''): com.streamvault.domain.model.Result<Unit> {\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(\n                providerId = providerId,\n                force = force,\n                movieFastSyncOverride = movieFastSyncOverride,\n                epgSyncModeOverride = epgSyncModeOverride,\n                onProgress = onProgress,\n                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                providerOverride = providerOverride,\n                afterCatalogApply = afterCatalogApply\n            )\n        }\n\n        return withProviderLock(providerId) lock@{\n'''
+          if old_sig not in s:
+              raise SystemExit('SyncManager wrapper pattern not found')
+          s = s.replace(old_sig, new_sig, 1)
+          # The original function already closes the lock and function together with one final brace.
+          # Add the function-level closing brace after the lock body.
+          marker = '    }\n\n    private suspend fun '
+          pos = s.find(marker, s.find('override suspend fun syncWithProviderOverride'))
+          if pos < 0:
+              raise SystemExit('SyncManager function closing marker not found')
+          s = s[:pos] + '    }\n}\n\n    private suspend fun ' + s[pos+len(marker):]
+          sync.write_text(s)
+
+          reg = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
+          reg.write_text('''package com.streamvault.data.sync\n\nimport java.util.concurrent.ConcurrentHashMap\n\ninternal object InitialCatalogCallbackRegistry {\n    private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()\n\n    fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }\n    fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)\n    fun clear(providerId: Long) { callbacks.remove(providerId) }\n}\n''')
+
+          strategy = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
+          s = strategy.read_text()
+          target = 'if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {'
+          replacement = '''val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null\n            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {'''
+          count = s.count(target)
+          if count != 2:
+              raise SystemExit(f'Expected 2 onboarding strategy guards, found {count}')
+          s = s.replace(target, replacement)
+          old = 'afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
+          if s.count(old) != 2:
+              raise SystemExit('Expected 2 callback arguments')
+          s = s.replace(old, 'afterCatalogApply = initialCatalogCallback')
+          strategy.write_text(s)
+          print('Progressive onboarding repair applied')
+          PY
+      - name: Compile and run focused data tests
+        run: ./gradlew --console=plain :data:testDebugUnitTest --tests 'com.streamvault.data.sync.SyncManagerTest' --tests 'com.streamvault.data.sync.SyncManagerXtreamLiveStrategyTest'
+      - name: Commit repair and remove repair workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/src/main/java/com/streamvault/data/sync/SyncManager.kt data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt
+          git commit -m "fix: release provider lock before progressive onboarding"
+          git rm .github/workflows/one-shot-repair.yml
+          git commit -m "chore: remove one-shot repair workflow"
+          git push
