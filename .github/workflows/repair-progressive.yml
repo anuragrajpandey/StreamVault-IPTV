@@ -77,7 +77,7 @@ jobs:
           sync.write_text(s)
 
           reg = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
-          reg.write_text('''package com.streamvault.data.sync\n\nimport java.util.concurrent.ConcurrentHashMap\n\ninternal object InitialCatalogCallbackRegistry {\n    private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()\n\n    fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }\n    fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)\n    fun clear(providerId: Long) { callbacks.remove(providerId) }\n}\n''')
+          reg.write_text('''package com.streamvault.data.sync\n\nimport java.util.concurrent.ConcurrentHashMap\n\ninternal object InitialCatalogCallbackRegistry {\n    private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()\n\n    fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }\n    fun take(providerId: Long): suspend () -> Unit = callbacks.remove(providerId) ?: {}\n    fun clear(providerId: Long) { callbacks.remove(providerId) }\n}\n''')
 
           strategy = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
           x = strategy.read_text()
