@@ -1,0 +1,230 @@
+name: Apply progressive onboarding fix
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/apply-progressive-onboarding-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Apply fixes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one match in {path}, found {count}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          # ---------------------------------------------------------------
+          # 1) Return from initial onboarding as soon as the first durable
+          #    catalog transaction lands, while the real full sync continues
+          #    in a repository-owned background coroutine.
+          # ---------------------------------------------------------------
+          sync_manager = Path("data/src/main/java/com/streamvault/data/sync/SyncManager.kt")
+          text = sync_manager.read_text()
+          text = text.replace(
+              "import kotlinx.coroutines.CancellationException\n",
+              "import kotlinx.coroutines.CancellationException\nimport kotlinx.coroutines.CompletableDeferred\nimport kotlinx.coroutines.CoroutineScope\nimport kotlinx.coroutines.SupervisorJob\n",
+              1,
+          )
+          anchor = "    private val syncProviderSnapshotAdapter = SyncProviderSnapshotAdapter(providerSnapshotRepository)\n"
+          replacement = anchor + "    private val initialOnboardingBackgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)\n"
+          if text.count(anchor) != 1:
+              raise SystemExit("SyncManager background-scope anchor not found exactly once")
+          text = text.replace(anchor, replacement, 1)
+          signature = "): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{\n"
+          branch = "): com.streamvault.domain.model.Result<Unit> {\n        if (trackInitialLiveOnboarding) {\n            val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()\n            initialOnboardingBackgroundScope.launch {\n                try {\n                    val backgroundResult = syncWithProviderOverride(\n                        providerId = providerId,\n                        force = force,\n                        movieFastSyncOverride = movieFastSyncOverride,\n                        epgSyncModeOverride = epgSyncModeOverride,\n                        onProgress = onProgress,\n                        trackInitialLiveOnboarding = false,\n                        providerOverride = providerOverride,\n                        afterCatalogApply = {\n                            try {\n                                afterCatalogApply?.invoke()\n                                firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))\n                            } catch (error: Throwable) {\n                                firstCatalogResult.completeExceptionally(error)\n                                throw error\n                            }\n                        }\n                    )\n                    if (!firstCatalogResult.isCompleted) {\n                        firstCatalogResult.complete(backgroundResult)\n                    }\n                } catch (error: kotlinx.coroutines.CancellationException) {\n                    if (!firstCatalogResult.isCompleted) {\n                        firstCatalogResult.completeExceptionally(error)\n                    }\n                } catch (error: Throwable) {\n                    if (!firstCatalogResult.isCompleted) {\n                        firstCatalogResult.completeExceptionally(error)\n                    }\n                }\n            }\n            return firstCatalogResult.await()\n        }\n        return withProviderLock(providerId) lock@{\n"
+          if text.count(signature) != 1:
+              raise SystemExit("SyncManager syncWithProviderOverride signature anchor not found exactly once")
+          text = text.replace(signature, branch, 1)
+          sync_manager.write_text(text)
+
+          # ---------------------------------------------------------------
+          # 2) Commit the first non-empty Xtream Live batch immediately for
+          #    onboarding. The batch is also restaged into the continuing
+          #    session, so the final full commit remains authoritative and
+          #    can still prune stale rows safely.
+          # ---------------------------------------------------------------
+          live = Path("data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt")
+          text = live.read_text()
+
+          text = text.replace(
+              "fullPayload = loadXtreamLiveFull(provider, api, runtimeProfile)",
+              "fullPayload = loadXtreamLiveFull(\n                provider = provider,\n                api = api,\n                runtimeProfile = runtimeProfile,\n                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                afterCatalogApply = afterCatalogApply\n            )",
+              1,
+          )
+          text = text.replace(
+              "            runtimeProfile = runtimeProfile\n        )\n        return CatalogSyncPayload(",
+              "            runtimeProfile = runtimeProfile,\n            trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n            afterCatalogApply = afterCatalogApply\n        )\n        return CatalogSyncPayload(",
+              1,
+          )
+
+          text = text.replace(
+              "    suspend fun loadXtreamLiveFull(\n        provider: Provider,\n        api: XtreamProvider,\n        runtimeProfile: CatalogSyncRuntimeProfile\n    ): CatalogSyncPayload<Channel> {",
+              "    suspend fun loadXtreamLiveFull(\n        provider: Provider,\n        api: XtreamProvider,\n        runtimeProfile: CatalogSyncRuntimeProfile,\n        trackInitialLiveOnboarding: Boolean,\n        afterCatalogApply: suspend () -> Unit\n    ): CatalogSyncPayload<Channel> {",
+              1,
+          )
+
+          # Propagate the new bootstrap arguments through every full-streaming call.
+          text = re.sub(
+              r"(runtimeProfile = runtimeProfile\n)(\s*\)\n)",
+              r"\1                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                afterCatalogApply = afterCatalogApply\n\2",
+              text,
+              count=3,
+          )
+
+          text = text.replace(
+              "        runtimeProfile: CatalogSyncRuntimeProfile\n    ): CatalogSyncPayload<Channel> {\n        val fallbackCollector",
+              "        runtimeProfile: CatalogSyncRuntimeProfile,\n        trackInitialLiveOnboarding: Boolean,\n        afterCatalogApply: suspend () -> Unit\n    ): CatalogSyncPayload<Channel> {\n        val fallbackCollector",
+              1,
+          )
+
+          text = text.replace(
+              "        var stagingElapsedMs = 0L\n",
+              "        var stagingElapsedMs = 0L\n        var initialCatalogCommitted = false\n",
+              1,
+          )
+          old = """            stagedSessionId = staged.sessionId
+            acceptedCount += staged.acceptedCount
+            flushCount++
+"""
+          new = """            stagedSessionId = staged.sessionId
+            acceptedCount += staged.acceptedCount
+            if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
+                val bootstrapChannels = mappedChannels
+                    .filter { it.streamId > 0L }
+                    .distinctBy { it.streamId }
+                if (bootstrapChannels.isNotEmpty()) {
+                    syncCatalogStore.upsertLiveCatalog(
+                        providerId = provider.id,
+                        categories = fallbackCollector.entities(),
+                        channels = bootstrapChannels,
+                        afterCatalogApply = afterCatalogApply
+                    )
+                    initialCatalogCommitted = true
+                    val continuationSessionId = syncCatalogStore.newSessionId()
+                    syncCatalogStore.stageChannelBatch(
+                        providerId = provider.id,
+                        sessionId = continuationSessionId,
+                        channels = bootstrapChannels.map { it.toEntity() }
+                    )
+                    stagedSessionId = continuationSessionId
+                }
+            }
+            flushCount++
+"""
+          if text.count(old) != 1:
+              raise SystemExit("Full-live staging block not found exactly once")
+          text = text.replace(old, new, 1)
+
+          text = text.replace(
+              "    suspend fun loadXtreamLiveByCategory(\n        provider: Provider,\n        api: XtreamProvider,\n        rawCategories: List<XtreamCategory>,\n        onProgress: ((String) -> Unit)?,\n        preferSequential: Boolean,\n        runtimeProfile: CatalogSyncRuntimeProfile\n    ): CatalogSyncPayload<Channel> {",
+              "    suspend fun loadXtreamLiveByCategory(\n        provider: Provider,\n        api: XtreamProvider,\n        rawCategories: List<XtreamCategory>,\n        onProgress: ((String) -> Unit)?,\n        preferSequential: Boolean,\n        runtimeProfile: CatalogSyncRuntimeProfile,\n        trackInitialLiveOnboarding: Boolean,\n        afterCatalogApply: suspend () -> Unit\n    ): CatalogSyncPayload<Channel> {",
+              1,
+          )
+
+          text = text.replace(
+              "        var stagedAcceptedCount = 0\n",
+              "        var stagedAcceptedCount = 0\n        var initialCatalogCommitted = false\n",
+              1,
+          )
+          old = """                stagedSessionId = staged.sessionId
+                stagedAcceptedCount += staged.acceptedCount
+"""
+          new = """                stagedSessionId = staged.sessionId
+                stagedAcceptedCount += staged.acceptedCount
+                if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
+                    val bootstrapChannels = channels
+                        .filter { it.streamId > 0L }
+                        .distinctBy { it.streamId }
+                    if (bootstrapChannels.isNotEmpty()) {
+                        syncCatalogStore.upsertLiveCatalog(
+                            providerId = provider.id,
+                            categories = fallbackCollector.entities(),
+                            channels = bootstrapChannels,
+                            afterCatalogApply = afterCatalogApply
+                        )
+                        initialCatalogCommitted = true
+                        val continuationSessionId = syncCatalogStore.newSessionId()
+                        syncCatalogStore.stageChannelBatch(
+                            providerId = provider.id,
+                            sessionId = continuationSessionId,
+                            channels = bootstrapChannels.map { it.toEntity() }
+                        )
+                        stagedSessionId = continuationSessionId
+                    }
+                }
+"""
+          if text.count(old) != 1:
+              raise SystemExit("Category staging block not found exactly once")
+          text = text.replace(old, new, 1)
+          live.write_text(text)
+
+          # ---------------------------------------------------------------
+          # 3) Remove Stop Playback After from every player control surface,
+          #    but keep Idle Standby After and the underlying timer plumbing
+          #    intact for now so existing preferences/data remain compatible.
+          # ---------------------------------------------------------------
+          clean = Path("app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt")
+          text = clean.read_text()
+          for snippet in [
+              '                    CleanIconButton(Icons.Default.MoreHoriz, "More player controls", onOpenStopPlaybackTimer, primaryControlSize)\n',
+              '                            CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_stop_playback_after), onOpenStopPlaybackTimer)\n',
+          ]:
+              text = text.replace(snippet, "")
+          clean.write_text(text)
+
+          chrome = Path("app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt")
+          text = chrome.read_text()
+          pattern = re.compile(
+              r"\n\s*add\(PlayerActionSpec\(\s*sleepTimerActionLabel\(\s*title = stringResource\(R\.string\.player_stop_playback_after\),.*?\n\s*onOpenStopPlaybackTimer\n\s*\)\)",
+              re.S,
+          )
+          text, removed = pattern.subn("", text)
+          if removed < 1:
+              raise SystemExit("Legacy player stop-timer action block was not found")
+          chrome.write_text(text)
+
+          overlays = Path("app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerSystemOverlays.kt")
+          text = overlays.read_text()
+          old = "    val showStopWarning = state.stopTimerWarningVisible\n"
+          new = "    val showStopWarning = false\n"
+          if text.count(old) != 1:
+              raise SystemExit("Stop timer warning anchor not found exactly once")
+          overlays.write_text(text.replace(old, new, 1))
+
+          # Keep the timer preference/state implementation source-compatible. The player UI no
+          # longer exposes the Stop Playback After action or warning, and Idle Standby remains.
+          PY
+
+          git diff --check
+          git status --short
+
+      - name: Commit and push fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/apply-progressive-onboarding-fix.yml
+          git add -A
+          git commit -m "fix: progressively activate providers and remove stop timer UI"
+          git push origin HEAD:master
