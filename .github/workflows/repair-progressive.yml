@@ -1,0 +1,105 @@
+name: Repair progressive onboarding
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore known-good sync sources
+        shell: bash
+        run: |
+          BASE=ae80bc0a319b84b1ca85ff593c13ca4199f6575c
+          git show "$BASE:data/src/main/java/com/streamvault/data/sync/SyncManager.kt" > data/src/main/java/com/streamvault/data/sync/SyncManager.kt
+          git show "$BASE:data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt" > data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt
+
+      - name: Apply progressive onboarding patch
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          sync = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+          s = sync.read_text()
+
+          s = s.replace('import kotlinx.coroutines.CancellationException\n', 'import kotlinx.coroutines.CancellationException\nimport kotlinx.coroutines.CompletableDeferred\nimport kotlinx.coroutines.CoroutineScope\nimport kotlinx.coroutines.SupervisorJob\n')
+          s = s.replace('import kotlinx.coroutines.Dispatchers\n', 'import kotlinx.coroutines.Dispatchers\nimport java.util.concurrent.atomic.AtomicBoolean\n', 1)
+          marker = '    private val syncProviderSnapshotAdapter = SyncProviderSnapshotAdapter(providerSnapshotRepository)\n'
+          if 'private val initialOnboardingBackgroundScope' not in s:
+              s = s.replace(marker, marker + '    private val initialOnboardingBackgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)\n', 1)
+
+          method_marker = '    override suspend fun syncWithProviderOverride('
+          start = s.index(method_marker)
+          body_open = s.index('{', start)
+          # Find the matching closing brace for this method.
+          depth = 0
+          end = None
+          for i in range(body_open, len(s)):
+              if s[i] == '{': depth += 1
+              elif s[i] == '}':
+                  depth -= 1
+                  if depth == 0:
+                      end = i + 1
+                      break
+          if end is None:
+              raise SystemExit('Could not locate syncWithProviderOverride body')
+          method = s[start:end]
+          if 'trackInitialLiveOnboarding' not in method:
+              raise SystemExit('Expected onboarding parameter missing from syncWithProviderOverride')
+
+          param_match = re.search(r'(\n\s*trackInitialLiveOnboarding:\s*Boolean,)', method)
+          if not param_match:
+              raise SystemExit('Could not locate onboarding parameter')
+          param = param_match.group(1)
+          param_pos = start + param_match.end()
+
+          helper = '''\n\n    private suspend fun awaitInitialCatalog(\n        providerId: Long,\n        force: Boolean,\n        movieFastSyncOverride: Boolean?,\n        epgSyncModeOverride: ProviderEpgSyncMode?,\n        onProgress: ((String) -> Unit)?,\n        trackInitialLiveOnboarding: Boolean,\n        providerOverride: Provider?,\n        afterCatalogApply: (suspend () -> Unit)?\n    ): Result<Unit> {\n        val firstCatalogResult = CompletableDeferred<Result<Unit>>()\n        val delivered = AtomicBoolean(false)\n\n        suspend fun signalFirstCatalog() {\n            if (!delivered.compareAndSet(false, true)) return\n            try {\n                afterCatalogApply?.invoke()\n                firstCatalogResult.complete(Result.success(Unit))\n            } catch (error: Throwable) {\n                firstCatalogResult.completeExceptionally(error)\n                throw error\n            }\n        }\n\n        InitialCatalogCallbackRegistry.register(providerId, ::signalFirstCatalog)\n        initialOnboardingBackgroundScope.launch {\n            try {\n                val result = syncWithProviderOverride(\n                    providerId = providerId,\n                    force = force,\n                    movieFastSyncOverride = movieFastSyncOverride,\n                    epgSyncModeOverride = epgSyncModeOverride,\n                    onProgress = onProgress,\n                    trackInitialLiveOnboarding = false,\n                    providerOverride = providerOverride,\n                    afterCatalogApply = { signalFirstCatalog() }\n                )\n                if (!firstCatalogResult.isCompleted) firstCatalogResult.complete(result)\n            } catch (error: Throwable) {\n                InitialCatalogCallbackRegistry.clear(providerId)\n                if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)\n            }\n        }\n        return firstCatalogResult.await()\n    }'''
+
+          # Insert the early branch immediately after the method opening brace.
+          early = '''\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(\n                providerId = providerId,\n                force = force,\n                movieFastSyncOverride = movieFastSyncOverride,\n                epgSyncModeOverride = epgSyncModeOverride,\n                onProgress = onProgress,\n                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                providerOverride = providerOverride,\n                afterCatalogApply = afterCatalogApply\n            )\n        }\n'''
+          if 'return awaitInitialCatalog(' not in method:
+              method_new = method[:method.find('{')+1] + early + method[method.find('{')+1:]
+              s = s[:start] + method_new + s[end:]
+              # Helper goes immediately before the override method.
+              s = s[:start] + helper + s[start:]
+          sync.write_text(s)
+
+          reg = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
+          reg.write_text('''package com.streamvault.data.sync\n\nimport java.util.concurrent.ConcurrentHashMap\n\ninternal object InitialCatalogCallbackRegistry {\n    private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()\n\n    fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }\n    fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)\n    fun clear(providerId: Long) { callbacks.remove(providerId) }\n}\n''')
+
+          strategy = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
+          x = strategy.read_text()
+          # Thread the flag into both live execution paths using the existing function parameter where possible.
+          if 'trackInitialLiveOnboarding' not in x:
+              # Add the parameter to the top-level strategy function that already receives afterCatalogApply.
+              m = re.search(r'(afterCatalogApply:\s*\(suspend \(\) -> Unit\)\?,?)(\s*)', x)
+              if m:
+                  x = x[:m.end()] + 'trackInitialLiveOnboarding: Boolean = false,\n' + x[m.end():]
+          # Make bootstrap commits from staged Channel values use ChannelEntity.
+          x = x.replace('channels = bootstrapChannels, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)', 'channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)')
+          x = x.replace('channels = bootstrapChannels,\n                    afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)', 'channels = bootstrapChannels.map { it.toEntity() },\n                    afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)')
+          strategy.write_text(x)
+          PY
+
+      - name: Compile before commit
+        run: ./gradlew --console=plain :data:compileDebugKotlin
+
+      - name: Commit repaired sources
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/src/main/java/com/streamvault/data/sync/SyncManager.kt data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt
+          git commit -m 'fix: repair progressive onboarding compilation' || exit 0
+          git push
