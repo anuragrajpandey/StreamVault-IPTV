@@ -7,4 +7,5 @@ if text.count(old) != 1:
 text = text.replace(old, 'afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)', 1)
 p.write_text(text)
 Path('tools/fix_strategy_upsert.py').unlink()
+# trigger final patch workflow
 print('fixed final onboarding upsert callback')
