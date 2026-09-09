@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
 
+# trigger the one-shot source patch
 jobs:
   patch:
     runs-on: ubuntu-latest
@@ -21,7 +22,6 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           import re
-
           manager = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
           text = manager.read_text()
           text = text.replace('import kotlinx.coroutines.SupervisorJob\n', 'import kotlinx.coroutines.SupervisorJob\nimport java.util.concurrent.atomic.AtomicBoolean\n', 1)
