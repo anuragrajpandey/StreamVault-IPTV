@@ -1,0 +1,109 @@
+name: Repair progressive onboarding build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  repair:
+    if: github.actor == 'github-actions[bot]' || github.event.head_commit.author.username == 'anuragrajpandey'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Repair SyncManager and Xtream strategy
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          sync = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+          text = sync.read_text()
+
+          start = text.index('    override suspend fun syncWithProviderOverride(')
+          sig_end = text.index('    ): com.streamvault.domain.model.Result<Unit> {', start) + len('    ): com.streamvault.domain.model.Result<Unit> {')
+          lock_marker = '        return withProviderLock(providerId) lock@{'
+          lock_pos = text.index(lock_marker, sig_end)
+
+          helper = '''    private suspend fun awaitInitialCatalog(
+          providerId: Long,
+          force: Boolean,
+          movieFastSyncOverride: Boolean?,
+          epgSyncModeOverride: ProviderEpgSyncMode?,
+          onProgress: ((String) -> Unit)?,
+          providerOverride: Provider?,
+          afterCatalogApply: (suspend () -> Unit)?
+      ): com.streamvault.domain.model.Result<Unit> {
+          val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()
+          val catalogSignalDelivered = AtomicBoolean(false)
+
+          suspend fun signalFirstCatalog() {
+              if (!catalogSignalDelivered.compareAndSet(false, true)) return
+              try {
+                  afterCatalogApply?.invoke()
+                  firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))
+              } catch (error: Throwable) {
+                  firstCatalogResult.completeExceptionally(error)
+                  throw error
+              }
+          }
+
+          InitialCatalogCallbackRegistry.register(providerId, ::signalFirstCatalog)
+          initialOnboardingBackgroundScope.launch {
+              try {
+                  val backgroundResult = syncWithProviderOverride(
+                      providerId = providerId,
+                      force = force,
+                      movieFastSyncOverride = movieFastSyncOverride,
+                      epgSyncModeOverride = epgSyncModeOverride,
+                      onProgress = onProgress,
+                      trackInitialLiveOnboarding = false,
+                      providerOverride = providerOverride,
+                      afterCatalogApply = { signalFirstCatalog() }
+                  )
+                  if (!firstCatalogResult.isCompleted) {
+                      firstCatalogResult.complete(backgroundResult)
+                  }
+              } catch (error: Throwable) {
+                  InitialCatalogCallbackRegistry.clear(providerId)
+                  if (!firstCatalogResult.isCompleted) {
+                      firstCatalogResult.completeExceptionally(error)
+                  }
+              }
+          }
+          return firstCatalogResult.await()
+      }
+
+'''
+
+          override = '''    override suspend fun syncWithProviderOverride('''
+          text = text[:start] + helper + text[text.index(override, start):sig_end] + '\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(\n                providerId = providerId,\n                force = force,\n                movieFastSyncOverride = movieFastSyncOverride,\n                epgSyncModeOverride = epgSyncModeOverride,\n                onProgress = onProgress,\n                providerOverride = providerOverride,\n                afterCatalogApply = afterCatalogApply\n            )\n        }\n' + text[lock_pos:]
+
+          sync.write_text(text)
+
+          strategy = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
+          s = strategy.read_text()
+          old = 'categories = fallbackCollector.entities(), channels = bootstrapChannels, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
+          new = 'categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
+          count = s.count(old)
+          if count != 2:
+              raise SystemExit(f'Expected 2 bootstrap type fixes, found {count}')
+          s = s.replace(old, new)
+          strategy.write_text(s)
+          PY
+
+      - name: Commit repair and remove helper workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-progressive-build.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/src/main/java/com/streamvault/data/sync/SyncManager.kt data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt .github/workflows/fix-progressive-build.yml
+          git commit -m 'fix: repair progressive onboarding compilation'
+          git push origin HEAD:master
