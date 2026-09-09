@@ -189,8 +189,7 @@ internal class SyncManagerXtreamLiveStrategy(
                 streamItems = { item -> xtreamCatalogHttpService.streamLiveStreams(endpoint, onItem = item) },
                 mapRawBatch = { batch -> api.mapLiveStreamsSequence(batch) },
                 runtimeProfile = runtimeProfile,
-            trackInitialLiveOnboarding = trackInitialLiveOnboarding,
-            afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)
+            trackInitialLiveOnboarding = trackInitialLiveOnboarding
             )
         }
 
@@ -220,7 +219,6 @@ internal class SyncManagerXtreamLiveStrategy(
             mapRawBatch = { batch -> api.mapLiveStreamsSequence(batch) },
             runtimeProfile = runtimeProfile,
         trackInitialLiveOnboarding = trackInitialLiveOnboarding,
-        afterCatalogApply = afterCatalogApply
         )
     }
 
@@ -297,7 +295,7 @@ internal class SyncManagerXtreamLiveStrategy(
             if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
                 val bootstrapChannels = mappedChannels.filter { it.streamId > 0L }.distinctBy { it.streamId }
                 if (bootstrapChannels.isNotEmpty()) {
-                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels)
+                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
                     initialCatalogCommitted = true
                     val continuationSessionId = syncCatalogStore.newSessionId()
                     syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })
