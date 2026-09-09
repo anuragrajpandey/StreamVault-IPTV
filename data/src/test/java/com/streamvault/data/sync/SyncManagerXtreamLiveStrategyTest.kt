@@ -117,7 +117,7 @@ class SyncManagerXtreamLiveStrategyTest {
             }
         )
 
-        val payload = strategy.loadXtreamLiveFull(provider, xtreamProvider, testRuntimeProfile(batchSize = 2))
+        val payload = strategy.loadXtreamLiveFull(provider, xtreamProvider, testRuntimeProfile(batchSize = 2), trackInitialLiveOnboarding = false)
 
         assertThat(payload.catalogResult).isInstanceOf(CatalogStrategyResult.Success::class.java)
         assertThat(payload.stagedSessionId).isEqualTo(9001L)
