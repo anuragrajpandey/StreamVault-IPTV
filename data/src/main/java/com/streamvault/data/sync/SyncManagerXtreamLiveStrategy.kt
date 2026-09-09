@@ -201,7 +201,6 @@ internal class SyncManagerXtreamLiveStrategy(
             mapRawBatch = { batch -> api.mapLiveStreamRowsSequence(batch) },
             runtimeProfile = runtimeProfile,
         trackInitialLiveOnboarding = trackInitialLiveOnboarding,
-        afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)
         )
         if (!thinPayload.shouldRetryLegacyFullDecode()) {
             return thinPayload
