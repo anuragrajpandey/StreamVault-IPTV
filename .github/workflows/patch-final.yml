@@ -26,3 +26,4 @@ jobs:
             git push origin HEAD:master
           else
             echo "Final source patch already applied."
+          fi
