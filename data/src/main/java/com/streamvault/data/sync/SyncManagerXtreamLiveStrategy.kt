@@ -294,7 +294,7 @@ internal class SyncManagerXtreamLiveStrategy(
             if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
                 val bootstrapChannels = mappedChannels.filter { it.streamId > 0L }.distinctBy { it.streamId }
                 if (bootstrapChannels.isNotEmpty()) {
-                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
+                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
                     initialCatalogCommitted = true
                     val continuationSessionId = syncCatalogStore.newSessionId()
                     syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })
@@ -453,7 +453,7 @@ internal class SyncManagerXtreamLiveStrategy(
                 if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
                     val bootstrapChannels = channels.filter { it.streamId > 0L }.distinctBy { it.streamId }
                     if (bootstrapChannels.isNotEmpty()) {
-                        syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
+                        syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
                         initialCatalogCommitted = true
                         val continuationSessionId = syncCatalogStore.newSessionId()
                         syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })

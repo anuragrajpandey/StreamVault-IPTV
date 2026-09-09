@@ -102,11 +102,11 @@ import com.streamvault.domain.provider.CapabilityResolution
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -1110,7 +1110,9 @@ class SyncManager @Inject constructor(
      * Runs a not-yet-committed configuration. The callback is invoked within the first catalog
      * transaction that publishes data, so callers can atomically promote the configuration.
      */
-    override suspend fun syncWithProviderOverride(
+
+
+    private suspend fun awaitInitialCatalog(
         providerId: Long,
         force: Boolean,
         movieFastSyncOverride: Boolean?,
@@ -1120,37 +1122,63 @@ class SyncManager @Inject constructor(
         providerOverride: Provider?,
         afterCatalogApply: (suspend () -> Unit)?
     ): com.streamvault.domain.model.Result<Unit> {
-        if (trackInitialLiveOnboarding) {
-            val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()
-            val catalogSignalDelivered = AtomicBoolean(false)
-            suspend fun signalFirstCatalog() {
-                if (!catalogSignalDelivered.compareAndSet(false, true)) return
-                try {
-                    afterCatalogApply?.invoke()
-                    firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))
-                } catch (error: Throwable) {
-                    firstCatalogResult.completeExceptionally(error)
-                    throw error
-                }
+        val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()
+        val delivered = AtomicBoolean(false)
+
+        suspend fun signalFirstCatalog() {
+            if (!delivered.compareAndSet(false, true)) return
+            try {
+                afterCatalogApply?.invoke()
+                firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))
+            } catch (error: Throwable) {
+                firstCatalogResult.completeExceptionally(error)
+                throw error
             }
-            InitialCatalogCallbackRegistry.register(providerId, ::signalFirstCatalog)
-            initialOnboardingBackgroundScope.launch {
-                try {
-                    val backgroundResult = syncWithProviderOverride(
-                        providerId = providerId, force = force, movieFastSyncOverride = movieFastSyncOverride,
-                        epgSyncModeOverride = epgSyncModeOverride, onProgress = onProgress,
-                        trackInitialLiveOnboarding = false, providerOverride = providerOverride,
-                        afterCatalogApply = { signalFirstCatalog() }
-                    )
-                    if (!firstCatalogResult.isCompleted) firstCatalogResult.complete(backgroundResult)
-                } catch (error: Throwable) {
-                    InitialCatalogCallbackRegistry.clear(providerId)
-                    if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)
-                }
-            }
-            return firstCatalogResult.await()
         }
-        return withProviderLock(providerId) lock@{
+
+        InitialCatalogCallbackRegistry.register(providerId, ::signalFirstCatalog)
+        initialOnboardingBackgroundScope.launch {
+            try {
+                val result = syncWithProviderOverride(
+                    providerId = providerId,
+                    force = force,
+                    movieFastSyncOverride = movieFastSyncOverride,
+                    epgSyncModeOverride = epgSyncModeOverride,
+                    onProgress = onProgress,
+                    trackInitialLiveOnboarding = false,
+                    providerOverride = providerOverride,
+                    afterCatalogApply = { signalFirstCatalog() }
+                )
+                if (!firstCatalogResult.isCompleted) firstCatalogResult.complete(result)
+            } catch (error: Throwable) {
+                InitialCatalogCallbackRegistry.clear(providerId)
+                if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)
+            }
+        }
+        return firstCatalogResult.await()
+    }    override suspend fun syncWithProviderOverride(
+        providerId: Long,
+        force: Boolean,
+        movieFastSyncOverride: Boolean?,
+        epgSyncModeOverride: ProviderEpgSyncMode?,
+        onProgress: ((String) -> Unit)?,
+        trackInitialLiveOnboarding: Boolean,
+        providerOverride: Provider?,
+        afterCatalogApply: (suspend () -> Unit)?
+    ): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{
+        if (trackInitialLiveOnboarding) {
+            return@lock awaitInitialCatalog(
+                providerId = providerId,
+                force = force,
+                movieFastSyncOverride = movieFastSyncOverride,
+                epgSyncModeOverride = epgSyncModeOverride,
+                onProgress = onProgress,
+                trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+                providerOverride = providerOverride,
+                afterCatalogApply = afterCatalogApply
+            )
+        }
+
         var progressSession: SyncProgressSession? = null
         try {
             val providerEntity = providerDao.getById(providerId)
