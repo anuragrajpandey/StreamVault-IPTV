@@ -21,19 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # BEGIN ONE-SHOT PROGRESSIVE ONBOARDING PATCH
-      - name: Apply progressive onboarding and player timer fix
-        shell: bash
-        run: |
-          python3 tools/apply_progressive_onboarding_fix.py
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: progressively activate providers and remove stop timer UI"
-          git push origin HEAD:master
-      # END ONE-SHOT PROGRESSIVE ONBOARDING PATCH
-
       - name: Restore app lint baseline for CI
         shell: bash
         run: |
