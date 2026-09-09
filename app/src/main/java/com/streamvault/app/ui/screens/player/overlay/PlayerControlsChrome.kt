@@ -770,17 +770,6 @@ private fun PlayerLiveInfo(
         ))
         add(PlayerActionSpec(
             sleepTimerActionLabel(
-                title = stringResource(R.string.player_stop_playback_after),
-                activeLabel = stringResource(
-                    R.string.player_stop_timer_status,
-                    formatTimerRemaining(sleepTimerUiState.stopRemainingMs)
-                ),
-                active = sleepTimerUiState.stopTimerActive
-            ),
-            onOpenStopPlaybackTimer
-        ))
-        add(PlayerActionSpec(
-            sleepTimerActionLabel(
                 title = stringResource(R.string.player_idle_standby_after),
                 activeLabel = stringResource(
                     R.string.player_idle_timer_status,
@@ -1062,17 +1051,6 @@ private fun PlayerVodInfo(
         if (audioVideoSyncEnabled && !isCastConnected) {
             add(PlayerActionSpec(stringResource(R.string.player_av_sync_short), onOpenAudioVideoSync))
         }
-        add(PlayerActionSpec(
-            sleepTimerActionLabel(
-                title = stringResource(R.string.player_stop_playback_after),
-                activeLabel = stringResource(
-                    R.string.player_stop_timer_status,
-                    formatTimerRemaining(sleepTimerUiState.stopRemainingMs)
-                ),
-                active = sleepTimerUiState.stopTimerActive
-            ),
-            onOpenStopPlaybackTimer
-        ))
         add(PlayerActionSpec(
             sleepTimerActionLabel(
                 title = stringResource(R.string.player_idle_standby_after),

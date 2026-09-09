@@ -321,7 +321,6 @@ fun PlayerCleanControls(
                     }
                     CleanIconButton(Icons.Default.AspectRatio, aspectRatioLabel, onToggleAspectRatio, primaryControlSize)
                     CleanIconButton(Icons.Default.PictureInPictureAlt, "Picture in picture", onEnterPictureInPicture, primaryControlSize)
-                    CleanIconButton(Icons.Default.MoreHoriz, "More player controls", onOpenStopPlaybackTimer, primaryControlSize)
                 }
 
                 if (live || audioVideoSyncEnabled || showExternalPlayerAction || currentRecordingStatus != null) {
@@ -335,7 +334,6 @@ fun PlayerCleanControls(
                     ) {
                         if (live) {
                             CleanIconButton(Icons.Default.Replay10, stringResource(R.string.player_jump_to_live), onSeekToLiveEdge)
-                            CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_stop_playback_after), onOpenStopPlaybackTimer)
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_idle_standby_after), onOpenIdleStandbyTimer)
                             CleanIconButton(Icons.Default.Settings, "Audio/video sync", onOpenAudioVideoSync)
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.multiview_nav), onOpenSplitScreen)
@@ -345,7 +343,6 @@ fun PlayerCleanControls(
                                 CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_record), onStartRecording)
                             }
                         } else {
-                            CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_stop_playback_after), onOpenStopPlaybackTimer)
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_idle_standby_after), onOpenIdleStandbyTimer)
                         }
                         if (audioVideoSyncEnabled && !live) {

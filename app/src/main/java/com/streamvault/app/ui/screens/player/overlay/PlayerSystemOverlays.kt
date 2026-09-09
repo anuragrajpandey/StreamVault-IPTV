@@ -721,7 +721,7 @@ fun PlayerSleepTimerWarningOverlay(
     onExtendIdleTimer: () -> Unit,
     onDisableIdleTimer: () -> Unit
 ) {
-    val showStopWarning = state.stopTimerWarningVisible
+    val showStopWarning = false
     val showIdleWarning = !showStopWarning && state.idleTimerWarningVisible
     if (!showStopWarning && !showIdleWarning) return
 

@@ -103,6 +103,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -224,6 +227,7 @@ class SyncManager @Inject constructor(
     private val pendingBackupRestoreCoordinator: PendingBackupRestoreCoordinator? = null
 ) : ProviderSyncCommands, CatalogHydrationCommands, ProviderSyncStateSource, ProviderSyncLifecycle {
     private val syncProviderSnapshotAdapter = SyncProviderSnapshotAdapter(providerSnapshotRepository)
+    private val initialOnboardingBackgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncStatusPublicationCoordinator = SyncStatusPublicationCoordinator(
         syncMetadataRepository = syncMetadataRepository,
         syncProgressBus = syncProgressBus
@@ -1114,7 +1118,33 @@ class SyncManager @Inject constructor(
         trackInitialLiveOnboarding: Boolean,
         providerOverride: Provider?,
         afterCatalogApply: (suspend () -> Unit)?
-    ): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{
+    ): com.streamvault.domain.model.Result<Unit> {
+        if (trackInitialLiveOnboarding) {
+            val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()
+            initialOnboardingBackgroundScope.launch {
+                try {
+                    val backgroundResult = syncWithProviderOverride(
+                        providerId = providerId, force = force, movieFastSyncOverride = movieFastSyncOverride,
+                        epgSyncModeOverride = epgSyncModeOverride, onProgress = onProgress,
+                        trackInitialLiveOnboarding = false, providerOverride = providerOverride,
+                        afterCatalogApply = {
+                            try {
+                                afterCatalogApply?.invoke()
+                                firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))
+                            } catch (error: Throwable) {
+                                firstCatalogResult.completeExceptionally(error)
+                                throw error
+                            }
+                        }
+                    )
+                    if (!firstCatalogResult.isCompleted) firstCatalogResult.complete(backgroundResult)
+                } catch (error: Throwable) {
+                    if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)
+                }
+            }
+            return firstCatalogResult.await()
+        }
+        return withProviderLock(providerId) lock@{
         var progressSession: SyncProgressSession? = null
         try {
             val providerEntity = providerDao.getById(providerId)

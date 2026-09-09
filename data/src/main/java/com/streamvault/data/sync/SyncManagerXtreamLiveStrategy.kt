@@ -103,7 +103,7 @@ internal class SyncManagerXtreamLiveStrategy(
             runtimeProfile.shouldAttemptFullLiveCatalog(trackInitialLiveOnboarding)
         if (shouldAttemptFullCatalog) {
             progress(provider.id, onProgress, "Downloading Live TV...")
-            fullPayload = loadXtreamLiveFull(provider, api, runtimeProfile)
+            fullPayload = loadXtreamLiveFull(provider = provider, api = api, runtimeProfile = runtimeProfile, trackInitialLiveOnboarding = trackInitialLiveOnboarding, afterCatalogApply = afterCatalogApply)
             when (val fullResult = fullPayload.catalogResult) {
                 is CatalogStrategyResult.Success -> return fullPayload.copy(
                     categories = catalogStrategySupport.mergePreferredAndFallbackCategories(
@@ -143,7 +143,9 @@ internal class SyncManagerXtreamLiveStrategy(
             rawCategories = filteredRawLiveCategories,
             onProgress = onProgress,
             preferSequential = existingMetadata.liveSequentialFailuresRemembered || runtimeProfile.maxCategoryConcurrency <= 1,
-            runtimeProfile = runtimeProfile
+            runtimeProfile = runtimeProfile,
+            trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+            afterCatalogApply = afterCatalogApply
         )
         return CatalogSyncPayload(
             catalogResult = categoryPayload.catalogResult,
@@ -170,7 +172,9 @@ internal class SyncManagerXtreamLiveStrategy(
     suspend fun loadXtreamLiveFull(
         provider: Provider,
         api: XtreamProvider,
-        runtimeProfile: CatalogSyncRuntimeProfile
+        runtimeProfile: CatalogSyncRuntimeProfile,
+        trackInitialLiveOnboarding: Boolean,
+        afterCatalogApply: suspend () -> Unit
     ): CatalogSyncPayload<Channel> {
         val endpoint = XtreamUrlFactory.buildPlayerApiUrl(
             serverUrl = provider.serverUrl,
@@ -186,7 +190,9 @@ internal class SyncManagerXtreamLiveStrategy(
                 failureNextStep = "category-bulk",
                 streamItems = { item -> xtreamCatalogHttpService.streamLiveStreams(endpoint, onItem = item) },
                 mapRawBatch = { batch -> api.mapLiveStreamsSequence(batch) },
-                runtimeProfile = runtimeProfile
+                runtimeProfile = runtimeProfile,
+            trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+            afterCatalogApply = afterCatalogApply
             )
         }
 
@@ -196,7 +202,9 @@ internal class SyncManagerXtreamLiveStrategy(
             failureNextStep = "legacy-full",
             streamItems = { item -> xtreamCatalogHttpService.streamLiveStreamRows(endpoint, onItem = item) },
             mapRawBatch = { batch -> api.mapLiveStreamRowsSequence(batch) },
-            runtimeProfile = runtimeProfile
+            runtimeProfile = runtimeProfile,
+        trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+        afterCatalogApply = afterCatalogApply
         )
         if (!thinPayload.shouldRetryLegacyFullDecode()) {
             return thinPayload
@@ -212,7 +220,9 @@ internal class SyncManagerXtreamLiveStrategy(
             failureNextStep = "category-bulk",
             streamItems = { item -> xtreamCatalogHttpService.streamLiveStreams(endpoint, onItem = item) },
             mapRawBatch = { batch -> api.mapLiveStreamsSequence(batch) },
-            runtimeProfile = runtimeProfile
+            runtimeProfile = runtimeProfile,
+        trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+        afterCatalogApply = afterCatalogApply
         )
     }
 
@@ -231,7 +241,9 @@ internal class SyncManagerXtreamLiveStrategy(
         failureNextStep: String,
         streamItems: suspend (suspend (RawItem) -> Unit) -> Int,
         mapRawBatch: suspend (Sequence<RawItem>) -> Sequence<Channel>,
-        runtimeProfile: CatalogSyncRuntimeProfile
+        runtimeProfile: CatalogSyncRuntimeProfile,
+        trackInitialLiveOnboarding: Boolean,
+        afterCatalogApply: suspend () -> Unit
     ): CatalogSyncPayload<Channel> {
         val fallbackCollector = FallbackCategoryCollector(provider.id, ContentType.LIVE)
         val seenStreamIds = HashSet<Long>()
@@ -243,6 +255,7 @@ internal class SyncManagerXtreamLiveStrategy(
         var flushCount = 0
         var mappingElapsedMs = 0L
         var stagingElapsedMs = 0L
+        var initialCatalogCommitted = false
 
         fun abortIfLowMemory() {
             if (isCurrentlyLowOnMemory()) {
@@ -284,6 +297,16 @@ internal class SyncManagerXtreamLiveStrategy(
             }
             stagedSessionId = staged.sessionId
             acceptedCount += staged.acceptedCount
+            if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
+                val bootstrapChannels = mappedChannels.filter { it.streamId > 0L }.distinctBy { it.streamId }
+                if (bootstrapChannels.isNotEmpty()) {
+                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels, afterCatalogApply = afterCatalogApply)
+                    initialCatalogCommitted = true
+                    val continuationSessionId = syncCatalogStore.newSessionId()
+                    syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })
+                    stagedSessionId = continuationSessionId
+                }
+            }
             flushCount++
             rawBatch.clear()
             // D10 — mode HIGH (full catalog) : pas de count par categorie disponible,
@@ -399,7 +422,9 @@ internal class SyncManagerXtreamLiveStrategy(
         rawCategories: List<XtreamCategory>,
         onProgress: ((String) -> Unit)?,
         preferSequential: Boolean,
-        runtimeProfile: CatalogSyncRuntimeProfile
+        runtimeProfile: CatalogSyncRuntimeProfile,
+        trackInitialLiveOnboarding: Boolean,
+        afterCatalogApply: suspend () -> Unit
     ): CatalogSyncPayload<Channel> {
         val categories = rawCategories.filter { it.categoryId.isNotBlank() }
         if (categories.isEmpty()) {
@@ -418,6 +443,7 @@ internal class SyncManagerXtreamLiveStrategy(
         val stageMutex = Mutex()
         var stagedSessionId: Long? = null
         var stagedAcceptedCount = 0
+        var initialCatalogCommitted = false
 
         suspend fun stageMappedBatch(channels: List<Channel>) {
             if (channels.isEmpty()) return
@@ -431,6 +457,16 @@ internal class SyncManagerXtreamLiveStrategy(
                 )
                 stagedSessionId = staged.sessionId
                 stagedAcceptedCount += staged.acceptedCount
+                if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
+                    val bootstrapChannels = channels.filter { it.streamId > 0L }.distinctBy { it.streamId }
+                    if (bootstrapChannels.isNotEmpty()) {
+                        syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels, afterCatalogApply = afterCatalogApply)
+                        initialCatalogCommitted = true
+                        val continuationSessionId = syncCatalogStore.newSessionId()
+                        syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })
+                        stagedSessionId = continuationSessionId
+                    }
+                }
             }
         }
 
