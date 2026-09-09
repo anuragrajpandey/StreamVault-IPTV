@@ -1,0 +1,28 @@
+name: Final source patch
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply final source patch
+        shell: bash
+        run: |
+          if [ -f tools/fix_strategy_upsert.py ]; then
+            python3 tools/fix_strategy_upsert.py
+            git diff --check
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "fix: finalize first catalog callback"
+            git push origin HEAD:master
+          else
+            echo "Final source patch already applied."
