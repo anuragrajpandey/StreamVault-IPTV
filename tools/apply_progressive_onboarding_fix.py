@@ -13,36 +13,7 @@ def patch_sync_manager():
     method_start = text.index("    override suspend fun syncWithProviderOverride(")
     signature = "): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{\n"
     signature_pos = text.index(signature, method_start)
-    branch = signature.replace(
-        " = withProviderLock(providerId) lock@{\n",
-        " {\n"
-        "        if (trackInitialLiveOnboarding) {\n"
-        "            val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()\n"
-        "            initialOnboardingBackgroundScope.launch {\n"
-        "                try {\n"
-        "                    val backgroundResult = syncWithProviderOverride(\n"
-        "                        providerId = providerId, force = force, movieFastSyncOverride = movieFastSyncOverride,\n"
-        "                        epgSyncModeOverride = epgSyncModeOverride, onProgress = onProgress,\n"
-        "                        trackInitialLiveOnboarding = false, providerOverride = providerOverride,\n"
-        "                        afterCatalogApply = {\n"
-        "                            try {\n"
-        "                                afterCatalogApply?.invoke()\n"
-        "                                firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))\n"
-        "                            } catch (error: Throwable) {\n"
-        "                                firstCatalogResult.completeExceptionally(error)\n"
-        "                                throw error\n"
-        "                            }\n"
-        "                        }\n"
-        "                    )\n"
-        "                    if (!firstCatalogResult.isCompleted) firstCatalogResult.complete(backgroundResult)\n"
-        "                } catch (error: Throwable) {\n"
-        "                    if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)\n"
-        "                }\n"
-        "            }\n"
-        "            return firstCatalogResult.await()\n"
-        "        }\n"
-        "        return withProviderLock(providerId) lock@{\n",
-    )
+    branch = signature.replace(" = withProviderLock(providerId) lock@{\n", " {\n        if (trackInitialLiveOnboarding) {\n            val firstCatalogResult = CompletableDeferred<com.streamvault.domain.model.Result<Unit>>()\n            initialOnboardingBackgroundScope.launch {\n                try {\n                    val backgroundResult = syncWithProviderOverride(\n                        providerId = providerId, force = force, movieFastSyncOverride = movieFastSyncOverride,\n                        epgSyncModeOverride = epgSyncModeOverride, onProgress = onProgress,\n                        trackInitialLiveOnboarding = false, providerOverride = providerOverride,\n                        afterCatalogApply = {\n                            try {\n                                afterCatalogApply?.invoke()\n                                firstCatalogResult.complete(com.streamvault.domain.model.Result.success(Unit))\n                            } catch (error: Throwable) {\n                                firstCatalogResult.completeExceptionally(error)\n                                throw error\n                            }\n                        }\n                    )\n                    if (!firstCatalogResult.isCompleted) firstCatalogResult.complete(backgroundResult)\n                } catch (error: Throwable) {\n                    if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)\n                }\n            }\n            return firstCatalogResult.await()\n        }\n        return withProviderLock(providerId) lock@{\n")
     text = text[:signature_pos] + branch + text[signature_pos + len(signature):]
     path.write_text(text)
 
@@ -113,21 +84,13 @@ def patch_player_ui():
     overlays.write_text(text.replace(old, "    val showStopWarning = false\n", 1))
 
 
-def cleanup():
-    workflow = Path(".github/workflows/release.yml")
-    text = workflow.read_text()
-    begin = text.find("      # BEGIN ONE-SHOT PROGRESSIVE ONBOARDING PATCH\n")
-    end = text.find("      # END ONE-SHOT PROGRESSIVE ONBOARDING PATCH\n")
-    if begin != -1 and end != -1:
-        end += len("      # END ONE-SHOT PROGRESSIVE ONBOARDING PATCH\n")
-        workflow.write_text(text[:begin] + text[end:])
+def cleanup_tools():
     Path("tools/apply_progressive_onboarding_fix.py").unlink(missing_ok=True)
     Path("tools/apply_progressive_onboarding_fix_v2.py").unlink(missing_ok=True)
-    Path(".github/workflows/apply-progressive-onboarding-fix.yml").unlink(missing_ok=True)
 
 
 patch_sync_manager()
 patch_live_strategy()
 patch_player_ui()
-cleanup()
+cleanup_tools()
 print("Progressive onboarding and player timer UI patches applied.")
