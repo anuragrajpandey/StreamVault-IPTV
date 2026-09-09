@@ -21,6 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Apply strategy callback cleanup
+        shell: bash
+        run: |
+          python3 tools/fix_strategy_callback.py
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: clean strategy callback callsites"
+          git push origin HEAD:master
+
       - name: Restore app lint baseline for CI
         shell: bash
         run: |
@@ -36,10 +47,7 @@ jobs:
         run: |
           VERSION_NAME=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -n 1)
           VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)
-          if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
-            echo "Failed to read app version from app/build.gradle.kts"
-            exit 1
-          fi
+          if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then exit 1; fi
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "release_tag=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
@@ -82,8 +90,7 @@ jobs:
 
       - name: Apply final polish
         shell: bash
-        run: |
-          python3 tools/final_polish.py
+        run: python3 tools/final_polish.py
 
       - name: Clean obsolete resources before lint
         shell: bash
@@ -94,8 +101,7 @@ jobs:
       - name: Normalize internal source paths in tests
         shell: bash
         run: |
-          find data/src/test app/src/test -type f -name '*.kt' -print0 2>/dev/null |
-            xargs -0 -r sed -i 's#com/EliteStocks TV#com/streamvault#g'
+          find data/src/test app/src/test -type f -name '*.kt' -print0 2>/dev/null | xargs -0 -r sed -i 's#com/EliteStocks TV#com/streamvault#g'
 
       - name: Verify player/icon polish was applied
         shell: bash
@@ -110,10 +116,7 @@ jobs:
 
       - name: Test CI helper scripts
         shell: bash
-        run: |
-          for test_script in tools/tests/*-test.sh; do
-            bash "$test_script"
-          done
+        run: for test_script in tools/tests/*-test.sh; do bash "$test_script"; done
 
       - name: Run unit tests, lint, and coverage
         run: ./gradlew --console=plain testDebugUnitTest :app:lintDebug :data:lintDebug :player:lintDebug verifyLintBaseline koverXmlReportCi koverHtmlReportCi
@@ -123,10 +126,7 @@ jobs:
         shell: bash
         run: |
           for report in app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt data/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt player/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt; do
-            if [ -f "$report" ]; then
-              echo "===== $report ====="
-              cat "$report"
-            fi
+            if [ -f "$report" ]; then echo "===== $report ====="; cat "$report"; fi
           done
 
       - name: Compile instrumentation release gates
@@ -140,35 +140,22 @@ jobs:
         run: |
           set -euo pipefail
           APK_PATH=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "No release APK produced."
-            exit 1
-          fi
+          test -n "$APK_PATH"
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
-          if [ -z "$APKSIGNER" ]; then
-            echo "apksigner was not found in the Android SDK build-tools."
-            exit 1
-          fi
-          if unzip -l "$APK_PATH" | grep -qE 'META-INF/[^/]+\.(RSA|DSA|EC|SF)$'; then
-            echo "Release APK is already signed by the configured release signing key."
-          else
-            echo "Release APK is unsigned. Signing it with the cached CI signing key."
+          if ! unzip -l "$APK_PATH" | grep -qE 'META-INF/[^/]+\.(RSA|DSA|EC|SF)$'; then
             DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
             mkdir -p "$HOME/.android"
-            if [ ! -f "$DEBUG_KEYSTORE" ]; then
-              keytool -genkeypair -v -keystore "$DEBUG_KEYSTORE" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'
-            fi
+            if [ ! -f "$DEBUG_KEYSTORE" ]; then keytool -genkeypair -v -keystore "$DEBUG_KEYSTORE" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'; fi
             "$APKSIGNER" sign --ks "$DEBUG_KEYSTORE" --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey "$APK_PATH"
           fi
           "$APKSIGNER" verify --verbose "$APK_PATH"
-          echo "Verified installable signed APK: $APK_PATH"
 
       - name: Prepare release artifact
         shell: bash
         run: |
           mkdir -p dist
           APK_PATH=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
-          if [ -z "$APK_PATH" ]; then exit 1; fi
+          test -n "$APK_PATH"
           cp "$APK_PATH" "dist/${{ steps.app_version.outputs.apk_name }}"
           cp "$APK_PATH" dist/EliteStocks.TV.apk
 
@@ -215,11 +202,6 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "EliteStocks TV $VERSION" --notes "$NOTES" --latest
             gh release upload "$TAG" "$APK_VERSIONED" "$APK_LATEST" --clobber
-            for OLD_ASSET in "StreamVault.apk" "StreamVault-${VERSION}.apk"; do
-              if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fxq "$OLD_ASSET"; then
-                gh release delete-asset "$TAG" "$OLD_ASSET" --yes
-              fi
-            done
           else
             gh release create "$TAG" "$APK_VERSIONED" "$APK_LATEST" --title "EliteStocks TV $VERSION" --notes "$NOTES" --latest
           fi
