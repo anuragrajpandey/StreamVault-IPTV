@@ -1,0 +1,33 @@
+name: Fix test call
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch test compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("data/src/test/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategyTest.kt")
+          s = p.read_text()
+          old = "val payload = strategy.loadXtreamLiveFull(provider, xtreamProvider, testRuntimeProfile(batchSize = 2))"
+          new = "val payload = strategy.loadXtreamLiveFull(provider, xtreamProvider, testRuntimeProfile(batchSize = 2), trackInitialLiveOnboarding = false)"
+          if old not in s:
+              raise SystemExit("target call not found")
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/src/test/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategyTest.kt
+          git commit -m "test: pass onboarding flag in Xtream live test"
+          git push
