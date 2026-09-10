@@ -1,0 +1,113 @@
+name: Progressive Onboarding Repair
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, 'isolate progressive onboarding') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply and verify fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout f58066d876fa08db0b27503376d8546eb79be600 -- data/src/main/java/com/streamvault/data/sync/SyncManager.kt
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+          s = p.read_text()
+          old = '''    ): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{
+        if (trackInitialLiveOnboarding) {
+            return@lock awaitInitialCatalog(
+                providerId = providerId,
+                force = force,
+                movieFastSyncOverride = movieFastSyncOverride,
+                epgSyncModeOverride = epgSyncModeOverride,
+                onProgress = onProgress,
+                trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+                providerOverride = providerOverride,
+                afterCatalogApply = afterCatalogApply
+            )
+        }
+
+        var progressSession: SyncProgressSession? = null'''
+          new = '''    ): com.streamvault.domain.model.Result<Unit> {
+        if (trackInitialLiveOnboarding && afterCatalogApply != null) {
+            return awaitInitialCatalog(
+                providerId = providerId,
+                force = force,
+                movieFastSyncOverride = movieFastSyncOverride,
+                epgSyncModeOverride = epgSyncModeOverride,
+                onProgress = onProgress,
+                trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+                providerOverride = providerOverride,
+                afterCatalogApply = afterCatalogApply
+            )
+        }
+
+        return withProviderLock(providerId) lock@{
+        var progressSession: SyncProgressSession? = null'''
+          if s.count(old) != 1:
+              raise SystemExit(f'SyncManager pattern count={s.count(old)}')
+          s = s.replace(old, new, 1)
+          old_close = '''        }
+    }
+
+    fun resetState'''
+          new_close = '''        }
+        }
+    }
+
+    fun resetState'''
+          if s.count(old_close) != 1:
+              raise SystemExit(f'SyncManager closing pattern count={s.count(old_close)}')
+          p.write_text(s.replace(old_close, new_close, 1))
+
+          p = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
+          s = p.read_text()
+          old = 'fun take(providerId: Long): suspend () -> Unit = callbacks.remove(providerId) ?: {}'
+          new = 'fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)'
+          if s.count(old) != 1:
+              raise SystemExit(f'registry pattern count={s.count(old)}')
+          p.write_text(s.replace(old, new, 1))
+
+          p = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
+          s = p.read_text()
+          guard = 'if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {'
+          callback = 'afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
+          if s.count(guard) != 2 or s.count(callback) != 2:
+              raise SystemExit(f'strategy pattern count guard={s.count(guard)} callback={s.count(callback)}')
+          s = s.replace(guard, 'val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null\n            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {', 2)
+          p.write_text(s.replace(callback, 'afterCatalogApply = initialCatalogCallback', 2))
+          PY
+
+          grep -n 'trackInitialLiveOnboarding && afterCatalogApply != null' data/src/main/java/com/streamvault/data/sync/SyncManager.kt
+          grep -n 'val initialCatalogCallback' data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt
+          grep -n 'fun take(providerId: Long): (suspend () -> Unit)?' data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt
+
+          ./gradlew --console=plain :data:testDebugUnitTest --tests 'com.streamvault.data.sync.SyncManagerTest' --tests 'com.streamvault.data.sync.SyncManagerXtreamLiveStrategyTest'
+          ./gradlew --console=plain :app:assembleDebug
+
+      - name: Commit fixed source
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/src/main/java/com/streamvault/data/sync/SyncManager.kt data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt
+          git commit -m 'fix: isolate progressive onboarding from provider lock'
+          git push
