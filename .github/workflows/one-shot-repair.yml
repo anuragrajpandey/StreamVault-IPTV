@@ -12,6 +12,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Repair progressive onboarding source
         shell: bash
@@ -100,8 +102,13 @@ jobs:
           p.write_text(s)
           PY
 
+          echo "Verifying progressive onboarding lock boundary..."
           grep -n "trackInitialLiveOnboarding && afterCatalogApply != null" data/src/main/java/com/streamvault/data/sync/SyncManager.kt
+          grep -n "val initialCatalogCallback" data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt
+          grep -n "fun take(providerId: Long): (suspend () -> Unit)?" data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt
+
           ./gradlew --console=plain :data:testDebugUnitTest --tests 'com.streamvault.data.sync.SyncManagerTest' --tests 'com.streamvault.data.sync.SyncManagerXtreamLiveStrategyTest'
+          ./gradlew --console=plain :app:assembleDebug
 
       - name: Commit source fix and remove repair workflow
         if: success()
