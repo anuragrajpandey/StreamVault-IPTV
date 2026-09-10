@@ -16,72 +16,45 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           sync = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
           s = sync.read_text()
-          old = '''): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{
-          if (trackInitialLiveOnboarding) {
-              return@lock awaitInitialCatalog(
-                  providerId = providerId,
-                  force = force,
-                  movieFastSyncOverride = movieFastSyncOverride,
-                  epgSyncModeOverride = epgSyncModeOverride,
-                  onProgress = onProgress,
-                  trackInitialLiveOnboarding = trackInitialLiveOnboarding,
-                  providerOverride = providerOverride,
-                  afterCatalogApply = afterCatalogApply
-              )
-          }
-
-          '''
-          new = '''): com.streamvault.domain.model.Result<Unit> {
-          if (trackInitialLiveOnboarding) {
-              return awaitInitialCatalog(
-                  providerId = providerId,
-                  force = force,
-                  movieFastSyncOverride = movieFastSyncOverride,
-                  epgSyncModeOverride = epgSyncModeOverride,
-                  onProgress = onProgress,
-                  trackInitialLiveOnboarding = trackInitialLiveOnboarding,
-                  providerOverride = providerOverride,
-                  afterCatalogApply = afterCatalogApply
-              )
-          }
-
-          return withProviderLock(providerId) lock@{
-          '''
-          if old not in s:
+          pattern = re.compile(r'''(?ms)(    \): com\.streamvault\.domain\.model\.Result<Unit>) = withProviderLock\(providerId\) lock@\{\n        if \(trackInitialLiveOnboarding\) \{\n            return@lock awaitInitialCatalog\(.*?        \}\n\n        var progressSession''')
+          match = pattern.search(s)
+          if not match:
               raise SystemExit('SyncManager wrapper pattern not found')
-          s = s.replace(old, new, 1)
+          replacement = '''\1 {\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(\n                providerId = providerId,\n                force = force,\n                movieFastSyncOverride = movieFastSyncOverride,\n                epgSyncModeOverride = epgSyncModeOverride,\n                onProgress = onProgress,\n                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                providerOverride = providerOverride,\n                afterCatalogApply = afterCatalogApply\n            )\n        }\n\n        return withProviderLock(providerId) lock@{\n        var progressSession'''
+          s = s[:match.start()] + match.expand(replacement) + s[match.end():]
           start = s.index('override suspend fun syncWithProviderOverride')
           end = s.index('\n    fun resetState', start)
           segment = s[start:end]
-          if not segment.rstrip().endswith('    }'):
+          stripped = segment.rstrip()
+          if not stripped.endswith('    }'):
               raise SystemExit('SyncManager function closing brace not found')
-          cut = len(segment.rstrip())
-          segment = segment[:cut-5] + '    }\n    }'
+          segment = stripped[:-5] + '    }\n    }'
           s = s[:start] + segment + s[end:]
           sync.write_text(s)
 
           reg = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
           reg.write_text('''package com.streamvault.data.sync
 
-          import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentHashMap
 
-          internal object InitialCatalogCallbackRegistry {
-              private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()
+internal object InitialCatalogCallbackRegistry {
+    private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()
 
-              fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }
-              fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)
-              fun clear(providerId: Long) { callbacks.remove(providerId) }
-          }
-          ''')
+    fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }
+    fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)
+    fun clear(providerId: Long) { callbacks.remove(providerId) }
+}
+''')
 
           strategy = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
           s = strategy.read_text()
           target = 'if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {'
           replacement = '''val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null
-                      if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {'''
+            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {'''
           if s.count(target) != 2:
               raise SystemExit(f'Expected 2 onboarding strategy guards, found {s.count(target)}')
           s = s.replace(target, replacement)
