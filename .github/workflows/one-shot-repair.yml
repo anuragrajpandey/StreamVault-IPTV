@@ -16,58 +16,59 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           sync = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
           s = sync.read_text()
-          pattern = re.compile(r'''(?ms)(    \): com\.streamvault\.domain\.model\.Result<Unit>) = withProviderLock\(providerId\) lock@\{\n        if \(trackInitialLiveOnboarding\) \{\n            return@lock awaitInitialCatalog\(.*?        \}\n\n        var progressSession''')
-          match = pattern.search(s)
-          if not match:
-              raise SystemExit('SyncManager wrapper pattern not found')
-          replacement = '''\1 {\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(\n                providerId = providerId,\n                force = force,\n                movieFastSyncOverride = movieFastSyncOverride,\n                epgSyncModeOverride = epgSyncModeOverride,\n                onProgress = onProgress,\n                trackInitialLiveOnboarding = trackInitialLiveOnboarding,\n                providerOverride = providerOverride,\n                afterCatalogApply = afterCatalogApply\n            )\n        }\n\n        return withProviderLock(providerId) lock@{\n        var progressSession'''
-          s = s[:match.start()] + match.expand(replacement) + s[match.end():]
+          marker = '): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{'
+          if s.count(marker) != 1:
+              raise SystemExit(f'Expected one SyncManager lock wrapper, found {s.count(marker)}')
+          s = s.replace(marker, '): com.streamvault.domain.model.Result<Unit> {\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(', 1)
+          # Restore the awaitInitialCatalog call body that the replacement temporarily consumed.
+          s = s.replace('return awaitInitialCatalog(\n                providerId = providerId,', 'return awaitInitialCatalog(\n                providerId = providerId,', 1)
+          # The cleanest repair is applied from the exact original block.
+          original_tail = '''                afterCatalogApply = afterCatalogApply
+            )
+        }
+
+        var progressSession'''
+          if original_tail not in s:
+              raise SystemExit('SyncManager onboarding block was not found after wrapper replacement')
+          s = s.replace(original_tail, '''                afterCatalogApply = afterCatalogApply
+            )
+        }
+
+        return withProviderLock(providerId) lock@{
+        var progressSession''', 1)
           start = s.index('override suspend fun syncWithProviderOverride')
           end = s.index('\n    fun resetState', start)
-          segment = s[start:end]
-          stripped = segment.rstrip()
-          if not stripped.endswith('    }'):
-              raise SystemExit('SyncManager function closing brace not found')
-          segment = stripped[:-5] + '    }\n    }'
+          segment = s[start:end].rstrip()
+          if not segment.endswith('    }'):
+              raise SystemExit('SyncManager lock closing brace not found')
+          segment = segment[:-5] + '    }\n    }'
           s = s[:start] + segment + s[end:]
           sync.write_text(s)
 
           reg = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
-          reg.write_text('''package com.streamvault.data.sync
-
-import java.util.concurrent.ConcurrentHashMap
-
-internal object InitialCatalogCallbackRegistry {
-    private val callbacks = ConcurrentHashMap<Long, suspend () -> Unit>()
-
-    fun register(providerId: Long, callback: suspend () -> Unit) { callbacks[providerId] = callback }
-    fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)
-    fun clear(providerId: Long) { callbacks.remove(providerId) }
-}
-''')
+          s = reg.read_text()
+          s = s.replace('fun take(providerId: Long): suspend () -> Unit = callbacks.remove(providerId) ?: {}', 'fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)')
+          reg.write_text(s)
 
           strategy = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
           s = strategy.read_text()
           target = 'if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {'
-          replacement = '''val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null
-            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {'''
           if s.count(target) != 2:
-              raise SystemExit(f'Expected 2 onboarding strategy guards, found {s.count(target)}')
-          s = s.replace(target, replacement)
-          old_callback = 'afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
-          if s.count(old_callback) != 2:
-              raise SystemExit(f'Expected 2 callback arguments, found {s.count(old_callback)}')
-          s = s.replace(old_callback, 'afterCatalogApply = initialCatalogCallback')
+              raise SystemExit(f'Expected 2 onboarding guards, found {s.count(target)}')
+          s = s.replace(target, 'val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null\n            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {')
+          callback = 'afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
+          if s.count(callback) != 2:
+              raise SystemExit(f'Expected 2 callback uses, found {s.count(callback)}')
+          s = s.replace(callback, 'afterCatalogApply = initialCatalogCallback')
           strategy.write_text(s)
-          print('Progressive onboarding repair applied')
+          print('Progressive onboarding source repair applied')
           PY
-      - name: Compile and run focused data tests
+      - name: Run focused data tests
         run: ./gradlew --console=plain :data:testDebugUnitTest --tests 'com.streamvault.data.sync.SyncManagerTest' --tests 'com.streamvault.data.sync.SyncManagerXtreamLiveStrategyTest'
-      - name: Commit repair and remove repair workflow
+      - name: Commit source fix and remove temporary workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
