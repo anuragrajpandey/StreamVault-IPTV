@@ -9,14 +9,80 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Repair source
+      - name: Repair source safely
         run: |
-          python3 -c 'from pathlib import Path; p=Path("data/src/main/java/com/streamvault/data/sync/SyncManager.kt"); s=p.read_text(); m="): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{"; print("wrapper matches",s.count(m)); s=s.replace(m,"): com.streamvault.domain.model.Result<Unit> {\n        if (trackInitialLiveOnboarding) {\n            return awaitInitialCatalog(",1); s=s.replace("return@lock awaitInitialCatalog(","return awaitInitialCatalog(",1); t="                afterCatalogApply = afterCatalogApply\n            )\n        }\n\n        var progressSession: SyncProgressSession? = null"; print("tail matches",s.count(t)); s=s.replace(t,"                afterCatalogApply = afterCatalogApply\n            )\n        }\n\n        return withProviderLock(providerId) lock@{\n        var progressSession: SyncProgressSession? = null",1); a=s.index("override suspend fun syncWithProviderOverride"); b=s.index("\n    fun resetState",a); q=s[a:b].rstrip(); s=s[:a]+q[:-5]+"    }\n    }"+s[b:]; p.write_text(s)'
-          python3 -c 'from pathlib import Path; p=Path("data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt"); s=p.read_text(); s=s.replace("fun take(providerId: Long): suspend () -> Unit = callbacks.remove(providerId) ?: {}","fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)"); p.write_text(s)'
-          python3 -c 'from pathlib import Path; p=Path("data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt"); s=p.read_text(); m="if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {"; print("guards",s.count(m)); s=s.replace(m,"val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null\n            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {",2); m2="afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)"; print("callbacks",s.count(m2)); s=s.replace(m2,"afterCatalogApply = initialCatalogCallback",2); p.write_text(s)'
-      - name: Run focused tests
-        run: ./gradlew --console=plain :data:testDebugUnitTest --tests 'com.streamvault.data.sync.SyncManagerTest' --tests 'com.streamvault.data.sync.SyncManagerXtreamLiveStrategyTest'
+          git checkout f58066d876fa08db0b27503376d8546eb79be600 -- data/src/main/java/com/streamvault/data/sync/SyncManager.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+          s = p.read_text()
+          old = '''): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{
+                  if (trackInitialLiveOnboarding) {
+                      return@lock awaitInitialCatalog(
+                          providerId = providerId,
+                          force = force,
+                          movieFastSyncOverride = movieFastSyncOverride,
+                          epgSyncModeOverride = epgSyncModeOverride,
+                          onProgress = onProgress,
+                          trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+                          providerOverride = providerOverride,
+                          afterCatalogApply = afterCatalogApply
+                      )
+                  }
+
+                  var progressSession: SyncProgressSession? = null'''
+          new = '''): com.streamvault.domain.model.Result<Unit> {
+                  if (trackInitialLiveOnboarding && afterCatalogApply != null) {
+                      return awaitInitialCatalog(
+                          providerId = providerId,
+                          force = force,
+                          movieFastSyncOverride = movieFastSyncOverride,
+                          epgSyncModeOverride = epgSyncModeOverride,
+                          onProgress = onProgress,
+                          trackInitialLiveOnboarding = trackInitialLiveOnboarding,
+                          providerOverride = providerOverride,
+                          afterCatalogApply = afterCatalogApply
+                      )
+                  }
+
+                  return withProviderLock(providerId) lock@{
+                  var progressSession: SyncProgressSession? = null'''
+          assert s.count(old) == 1, f'expected exact sync opening once, got {s.count(old)}'
+          s = s.replace(old, new, 1)
+          marker = '''        }
+    }
+
+    fun resetState'''
+          assert s.count(marker) == 1, f'expected sync closing marker once, got {s.count(marker)}'
+          s = s.replace(marker, '''        }
+        }
+    }
+
+    fun resetState''', 1)
+          p.write_text(s)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt')
+          s = p.read_text().replace('fun take(providerId: Long): suspend () -> Unit = callbacks.remove(providerId) ?: {}', 'fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)')
+          p.write_text(s)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt')
+          s = p.read_text()
+          guard = 'if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {'
+          callback = 'afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id)'
+          assert s.count(guard) == 2, f'expected 2 progressive guards, got {s.count(guard)}'
+          assert s.count(callback) == 2, f'expected 2 callback sites, got {s.count(callback)}'
+          s = s.replace(guard, 'val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null\n            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {', 2)
+          s = s.replace(callback, 'afterCatalogApply = initialCatalogCallback', 2)
+          p.write_text(s)
+          PY
+          grep -n "trackInitialLiveOnboarding && afterCatalogApply != null" data/src/main/java/com/streamvault/data/sync/SyncManager.kt
+          ./gradlew --console=plain :data:testDebugUnitTest --tests 'com.streamvault.data.sync.SyncManagerTest' --tests 'com.streamvault.data.sync.SyncManagerXtreamLiveStrategyTest'
       - name: Commit and remove repair workflow
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
