@@ -73,7 +73,12 @@ replace_exact(
     m3u,
     "                                flushChannelBatch(provider.id, sessionId, channelBatch)\n",
     "                                flushLiveBatch()\n",
-    expected=3,
+    expected=2,
+)
+replace_exact(
+    m3u,
+    "            flushChannelBatch(provider.id, sessionId, channelBatch)\n            flushMovieBatch(provider.id, sessionId, movieBatch)\n",
+    "            flushLiveBatch()\n            flushMovieBatch(provider.id, sessionId, movieBatch)\n",
 )
 
 # If the current tree already contains the new architecture, the script is intentionally
