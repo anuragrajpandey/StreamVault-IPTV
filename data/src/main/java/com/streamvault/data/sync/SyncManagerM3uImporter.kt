@@ -73,7 +73,7 @@ internal class SyncManagerM3uImporter(
             )
         )
         syncCatalogStore.clearProviderStaging(provider.id)
-        val sessionId = syncCatalogStore.newSessionId()
+        var sessionId = syncCatalogStore.newSessionId()
         val stableLongHasher = StableLongHasher()
         val liveCategories = CategoryAccumulator(provider.id, ContentType.LIVE, stableLongHasher)
         val movieCategories = CategoryAccumulator(provider.id, ContentType.MOVIE, stableLongHasher)
@@ -96,6 +96,7 @@ internal class SyncManagerM3uImporter(
         var nextMilestone = M3U_PROGRESS_INTERVAL
         val warnings = mutableListOf<String>()
         var insecureStreamCount = 0
+        var initialCatalogCommitted = false
 
         fun enforceInvalidEntryRatio() {
             val candidateCount = parsedCount + invalidEntryCount
@@ -104,6 +105,29 @@ internal class SyncManagerM3uImporter(
             ) {
                 throw CatalogAdmissionExceeded("M3U invalid-entry ratio limit exceeded")
             }
+        }
+
+        suspend fun flushLiveBatch() {
+            if (channelBatch.isEmpty()) return
+            val stagedBatch = channelBatch.toList()
+            flushChannelBatch(provider.id, sessionId, channelBatch)
+            if (initialCatalogCommitted) return
+            val initialCatalogCallback = InitialCatalogCallbackRegistry.take(provider.id) ?: return
+            if (stagedBatch.isEmpty()) return
+            syncCatalogStore.upsertLiveCatalog(
+                providerId = provider.id,
+                categories = liveCategories.entities(),
+                channels = stagedBatch,
+                afterCatalogApply = initialCatalogCallback
+            )
+            initialCatalogCommitted = true
+            val continuationSessionId = syncCatalogStore.newSessionId()
+            syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, stagedBatch)
+            if (movieBatch.isNotEmpty()) {
+                syncCatalogStore.stageMovieBatch(provider.id, continuationSessionId, movieBatch.toList())
+                movieBatch.clear()
+            }
+            sessionId = continuationSessionId
         }
 
         try {
@@ -308,7 +332,7 @@ internal class SyncManagerM3uImporter(
                             )
                             liveCount++
                             if (channelBatch.size >= batchSize) {
-                                flushChannelBatch(provider.id, sessionId, channelBatch)
+                                flushLiveBatch()
                             }
                         }
                         },
@@ -321,7 +345,7 @@ internal class SyncManagerM3uImporter(
                 }
             }
 
-            flushChannelBatch(provider.id, sessionId, channelBatch)
+            flushLiveBatch()
             flushMovieBatch(provider.id, sessionId, movieBatch)
             // Only commit a section if it produced at least one entry. Committing an
             // empty stage with includeLive=true runs stale deletion and wipes the entire

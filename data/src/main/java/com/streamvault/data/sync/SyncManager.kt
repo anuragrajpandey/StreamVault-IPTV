@@ -102,6 +102,7 @@ import com.streamvault.domain.provider.CapabilityResolution
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -229,6 +230,7 @@ class SyncManager @Inject constructor(
 ) : ProviderSyncCommands, CatalogHydrationCommands, ProviderSyncStateSource, ProviderSyncLifecycle {
     private val syncProviderSnapshotAdapter = SyncProviderSnapshotAdapter(providerSnapshotRepository)
     private val initialOnboardingBackgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val initialOnboardingBackgroundProviders = ConcurrentHashMap.newKeySet<Long>()
     private val syncStatusPublicationCoordinator = SyncStatusPublicationCoordinator(
         syncMetadataRepository = syncMetadataRepository,
         syncProgressBus = syncProgressBus
@@ -1145,7 +1147,7 @@ class SyncManager @Inject constructor(
                     movieFastSyncOverride = movieFastSyncOverride,
                     epgSyncModeOverride = epgSyncModeOverride,
                     onProgress = onProgress,
-                    trackInitialLiveOnboarding = false,
+                    trackInitialLiveOnboarding = true,
                     providerOverride = providerOverride,
                     afterCatalogApply = { signalFirstCatalog() }
                 )
@@ -1153,6 +1155,8 @@ class SyncManager @Inject constructor(
             } catch (error: Throwable) {
                 InitialCatalogCallbackRegistry.clear(providerId)
                 if (!firstCatalogResult.isCompleted) firstCatalogResult.completeExceptionally(error)
+            } finally {
+                initialOnboardingBackgroundProviders.remove(providerId)
             }
         }
         return firstCatalogResult.await()
@@ -1166,7 +1170,7 @@ class SyncManager @Inject constructor(
         providerOverride: Provider?,
         afterCatalogApply: (suspend () -> Unit)?
     ): com.streamvault.domain.model.Result<Unit> {
-        if (trackInitialLiveOnboarding && afterCatalogApply != null) {
+        if (trackInitialLiveOnboarding && afterCatalogApply != null && !initialOnboardingBackgroundProviders.contains(providerId)) {
             return awaitInitialCatalog(
                 providerId = providerId,
                 force = force,
