@@ -73,7 +73,7 @@ replace_exact(
     m3u,
     "                                flushChannelBatch(provider.id, sessionId, channelBatch)\n",
     "                                flushLiveBatch()\n",
-    expected=2,
+    expected=1,
 )
 replace_exact(
     m3u,
@@ -81,8 +81,6 @@ replace_exact(
     "            flushLiveBatch()\n            flushMovieBatch(provider.id, sessionId, movieBatch)\n",
 )
 
-# If the current tree already contains the new architecture, the script is intentionally
-# idempotent and simply validates the important markers.
 require_contains(sync_manager, "trackInitialLiveOnboarding = true,")
 require_contains(sync_manager, "initialOnboardingBackgroundProviders")
 require_contains(m3u, "suspend fun flushLiveBatch()")
