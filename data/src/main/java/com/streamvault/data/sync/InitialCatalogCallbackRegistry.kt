@@ -9,7 +9,7 @@ internal object InitialCatalogCallbackRegistry {
         callbacks[providerId] = callback
     }
 
-    fun take(providerId: Long): suspend () -> Unit = callbacks.remove(providerId) ?: {}
+    fun take(providerId: Long): (suspend () -> Unit)? = callbacks.remove(providerId)
 
     fun clear(providerId: Long) {
         callbacks.remove(providerId)

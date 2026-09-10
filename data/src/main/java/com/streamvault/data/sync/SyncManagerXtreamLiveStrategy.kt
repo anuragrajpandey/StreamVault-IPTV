@@ -291,10 +291,11 @@ internal class SyncManagerXtreamLiveStrategy(
             }
             stagedSessionId = staged.sessionId
             acceptedCount += staged.acceptedCount
-            if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
+            val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null
+            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {
                 val bootstrapChannels = mappedChannels.filter { it.streamId > 0L }.distinctBy { it.streamId }
                 if (bootstrapChannels.isNotEmpty()) {
-                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
+                    syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = initialCatalogCallback)
                     initialCatalogCommitted = true
                     val continuationSessionId = syncCatalogStore.newSessionId()
                     syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })
@@ -450,10 +451,11 @@ internal class SyncManagerXtreamLiveStrategy(
                 )
                 stagedSessionId = staged.sessionId
                 stagedAcceptedCount += staged.acceptedCount
-                if (trackInitialLiveOnboarding && staged.acceptedCount > 0 && !initialCatalogCommitted) {
+                val initialCatalogCallback = if (trackInitialLiveOnboarding) InitialCatalogCallbackRegistry.take(provider.id) else null
+            if (initialCatalogCallback != null && staged.acceptedCount > 0 && !initialCatalogCommitted) {
                     val bootstrapChannels = channels.filter { it.streamId > 0L }.distinctBy { it.streamId }
                     if (bootstrapChannels.isNotEmpty()) {
-                        syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = InitialCatalogCallbackRegistry.take(provider.id))
+                        syncCatalogStore.upsertLiveCatalog(providerId = provider.id, categories = fallbackCollector.entities(), channels = bootstrapChannels.map { it.toEntity() }, afterCatalogApply = initialCatalogCallback)
                         initialCatalogCommitted = true
                         val continuationSessionId = syncCatalogStore.newSessionId()
                         syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, bootstrapChannels.map { it.toEntity() })

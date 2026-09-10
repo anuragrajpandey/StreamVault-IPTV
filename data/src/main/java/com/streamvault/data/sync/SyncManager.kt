@@ -1165,9 +1165,9 @@ class SyncManager @Inject constructor(
         trackInitialLiveOnboarding: Boolean,
         providerOverride: Provider?,
         afterCatalogApply: (suspend () -> Unit)?
-    ): com.streamvault.domain.model.Result<Unit> = withProviderLock(providerId) lock@{
-        if (trackInitialLiveOnboarding) {
-            return@lock awaitInitialCatalog(
+    ): com.streamvault.domain.model.Result<Unit> {
+        if (trackInitialLiveOnboarding && afterCatalogApply != null) {
+            return awaitInitialCatalog(
                 providerId = providerId,
                 force = force,
                 movieFastSyncOverride = movieFastSyncOverride,
@@ -1179,6 +1179,7 @@ class SyncManager @Inject constructor(
             )
         }
 
+        return withProviderLock(providerId) lock@{
         var progressSession: SyncProgressSession? = null
         try {
             val providerEntity = providerDao.getById(providerId)
@@ -1263,6 +1264,7 @@ class SyncManager @Inject constructor(
             }
         } finally {
             progressSession?.let(::finishProgressSession)
+        }
         }
     }
 
