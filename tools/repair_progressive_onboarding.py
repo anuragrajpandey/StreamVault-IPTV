@@ -73,12 +73,7 @@ replace_exact(
     m3u,
     "                                flushChannelBatch(provider.id, sessionId, channelBatch)\n",
     "                                flushLiveBatch()\n",
-    expected=2,
-)
-replace_exact(
-    m3u,
-    "            flushChannelBatch(provider.id, sessionId, channelBatch)\n            flushMovieBatch(provider.id, sessionId, movieBatch)\n",
-    "            flushLiveBatch()\n            flushMovieBatch(provider.id, sessionId, movieBatch)\n",
+    expected=3,
 )
 
 # If the current tree already contains the new architecture, the script is intentionally
@@ -87,5 +82,6 @@ require_contains(sync_manager, "trackInitialLiveOnboarding = true,")
 require_contains(sync_manager, "initialOnboardingBackgroundProviders")
 require_contains(m3u, "suspend fun flushLiveBatch()")
 require_contains(m3u, "InitialCatalogCallbackRegistry.take(provider.id)")
+require_contains(m3u, "flushLiveBatch()")
 
 print("Progressive onboarding handoff repair applied successfully.")
