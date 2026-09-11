@@ -1,0 +1,40 @@
+name: Run coordinated TV cleanup
+
+on:
+  push:
+    branches: [elitestocks-tv-feature-cleanup]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elitestocks-tv-feature-cleanup
+          fetch-depth: 1
+      - name: Apply codemod
+        run: python3 scripts/apply_tv_cleanup.py
+      - name: Check diff
+        run: git diff --check
+      - name: Compile app
+        id: build
+        continue-on-error: true
+        run: ./gradlew :app:compileDebugKotlin --no-daemon --stacktrace
+      - name: Commit cleanup
+        if: steps.build.outcome == 'success'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f scripts/apply_tv_cleanup.py .github/workflows/run-tv-cleanup.yml .github/workflows/cleanup-step.yml
+          git add -A
+          git commit -m 'refactor: streamline EliteStocks TV features [skip ci]'
+          git push origin HEAD:elitestocks-tv-feature-cleanup
+      - name: Build failure
+        if: steps.build.outcome != 'success'
+        run: |
+          echo 'Cleanup codemod was not committed because compilation failed.'
+          exit 1
