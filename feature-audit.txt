@@ -1,0 +1,282 @@
+app/src/main/AndroidManifest.xml: backup, cast, download, pictureinpicture, recent
+app/src/main/java/com/streamvault/app/DatabaseStartupGate.kt: record
+app/src/main/java/com/streamvault/app/MainActivity.kt: backup, cast, picture_in_picture, pictureinpicture, pip, resume
+app/src/main/java/com/streamvault/app/StartupWorkRegistry.kt: record
+app/src/main/java/com/streamvault/app/StreamVaultApp.kt: backup, download, record, restore
+app/src/main/java/com/streamvault/app/backup/BackupFileBridge.kt: backup, download
+app/src/main/java/com/streamvault/app/cast/CastManager.kt: cast, resume
+app/src/main/java/com/streamvault/app/cast/CastMediaRequestFactory.kt: cast
+app/src/main/java/com/streamvault/app/cast/CastModels.kt: cast
+app/src/main/java/com/streamvault/app/cast/CastPlaybackCoordinator.kt: cast
+app/src/main/java/com/streamvault/app/cast/CastRouteChooserActivity.kt: cast
+app/src/main/java/com/streamvault/app/cast/CastUiMessages.kt: cast
+app/src/main/java/com/streamvault/app/cast/StreamVaultCastOptionsProvider.kt: cast
+app/src/main/java/com/streamvault/app/di/CastModule.kt: cast
+app/src/main/java/com/streamvault/app/di/DatabaseModule.kt: backup, download, record, restore
+app/src/main/java/com/streamvault/app/di/RepositoryModule.kt: backup, download, record, restore
+app/src/main/java/com/streamvault/app/diagnostics/CrashReportStore.kt: record
+app/src/main/java/com/streamvault/app/diagnostics/RuntimeDiagnosticsManager.kt: resume
+app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt: backup, download, recent, restore, resume
+app/src/main/java/com/streamvault/app/navigation/ExternalNavigationRequest.kt: backup
+app/src/main/java/com/streamvault/app/player/LiveTranslationSession.kt: recent
+app/src/main/java/com/streamvault/app/plugins/PluginModels.kt: cast
+app/src/main/java/com/streamvault/app/plugins/StreamVaultPluginContract.kt: cast
+app/src/main/java/com/streamvault/app/plugins/StreamVaultPluginManager.kt: cast, download, record
+app/src/main/java/com/streamvault/app/service/DownloadForegroundService.kt: download
+app/src/main/java/com/streamvault/app/tv/LauncherRecommendationsManager.kt: resume
+app/src/main/java/com/streamvault/app/tv/WatchNextManager.kt: recent, resume
+app/src/main/java/com/streamvault/app/tvinput/TvInputSetupActivity.kt: resume
+app/src/main/java/com/streamvault/app/ui/components/Cards.kt: record
+app/src/main/java/com/streamvault/app/ui/components/CategoryRow.kt: restore
+app/src/main/java/com/streamvault/app/ui/components/ContinueWatchingRow.kt: restore, resume
+app/src/main/java/com/streamvault/app/ui/components/SavedCategoryShortcutsRow.kt: restore
+app/src/main/java/com/streamvault/app/ui/components/dialogs/AddToGroupDialog.kt: recent
+app/src/main/java/com/streamvault/app/ui/components/dialogs/CategoryOptionsDialog.kt: recent
+app/src/main/java/com/streamvault/app/ui/components/dialogs/HiddenCategoriesDialog.kt: restore
+app/src/main/java/com/streamvault/app/ui/components/dialogs/HiddenChannelsDialog.kt: restore
+app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt: download
+app/src/main/java/com/streamvault/app/ui/components/shell/VodChrome.kt: restore
+app/src/main/java/com/streamvault/app/ui/design/FocusHelpers.kt: restore, resume
+app/src/main/java/com/streamvault/app/ui/notifications/NotificationPermissionGate.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/dashboard/DashboardHomeShelves.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/dashboard/DashboardScreen.kt: download, recent, record, resume
+app/src/main/java/com/streamvault/app/ui/screens/dashboard/DashboardShelfCustomizationDialog.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/dashboard/DashboardViewModel.kt: download, recent, record, resume
+app/src/main/java/com/streamvault/app/ui/screens/downloads/DownloadsScreen.kt: download, resume
+app/src/main/java/com/streamvault/app/ui/screens/downloads/DownloadsUiState.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/downloads/DownloadsViewModel.kt: download, resume
+app/src/main/java/com/streamvault/app/ui/screens/epg/EpgScreen.kt: recent, record
+app/src/main/java/com/streamvault/app/ui/screens/epg/EpgScreenDialogs.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/epg/EpgViewModel.kt: record, restore, resume
+app/src/main/java/com/streamvault/app/ui/screens/favorites/FavoritesScreen.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/favorites/FavoritesViewModel.kt: recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/home/HomeScreen.kt: recent, restore
+app/src/main/java/com/streamvault/app/ui/screens/home/HomeScreenDialogs.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/home/HomeViewModel.kt: recent, restore, resume
+app/src/main/java/com/streamvault/app/ui/screens/movies/MovieDetailScreen.kt: cast, download, resume
+app/src/main/java/com/streamvault/app/ui/screens/movies/MovieDetailViewModel.kt: cast, download, resume
+app/src/main/java/com/streamvault/app/ui/screens/movies/MoviesScreen.kt: recent, restore, resume
+app/src/main/java/com/streamvault/app/ui/screens/movies/MoviesViewModel.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/multiview/MultiViewViewModel.kt: recent, restore
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerAlternateStreamActions.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerAutoPlayActions.kt: resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerCastCoordinator.kt: cast
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerCastStreamInfoSupport.kt: cast
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerDiagnosticsSupport.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerHistoryCoordinator.kt: recent, record, resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerLifecycleActions.kt: recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerOverlayActions.kt: resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPlaybackControlActions.kt: resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPlaybackHistorySupport.kt: resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPlaybackPreferenceActions.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPlaylistActions.kt: recent, record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPreferencesCoordinator.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPreparationContextActions.kt: recent, record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerPreparationSetupActions.kt: recent, record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerRecordingCoordinator.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerRecoveryExecutionCoordinator.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerRecoveryExecutionPortAdapter.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt: cast, pictureinpicture, recent, record, restore, resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerViewModel.kt: cast, download, recent, record, resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerViewModelActions.kt: cast, record
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerViewModelModels.kt: recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/player/PlayerZapActions.kt: recent, record
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerAuxiliaryOverlays.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerChannelInfoOverlay.kt: backup, cast, dvr, pictureinpicture, pip, record
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerCleanControls.kt: cast, pictureinpicture, record
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerControlsChrome.kt: cast, picture_in_picture, pictureinpicture, record
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerModernVodInfo.kt: cast, pictureinpicture
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerSystemOverlays.kt: resume
+app/src/main/java/com/streamvault/app/ui/screens/player/overlay/PlayerTransparentGuideOverlay.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/plugins/PluginsScreen.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/provider/ProviderSetupScreen.kt: backup, download, recent, record, restore, resume
+app/src/main/java/com/streamvault/app/ui/screens/provider/ProviderSetupViewModel.kt: backup, download, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/search/SearchScreen.kt: download, recent, record
+app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailScreen.kt: cast, download, resume
+app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailViewModel.kt: cast, download, recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/series/SeriesScreen.kt: recent, restore, resume
+app/src/main/java/com/streamvault/app/ui/screens/series/SeriesViewModel.kt: recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/settings/InternetSpeedTestRunner.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsAppUpdateActions.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsAppUpdateFormatting.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsAppUpdateModels.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsBackupAboutSections.kt: backup, download, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsBackupActions.kt: backup, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsBackupDialogs.kt: backup
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsBackupImportPreviewDialog.kt: backup, record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsBrowsingSection.kt: recent
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsContentPane.kt: backup, download, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsDriveBackupActions.kt: backup, download, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsEpgSection.kt: cast
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsNavigationRail.kt: backup, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsObserverRegistrations.kt: download, record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsPreferenceDialogs.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsPreferenceModels.kt: download, recent
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsPreferenceSnapshotMapper.kt: download, recent
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsProviderActions.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingActions.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingBrowserDetailSections.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingBrowserDialog.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingBrowserDisplay.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingBrowserSidebarControls.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingComponents.kt: backup, record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingDashboardCards.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingDialogs.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingItemComponents.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsRecordingSection.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreen.kt: backup, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreenDialogState.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreenDialogs.kt: backup, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreenOverlays.kt: record
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreenState.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsStateBindings.kt: download, recent
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsUiStateModel.kt: backup, download, recent, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsViewModel.kt: backup, download, recent, record, restore
+app/src/main/java/com/streamvault/app/ui/screens/settings/TopNavigationDialog.kt: download
+app/src/main/java/com/streamvault/app/ui/screens/settings/parental/ParentalControlGroupViewModel.kt: restore
+app/src/main/java/com/streamvault/app/ui/screens/vod/VodBrowseStateHelpers.kt: recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/vod/VodScreen.kt: recent, resume
+app/src/main/java/com/streamvault/app/ui/screens/vod/VodViewModel.kt: recent, resume
+app/src/main/java/com/streamvault/app/update/AppUpdateCheckWorker.kt: download
+app/src/main/java/com/streamvault/app/update/AppUpdateInstaller.kt: cast, download, restore
+app/src/main/java/com/streamvault/app/update/AppUpdateVersionPolicy.kt: download
+app/src/main/java/com/streamvault/app/update/GitHubReleaseChecker.kt: download
+app/src/main/res/values/strings.xml: backup, cast, download, dvr, picture_in_picture, pip, recent, record, restore, resume, start over
+app/src/main/res/values/themes.xml: cast
+app/src/main/res/xml/file_paths.xml: backup, download
+app/src/main/res/xml/tv_input_service.xml: record
+data/src/main/AndroidManifest.xml: record, restore
+data/src/main/java/com/streamvault/data/local/FeatureMigrationsV49To75.kt: backup, download, record, restore, resume
+data/src/main/java/com/streamvault/data/local/FeatureMigrationsV76To77.kt: backup, restore
+data/src/main/java/com/streamvault/data/local/LegacyMigrationsV1To24.kt: cast, record, resume
+data/src/main/java/com/streamvault/data/local/LegacyMigrationsV24To49.kt: cast, record
+data/src/main/java/com/streamvault/data/local/StreamVaultDatabase.kt: backup, download, record, restore
+data/src/main/java/com/streamvault/data/local/dao/BackupRestoreCheckpointDao.kt: backup, restore
+data/src/main/java/com/streamvault/data/local/dao/BackupRestoreLedgerDao.kt: backup, restore
+data/src/main/java/com/streamvault/data/local/dao/CatalogSyncDao.kt: cast
+data/src/main/java/com/streamvault/data/local/dao/Daos.kt: cast, recent, record, restore, resume
+data/src/main/java/com/streamvault/data/local/dao/DownloadDao.kt: download
+data/src/main/java/com/streamvault/data/local/dao/ProviderDeletionCleanupDao.kt: record
+data/src/main/java/com/streamvault/data/local/dao/ProviderWorkflowDao.kt: record
+data/src/main/java/com/streamvault/data/local/dao/RecordingDaos.kt: record
+data/src/main/java/com/streamvault/data/local/dao/XtreamIndexDaos.kt: cast
+data/src/main/java/com/streamvault/data/local/entity/BackupRestoreLedgerEntities.kt: backup, restore
+data/src/main/java/com/streamvault/data/local/entity/DownloadEntity.kt: download, resume
+data/src/main/java/com/streamvault/data/local/entity/Entities.kt: backup, cast, record, restore, resume
+data/src/main/java/com/streamvault/data/local/entity/RecordingEntities.kt: record
+data/src/main/java/com/streamvault/data/manager/BackupManagerImpl.kt: backup, download, recent, record, restore, resume
+data/src/main/java/com/streamvault/data/manager/BackupRestoreStatusStoreImpl.kt: backup, restore
+data/src/main/java/com/streamvault/data/manager/DownloadManagerImpl.kt: download, resume
+data/src/main/java/com/streamvault/data/manager/DownloadTransferStateMachine.kt: download
+data/src/main/java/com/streamvault/data/manager/GoogleDriveBackupSyncManager.kt: backup, cast, download, restore, resume
+data/src/main/java/com/streamvault/data/manager/PendingBackupRestoreCoordinator.kt: backup, download, record, restore, resume
+data/src/main/java/com/streamvault/data/manager/PreferenceBackupRegistry.kt: backup, download, recent, record
+data/src/main/java/com/streamvault/data/manager/ProgramReminderManagerImpl.kt: restore
+data/src/main/java/com/streamvault/data/manager/RecordingConflictDetector.kt: record
+data/src/main/java/com/streamvault/data/manager/RecordingManagerImpl.kt: record, restore, resume
+data/src/main/java/com/streamvault/data/manager/recording/RecordingAlarmReceiver.kt: cast, record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingAlarmScheduler.kt: cast, dvr, record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingCaptureEngine.kt: pip, record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingForegroundIdleGate.kt: record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingForegroundService.kt: dvr, record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingReconcileWorker.kt: record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingRestoreReceiver.kt: cast, record, restore
+data/src/main/java/com/streamvault/data/manager/recording/RecordingServiceLauncher.kt: record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingSourceResolver.kt: record
+data/src/main/java/com/streamvault/data/manager/recording/RecordingSupport.kt: record
+data/src/main/java/com/streamvault/data/manager/reminder/ProgramReminderAlarmReceiver.kt: cast
+data/src/main/java/com/streamvault/data/manager/reminder/ProgramReminderAlarmScheduler.kt: cast
+data/src/main/java/com/streamvault/data/manager/reminder/ProgramReminderRestoreReceiver.kt: cast, restore
+data/src/main/java/com/streamvault/data/manager/reminder/ProgramReminderRestoreWorker.kt: restore
+data/src/main/java/com/streamvault/data/mapper/EntityMappers.kt: cast, resume
+data/src/main/java/com/streamvault/data/parser/XmltvIngestionLimits.kt: download
+data/src/main/java/com/streamvault/data/parser/XmltvParser.kt: restore
+data/src/main/java/com/streamvault/data/platform/DataSyncQuotaOwner.kt: download, record
+data/src/main/java/com/streamvault/data/preferences/PreferencesRepository.kt: backup, download, recent, record, restore
+data/src/main/java/com/streamvault/data/provider/LegacyProviderSnapshotMapper.kt: backup
+data/src/main/java/com/streamvault/data/provider/ProductionProviderCapabilityFactories.kt: record
+data/src/main/java/com/streamvault/data/remote/dto/XtreamDtos.kt: cast
+data/src/main/java/com/streamvault/data/remote/http/CancellableOkHttp.kt: resume
+data/src/main/java/com/streamvault/data/remote/jellyfin/JellyfinProvider.kt: cast, record
+data/src/main/java/com/streamvault/data/remote/stalker/MinistraApiV3Provider.kt: backup
+data/src/main/java/com/streamvault/data/remote/stalker/OkHttpStalkerApiService.kt: cast, download, record, resume
+data/src/main/java/com/streamvault/data/remote/stalker/StalkerApiService.kt: cast, record
+data/src/main/java/com/streamvault/data/remote/stalker/StalkerPortalStateStore.kt: record, restore
+data/src/main/java/com/streamvault/data/remote/stalker/StalkerProvider.kt: cast, record
+data/src/main/java/com/streamvault/data/remote/stalker/StalkerRequestCoordinator.kt: cast, record, restore
+data/src/main/java/com/streamvault/data/remote/stalker/StalkerSupport.kt: record
+data/src/main/java/com/streamvault/data/remote/xtream/OkHttpXtreamApiService.kt: record, resume
+data/src/main/java/com/streamvault/data/remote/xtream/PlaybackObservationCoordinator.kt: record
+data/src/main/java/com/streamvault/data/remote/xtream/XtreamProvider.kt: cast
+data/src/main/java/com/streamvault/data/repository/ChannelRepositoryImpl.kt: backup, cast
+data/src/main/java/com/streamvault/data/repository/EpgRepositoryImpl.kt: download
+data/src/main/java/com/streamvault/data/repository/EpgSourceRepositoryImpl.kt: download
+data/src/main/java/com/streamvault/data/repository/M3uClassificationRepositoryImpl.kt: restore
+data/src/main/java/com/streamvault/data/repository/MovieRepositoryImpl.kt: cast, recent, record, resume
+data/src/main/java/com/streamvault/data/repository/PlaybackCompatibilityRepositoryImpl.kt: recent, record
+data/src/main/java/com/streamvault/data/repository/PlaybackHistoryRepositoryImpl.kt: recent, record, resume
+data/src/main/java/com/streamvault/data/repository/ProviderDeletionCleanupWorker.kt: record
+data/src/main/java/com/streamvault/data/repository/ProviderRepositoryImpl.kt: pip, record, restore, resume
+data/src/main/java/com/streamvault/data/repository/SeriesRepositoryImpl.kt: cast, recent, record, resume
+data/src/main/java/com/streamvault/data/sync/JellyfinCatalogSyncExecutor.kt: record, restore, resume
+data/src/main/java/com/streamvault/data/sync/ProviderEpgSyncExecutor.kt: download, record
+data/src/main/java/com/streamvault/data/sync/ProviderSyncPorts.kt: resume
+data/src/main/java/com/streamvault/data/sync/ProviderSyncWorkScheduler.kt: resume
+data/src/main/java/com/streamvault/data/sync/ProviderSyncWorker.kt: pip
+data/src/main/java/com/streamvault/data/sync/StalkerCatalogSyncExecutor.kt: download, record
+data/src/main/java/com/streamvault/data/sync/StalkerIncrementalIndexExecutor.kt: record, restore
+data/src/main/java/com/streamvault/data/sync/StalkerIncrementalIndexOperationsAdapter.kt: record, restore
+data/src/main/java/com/streamvault/data/sync/StalkerReadinessTracker.kt: recent
+data/src/main/java/com/streamvault/data/sync/SyncCatalogStore.kt: cast, restore
+data/src/main/java/com/streamvault/data/sync/SyncErrorSanitizer.kt: download
+data/src/main/java/com/streamvault/data/sync/SyncManager.kt: backup, cast, download, record, restore, resume
+data/src/main/java/com/streamvault/data/sync/SyncManagerCatalogStager.kt: record
+data/src/main/java/com/streamvault/data/sync/SyncManagerM3uImporter.kt: download
+data/src/main/java/com/streamvault/data/sync/SyncManagerSupport.kt: record
+data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt: download, restore
+data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamSupport.kt: download, recent, record
+data/src/main/java/com/streamvault/data/sync/XtreamAdaptiveSyncPolicy.kt: pip, record
+data/src/main/java/com/streamvault/data/sync/XtreamCatalogSyncExecutor.kt: download, record, resume
+data/src/main/java/com/streamvault/data/sync/XtreamIncrementalIndexExecutor.kt: restore, resume
+data/src/main/java/com/streamvault/data/sync/XtreamIncrementalIndexOperationsAdapter.kt: restore
+data/src/main/java/com/streamvault/data/util/VodMovieDeduplication.kt: cast, recent
+data/src/main/java/com/streamvault/data/util/VodSeriesDeduplication.kt: cast, recent
+domain/src/main/java/com/streamvault/domain/manager/BackupManager.kt: backup, record, restore, resume
+domain/src/main/java/com/streamvault/domain/manager/DriveBackupSyncManager.kt: backup, download, restore
+domain/src/main/java/com/streamvault/domain/manager/ProgramReminderManager.kt: restore
+domain/src/main/java/com/streamvault/domain/manager/RecordingManager.kt: record
+domain/src/main/java/com/streamvault/domain/model/AppHomeDashboardShelf.kt: recent
+domain/src/main/java/com/streamvault/domain/model/AppLandingDestination.kt: download
+domain/src/main/java/com/streamvault/domain/model/AppTopLevelDestination.kt: download
+domain/src/main/java/com/streamvault/domain/model/DownloadModels.kt: download, resume
+domain/src/main/java/com/streamvault/domain/model/ExternalSubtitle.kt: download
+domain/src/main/java/com/streamvault/domain/model/Favorite.kt: backup, restore
+domain/src/main/java/com/streamvault/domain/model/LibraryBrowseQuery.kt: recent
+domain/src/main/java/com/streamvault/domain/model/Movie.kt: cast
+domain/src/main/java/com/streamvault/domain/model/PlaybackCompatibilityModels.kt: record
+domain/src/main/java/com/streamvault/domain/model/PlaybackHistory.kt: backup, restore, resume
+domain/src/main/java/com/streamvault/domain/model/Provider.kt: backup
+domain/src/main/java/com/streamvault/domain/model/RecordingModels.kt: record
+domain/src/main/java/com/streamvault/domain/model/Series.kt: cast
+domain/src/main/java/com/streamvault/domain/model/SyncState.kt: download, recent
+domain/src/main/java/com/streamvault/domain/model/VirtualCategoryIds.kt: recent
+domain/src/main/java/com/streamvault/domain/repository/DownloadManager.kt: download, resume
+domain/src/main/java/com/streamvault/domain/repository/ExternalSubtitleRepository.kt: download
+domain/src/main/java/com/streamvault/domain/repository/PlaybackCompatibilityRepository.kt: record
+domain/src/main/java/com/streamvault/domain/repository/PlaybackHistoryRepository.kt: recent, record, resume
+domain/src/main/java/com/streamvault/domain/usecase/ExportBackup.kt: backup
+domain/src/main/java/com/streamvault/domain/usecase/GetContinueWatching.kt: recent, resume
+domain/src/main/java/com/streamvault/domain/usecase/ImportBackup.kt: backup, record, restore
+domain/src/main/java/com/streamvault/domain/usecase/MarkAsWatched.kt: resume
+domain/src/main/java/com/streamvault/domain/usecase/ScheduleRecording.kt: record
+domain/src/main/java/com/streamvault/domain/util/AdultContentVisibilityPolicy.kt: recent
+domain/src/main/java/com/streamvault/domain/util/ChannelNormalizer.kt: backup
+player/src/main/java/com/streamvault/player/ExternalSubtitlePlayback.kt: resume
+player/src/main/java/com/streamvault/player/Media3PlayerEngine.kt: record, resume
+player/src/main/java/com/streamvault/player/PlayerEngine.kt: resume
+player/src/main/java/com/streamvault/player/audio/PlayerAudioFocusController.kt: resume
+player/src/main/java/com/streamvault/player/playback/ClearKeySmoothStreamingManifestParser.kt: dvr
+player/src/main/java/com/streamvault/player/playback/CodecPreference.kt: record
+player/src/main/java/com/streamvault/player/playback/PlayerDataSourceReadStats.kt: record
+player/src/main/java/com/streamvault/player/playback/PlayerRetrySeekPositionPolicy.kt: recent, restore
+player/src/main/java/com/streamvault/player/timeshift/LiveTimeshiftManager.kt: download
