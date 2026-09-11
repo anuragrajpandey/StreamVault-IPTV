@@ -34,6 +34,17 @@ for rel in [
     if p.is_dir(): shutil.rmtree(p)
     elif p.exists(): p.unlink()
 
+# Exact domain-level feature sources that do not have feature names in their filenames.
+for rel in [
+    'domain/src/main/java/com/streamvault/domain/model/RecordingModels.kt',
+    'domain/src/main/java/com/streamvault/domain/usecase/ScheduleRecording.kt',
+    'domain/src/main/java/com/streamvault/domain/usecase/ExportBackup.kt',
+    'domain/src/main/java/com/streamvault/domain/usecase/ImportBackup.kt',
+]:
+    p = ROOT / rel
+    if p.exists():
+        p.unlink()
+
 # Remove imports of deleted feature APIs.
 import_patterns = [
     r'^import .*\b(?:cast|Cast[A-Za-z0-9_]*|backup|Backup[A-Za-z0-9_]*|download|Download[A-Za-z0-9_]*|recording|Recording[A-Za-z0-9_]*)\b.*\n',
