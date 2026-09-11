@@ -1,125 +1,112 @@
 from pathlib import Path
-import re, shutil
+import re
+import shutil
 
 ROOT = Path('.')
 APP = ROOT / 'app/src/main/java/com/streamvault/app'
 
+# Remove dedicated TV-irrelevant feature implementations wherever they live.
+for base in [ROOT / 'app/src/main', ROOT / 'data/src/main', ROOT / 'domain/src/main', ROOT / 'player/src/main']:
+    if not base.exists():
+        continue
+    for p in list(base.rglob('*')):
+        if not p.is_file():
+            continue
+        low = p.name.lower()
+        rel = str(p.relative_to(base)).lower()
+        if any(k in low for k in ('downloadmanager', 'downloadforegroundservice', 'downloadrepository', 'downloadworker', 'backupmanager', 'backuprepository', 'backupworker', 'backuprestore', 'pendingbackup', 'recordingmanager', 'recordingrepository', 'recordingworker', 'recordingreconcile', 'playerrecordingcoordinator', 'playercastcoordinator')):
+            p.unlink()
+            continue
+        if '/backup/' in rel or '/downloads/' in rel or '/recording/' in rel or '/cast/' in rel:
+            p.unlink()
+
+# Known feature files/packages.
 for rel in [
     'cast', 'backup', 'ui/screens/downloads',
     'service/DownloadForegroundService.kt',
+    'ui/screens/player/PlayerCastCoordinator.kt',
+    'ui/screens/player/PlayerRecordingCoordinator.kt',
     'player/PlayerCastCoordinator.kt',
     'player/PlayerRecordingCoordinator.kt',
+    'di/CastModule.kt',
 ]:
     p = APP / rel
     if p.is_dir(): shutil.rmtree(p)
     elif p.exists(): p.unlink()
 
-for rel in ['di/CastModule.kt']:
-    p = APP / rel
-    if p.exists(): p.unlink()
-
-patterns = [
-    r'^import com\.streamvault\.app\.cast\..*\n',
-    r'^import com\.streamvault\.app\.backup\..*\n',
-    r'^import com\.streamvault\.app\.service\.DownloadForegroundService\n',
-    r'^import com\.streamvault\.domain\.model\.Download.*\n',
+# Remove imports of deleted feature APIs.
+import_patterns = [
+    r'^import .*\b(?:cast|Cast[A-Za-z0-9_]*|backup|Backup[A-Za-z0-9_]*|download|Download[A-Za-z0-9_]*|recording|Recording[A-Za-z0-9_]*)\b.*\n',
     r'^import com\.streamvault\.domain\.repository\.DownloadManager\n',
-    r'^import com\.streamvault\.app\.ui\.screens\.player\.PlayerCastCoordinator\n',
-    r'^import com\.streamvault\.app\.ui\.screens\.player\.PlayerRecordingCoordinator\n',
 ]
 
 for p in ROOT.rglob('*.kt'):
     s = p.read_text()
     old = s
-    for pat in patterns:
-        s = re.sub(pat, '', s, flags=re.M)
+    for pat in import_patterns:
+        s = re.sub(pat, '', s, flags=re.I | re.M)
     if s != old:
         p.write_text(s)
 
 
-def remove_cast_functions(text):
-    lines = text.splitlines(keepends=True)
-    out = []
-    i = 0
-    rx = re.compile(
-        r'^\s*(?:(?:public|private|protected|internal|override|suspend|inline|tailrec|operator|infix)\s+)*'
-        r'fun\s+(?:cast\w*|\w*cast\w*)\s*\(', re.I
-    )
-    while i < len(lines):
-        if rx.match(lines[i]):
-            depth = lines[i].count('{') - lines[i].count('}')
-            i += 1
-            while i < len(lines) and depth <= 0 and '{' not in lines[i]:
+def remove_functions(text, names):
+    for name in names:
+        rx = re.compile(r'(?ms)^\s*(?:(?:public|private|protected|internal|override|suspend|inline)\s+)*fun\s+' + re.escape(name) + r'\s*\([^\{]*\)\s*(?::\s*[^\{]+)?\{')
+        while True:
+            m = rx.search(text)
+            if not m:
+                break
+            i, depth = m.end(), 1
+            while i < len(text) and depth:
+                if text[i] == '{': depth += 1
+                elif text[i] == '}': depth -= 1
                 i += 1
-            if i < len(lines):
-                depth += lines[i].count('{') - lines[i].count('}')
-                i += 1
-            while i < len(lines) and depth > 0:
-                depth += lines[i].count('{') - lines[i].count('}')
-                i += 1
-            continue
-        out.append(lines[i])
-        i += 1
-    return ''.join(out)
+            text = text[:m.start()] + text[i:]
+    return text
+
+# Strip feature-specific functions before removing their fields/constructor parameters.
+feature_fun_names = [
+    'downloadMovie', 'downloadEpisode', 'download', 'startDownload', 'enqueueDownload', 'cancelDownload',
+    'restoreBackup', 'createBackup', 'exportBackup', 'importBackup', 'backupNow', 'restoreNow',
+    'startRecording', 'stopRecording', 'scheduleRecording', 'cancelRecording', 'recordChannel',
+    'castMovie', 'castEpisode', 'castResumeEpisode', 'startCasting', 'openCastRouteChooser',
+    'observeCastPlaybackEvents', 'handleCastPlaybackEvent', 'emitCastResult',
+]
 
 for p in ROOT.rglob('*.kt'):
     s = p.read_text()
     old = s
-    s = remove_cast_functions(s)
-    s = re.sub(r'^\s*(?:private\s+|public\s+|internal\s+|protected\s+)?(?:val|var)\s+\w*(?:Cast|cast)\w*\s*[:=].*\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*@Inject\s*\n\s*(?:lateinit\s+)?var\s+\w*cast\w*\s*:\s*[^\n]+\n', '', s, flags=re.I | re.M)
-    s = re.sub(r'^.*\b(?:castEvents|isCasting|CastUiEvent|CastPlaybackReportMode|CastStartResult|CastMediaRequest|CastMediaRequestBuildResult|castManager|castPlaybackCoordinator|castMediaRequestFactory|castPlaybackReportMode|openCastRouteChooser|castEpisode|castResumeEpisode|startCasting|isCast(?:ing)?)\b.*\n', '', s, flags=re.I)
+    s = remove_functions(s, feature_fun_names)
+
+    # Remove constructor parameters, injected fields, and obvious feature-only state.
+    for term in [
+        'DownloadManager', 'PendingBackupRestoreCoordinator', 'CastMediaRequestFactory',
+        'CastPlaybackCoordinator', 'PlayerCastCoordinator', 'PlayerRecordingCoordinator',
+        'RecordingManager', 'RecordingItem', 'RecordingRecurrence', 'RecordingStatus',
+        'BackupManager', 'BackupRepository', 'BackupRestore', 'CastConnectionState',
+        'CastPlaybackReportMode', 'CastMediaRequest', 'CastStartResult',
+    ]:
+        s = re.sub(r'^\s*(?:@Inject\s*\n\s*)?(?:(?:private|public|internal|protected)\s+)?(?:lateinit\s+)?(?:val|var)\s+\w+\s*:\s*[^\n]*\b' + re.escape(term) + r'\b[^\n]*\n', '', s, flags=re.M)
+        s = re.sub(r'^\s*(?:private\s+|public\s+|internal\s+|protected\s+)?val\s+\w+\s*:\s*' + re.escape(term) + r'[^\n]*\n', '', s, flags=re.M)
+        s = re.sub(r'^\s*(?:private\s+)?val\s+\w+\s*:\s*[^\n]*\b' + re.escape(term) + r'\b[^\n]*,?\n', '', s, flags=re.M)
+
+    # Remove feature-specific one-line state/calls left behind by the codemod.
+    s = re.sub(r'^.*\b(?:castEvents|isCasting|castManager|castPlaybackCoordinator|castMediaRequestFactory|castPlaybackReportMode|recordingItems|currentChannelRecording|notifiedRecordingFailureIds|livePlaybackRecordCoordinator|resumePrompt)\b.*\n', '', s, flags=re.I | re.M)
+    s = re.sub(r'^.*\b(?:downloadManager|pendingBackupRestoreCoordinator)\b.*\n', '', s, flags=re.M)
+    s = re.sub(r'^.*\b(?:RecordingItem|RecordingRecurrence|RecordingStatus|BackupManagerImpl|RecordingManagerImpl|GoogleDriveBackupSyncManager)\b.*\n', '', s, flags=re.M)
+
     if s != old:
         p.write_text(s)
 
-
-def clean_detail_viewmodel(path):
-    p = ROOT / path
-    if not p.exists():
-        return
-    s = p.read_text()
-    # Remove DownloadManager/Cast constructor parameters without disturbing the remaining Hilt signature.
-    s = re.sub(r'^\s*private val downloadManager: DownloadManager,\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*private val castMediaRequestFactory: CastMediaRequestFactory,\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*private val castPlaybackCoordinator: CastPlaybackCoordinator\n', '', s, flags=re.M)
-    # Remove the entire download and cast methods and their helper methods.
-    for name in ['downloadMovie', 'downloadEpisode', 'castMovie', 'castEpisode', 'castResumeEpisode', 'observeCastPlaybackEvents', 'handleCastPlaybackEvent', 'emitCastResult']:
-        pattern = rf'(?ms)^\s*(?:private\s+|public\s+|internal\s+)?(?:suspend\s+)?fun\s+{name}\s*\([^{{]*\)\s*(?::\s*[^{{]+)?\{{'
-        m = re.search(pattern, s)
-        while m:
-            start = m.start()
-            i = m.end()
-            depth = 1
-            while i < len(s) and depth:
-                if s[i] == '{': depth += 1
-                elif s[i] == '}': depth -= 1
-                i += 1
-            s = s[:start] + s[i:]
-            m = re.search(pattern, s)
-    # Remove cast/download UI state fields.
-    s = re.sub(r'^\s*private val _castEvents.*\n\s*val castEvents.*\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*private var castPlaybackReportMode.*\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*val isCasting: Boolean = false,\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*val isCasting: Boolean = false\n', '', s, flags=re.M)
-    # Cast observation is no longer needed in init.
-    s = s.replace('        observeCastPlaybackEvents()\n', '')
-    p.write_text(s)
-
-clean_detail_viewmodel('app/src/main/java/com/streamvault/app/ui/screens/movies/MovieDetailViewModel.kt')
-clean_detail_viewmodel('app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailViewModel.kt')
-
-# Application-level download/backup startup integrations are not part of the TV app.
+# Application startup integrations that are not needed on TV.
 p = APP / 'StreamVaultApp.kt'
 if p.exists():
     s = p.read_text()
-    s = re.sub(r'^import com\.streamvault\.data\.manager\.recording\.RecordingReconcileWorker\n', '', s, flags=re.M)
-    s = re.sub(r'^import com\.streamvault\.data\.manager\.PendingBackupRestoreCoordinator\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*@Inject\n\s*lateinit var downloadManager: DownloadManager\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*@Inject\n\s*lateinit var pendingBackupRestoreCoordinator: PendingBackupRestoreCoordinator\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*\s*StartupTask\("download-recovery"\) \{\n\s*downloadManager\.recoverInterruptedDownloads\(\)\n\s*\},\n', '', s, flags=re.M)
-    s = re.sub(r'^\s*\s*StartupTask\("pending-backup-restore"\) \{\n\s*pendingBackupRestoreCoordinator\.applyAllAvailable\(\)\n\s*\},\n', '', s, flags=re.M)
+    s = re.sub(r'^import .*\b(?:RecordingReconcileWorker|PendingBackupRestoreCoordinator|DownloadManager)\b.*\n', '', s, flags=re.M)
+    s = re.sub(r'^.*\b(?:downloadManager|pendingBackupRestoreCoordinator)\b.*\n', '', s, flags=re.M)
     p.write_text(s)
 
+# Navigation: remove Downloads and backup-specific settings URI.
 p = APP / 'navigation/AppNavigation.kt'
 if p.exists():
     s = p.read_text()
@@ -131,6 +118,7 @@ if p.exists():
     s = s.replace('            AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS\n', '')
     p.write_text(s)
 
+# Manifest cleanup. Keep Android platform backup support untouched.
 p = ROOT / 'app/src/main/AndroidManifest.xml'
 if p.exists():
     s = p.read_text()
@@ -140,6 +128,7 @@ if p.exists():
     s = re.sub(r'^\s*<meta-data[^>]*CAST\.framework\.OPTIONS_PROVIDER_CLASS_NAME[^>]*/>\s*\n', '', s, flags=re.M)
     p.write_text(s)
 
+# Remove Cast dependencies and version-catalog aliases.
 for p in [ROOT / 'app/build.gradle.kts', ROOT / 'build.gradle.kts', ROOT / 'gradle/libs.versions.toml']:
     if p.exists():
         s = p.read_text()
