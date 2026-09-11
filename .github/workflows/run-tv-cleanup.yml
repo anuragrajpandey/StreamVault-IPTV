@@ -3,6 +3,16 @@ name: Run coordinated TV cleanup
 on:
   push:
     branches: [elitestocks-tv-feature-cleanup]
+  pull_request:
+    branches: [master]
+    paths:
+      - 'app/**'
+      - 'data/**'
+      - 'domain/**'
+      - 'player/**'
+      - 'gradle/**'
+      - 'scripts/apply_tv_cleanup.py'
+      - '.github/workflows/run-tv-cleanup.yml'
   workflow_dispatch:
 
 permissions:
