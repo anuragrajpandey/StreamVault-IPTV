@@ -33,6 +33,24 @@ jobs:
         run: |
           find domain/src/main/java/com/streamvault/domain/usecase -type f \( -iname '*backup*.kt' -o -iname '*recording*.kt' \) -delete 2>/dev/null || true
           find domain/src/main/java/com/streamvault/domain/model -maxdepth 1 -type f \( -iname '*backup*.kt' -o -iname '*recording*.kt' \) -delete 2>/dev/null || true
+          find data/src/main/java/com/streamvault/data/manager -type f -iname '*RecordingAlarmScheduler*.kt' -delete 2>/dev/null || true
+          provider_repo='data/src/main/java/com/streamvault/data/repository/ProviderRepositoryImpl.kt'
+          if [ -f "$provider_repo" ]; then
+            sed -i '/import .*RecordingAlarmScheduler/d' "$provider_repo"
+            sed -i '/private val recordingAlarmScheduler: RecordingAlarmScheduler,/d' "$provider_repo"
+            sed -i '/private val recordingRunDao: RecordingRunDao,/d' "$provider_repo"
+            sed -i '/val estimatedRecordingRunIds = recordingRunDao\.getIdsByProvider(id)/d' "$provider_repo"
+            sed -i '/const val ALARM_STEP_WEIGHT = 5/d' "$provider_repo"
+            sed -i '/(estimatedRecordingRunIds.size + estimatedReminderIds.size) \* ALARM_STEP_WEIGHT +/d' "$provider_repo"
+            sed -i '/val recordingRunIds = recordingRunDao\.getIdsByProvider(id)/d' "$provider_repo"
+            sed -i '/recordingRunIds\.map { ProviderDeletionCleanupEntity(id = 0, providerId = id, action = ProviderDeletionCleanupWorker.RECORDING_ALARM, targetId = it) } +/d' "$provider_repo"
+          fi
+          database='data/src/main/java/com/streamvault/data/local/StreamVaultDatabase.kt'
+          if [ -f "$database" ]; then
+            sed -i '/RecordingScheduleEntity::class/d' "$database"
+            sed -i '/RecordingRunEntity::class/d' "$database"
+            sed -i '/RecordingStorageEntity::class/d' "$database"
+          fi
       - name: Check diff
         run: git diff --check
       - name: Compile app
