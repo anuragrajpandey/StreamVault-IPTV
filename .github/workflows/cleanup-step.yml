@@ -1,0 +1,41 @@
+name: Apply TV cleanup
+
+on:
+  push:
+    branches: [elitestocks-tv-feature-cleanup]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: elitestocks-tv-feature-cleanup
+          fetch-depth: 1
+      - name: Remove obsolete manifest integrations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          s = s.replace('            android:supportsPictureInPicture="true"\n', '')
+          s = s.replace('        <activity android:name=".cast.CastRouteChooserActivity" android:exported="false" android:excludeFromRecents="true" android:launchMode="singleTop" android:theme="@style/Theme.StreamVault.CastChooser" />\n', '')
+          s = s.replace('        <service android:name=".service.DownloadForegroundService" android:exported="false" android:foregroundServiceType="dataSync" />\n', '')
+          s = s.replace('        <meta-data android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME" android:value="com.streamvault.app.cast.StreamVaultCastOptionsProvider" />\n', '')
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/AndroidManifest.xml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'refactor: remove obsolete TV feature manifest hooks'
+          git push origin HEAD:elitestocks-tv-feature-cleanup
