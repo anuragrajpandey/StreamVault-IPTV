@@ -1,4 +1,4 @@
-app/src/main/AndroidManifest.xml: backup, cast, download, pictureinpicture, recent
+app/src/main/AndroidManifest.xml: backup, recent
 app/src/main/java/com/streamvault/app/DatabaseStartupGate.kt: record
 app/src/main/java/com/streamvault/app/MainActivity.kt: backup, cast, picture_in_picture, pictureinpicture, pip, resume
 app/src/main/java/com/streamvault/app/StartupWorkRegistry.kt: record
