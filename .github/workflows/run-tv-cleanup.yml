@@ -3,6 +3,7 @@ name: Run coordinated TV cleanup
 on:
   push:
     branches: [elitestocks-tv-feature-cleanup]
+  workflow_dispatch:
 
 permissions:
   contents: write
