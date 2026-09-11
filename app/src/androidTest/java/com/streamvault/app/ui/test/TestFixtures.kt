@@ -10,7 +10,6 @@ import com.streamvault.domain.model.ContentType
 import com.streamvault.domain.model.Episode
 import com.streamvault.domain.model.Movie
 import com.streamvault.domain.model.Program
-import com.streamvault.domain.model.RecordingStatus
 import com.streamvault.domain.model.Series
 import com.streamvault.player.PlayerTrack
 import com.streamvault.player.TrackType
@@ -122,5 +121,4 @@ internal object TestFixtures {
     const val displayChannelNumber = 105
     const val currentPositionMs = 4_200_000L
     const val durationMs = 7_200_000L
-    val recordingStatus = RecordingStatus.SCHEDULED
 }

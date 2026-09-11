@@ -2,7 +2,6 @@ package com.streamvault.app.di
 
 import com.streamvault.data.local.DatabaseTransactionRunner
 import com.streamvault.data.local.RoomDatabaseTransactionRunner
-import com.streamvault.data.manager.DownloadManagerImpl
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.data.security.AndroidKeystoreCredentialCrypto
 import com.streamvault.data.security.CredentialCrypto
@@ -27,8 +26,6 @@ import com.streamvault.domain.manager.ProviderSyncStateReader
 import com.streamvault.data.repository.*
 import com.streamvault.domain.manager.ParentalControlSessionStore
 import com.streamvault.domain.repository.*
-import com.streamvault.domain.manager.BackupRestoreStatusStore
-import com.streamvault.data.manager.BackupRestoreStatusStoreImpl
 import com.streamvault.domain.provider.ProviderCapabilityRegistry
 import com.streamvault.domain.provider.ProviderSourceRegistry
 import com.streamvault.app.plugins.StreamVaultPluginManager
@@ -103,13 +100,10 @@ abstract class RepositoryModule {
     abstract fun bindDatabaseTransactionRunner(impl: RoomDatabaseTransactionRunner): DatabaseTransactionRunner
 
     @Binds @Singleton
-    abstract fun bindBackupManager(impl: com.streamvault.data.manager.BackupManagerImpl): com.streamvault.domain.manager.BackupManager
 
     @Binds @Singleton
-    abstract fun bindDriveBackupSyncManager(impl: com.streamvault.data.manager.GoogleDriveBackupSyncManager): com.streamvault.domain.manager.DriveBackupSyncManager
 
     @Binds @Singleton
-    abstract fun bindRecordingManager(impl: com.streamvault.data.manager.RecordingManagerImpl): com.streamvault.domain.manager.RecordingManager
 
     @Binds @Singleton
     abstract fun bindDownloadManager(impl: DownloadManagerImpl): DownloadManager

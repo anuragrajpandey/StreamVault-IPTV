@@ -3,10 +3,6 @@ package com.streamvault.app.ui.screens.settings
 import com.streamvault.app.ui.model.LiveTvChannelMode
 import com.streamvault.app.ui.model.LiveTvQuickFilterVisibilityMode
 import com.streamvault.app.ui.model.VodViewMode
-import com.streamvault.domain.manager.BackupImportPlan
-import com.streamvault.domain.manager.BackupPreview
-import com.streamvault.domain.manager.BackupProviderReference
-import com.streamvault.domain.manager.BackupRestoreJobStatus
 import com.streamvault.domain.manager.DriveAuthState
 import com.streamvault.domain.manager.DriveBackupSnapshot
 import com.streamvault.domain.manager.DriveSignInRequest
@@ -35,8 +31,6 @@ import com.streamvault.domain.model.VodHttpProtocolMode
 import com.streamvault.domain.model.ExternalPlaybackMode
 import com.streamvault.domain.model.PlayerSurfaceMode
 import com.streamvault.domain.model.LegacyProvider as Provider
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingStorageState
 import com.streamvault.domain.model.RemoteShortcutPreferences
 import com.streamvault.domain.model.TimeshiftBackendPreference
 import com.streamvault.domain.model.VodVariantPreferenceMode
@@ -136,7 +130,6 @@ data class SettingsUiState(
     // M3 — credentials downloaded by pullBackup, waiting to be applied
     // to providers once the import confirm completes.
     val pendingDriveCredentials: List<ProviderCredentials>? = null,
-    val recordingItems: List<RecordingItem> = emptyList(),
     val recordingStorageState: RecordingStorageState = RecordingStorageState(),
     val wifiOnlyRecording: Boolean = false,
     val recordingPaddingBeforeMinutes: Int = 0,

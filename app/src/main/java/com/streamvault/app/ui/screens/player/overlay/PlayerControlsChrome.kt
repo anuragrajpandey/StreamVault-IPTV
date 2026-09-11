@@ -82,7 +82,6 @@ import com.streamvault.app.ui.theme.ErrorColor
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.domain.model.Channel
 import com.streamvault.domain.model.Program
-import com.streamvault.domain.model.RecordingStatus
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -116,7 +115,6 @@ fun PlayerControlsOverlay(
     liveTranslationAvailable: Boolean = false,
     audioTrackCount: Int,
     videoQualityCount: Int,
-    currentRecordingStatus: RecordingStatus?,
     isMuted: Boolean,
     playbackSpeed: Float = 1f,
     mediaTitle: String?,
@@ -514,7 +512,6 @@ private fun PlayerBottomBar(
     liveTranslationAvailable: Boolean = false,
     audioTrackCount: Int,
     videoQualityCount: Int,
-    currentRecordingStatus: RecordingStatus?,
     isMuted: Boolean,
     playbackSpeed: Float,
     mediaTitle: String?,
@@ -712,7 +709,6 @@ private fun PlayerLiveInfo(
     liveTranslationAvailable: Boolean,
     audioTrackCount: Int,
     videoQualityCount: Int,
-    currentRecordingStatus: RecordingStatus?,
     isMuted: Boolean,
     mediaTitle: String?,
     sleepTimerUiState: SleepTimerUiState,
@@ -787,7 +783,6 @@ private fun PlayerLiveInfo(
             add(PlayerActionSpec(stringResource(R.string.player_restart), onRestartProgram))
             add(PlayerActionSpec(stringResource(R.string.player_archive), onOpenArchive))
         }
-        if (currentRecordingStatus == RecordingStatus.RECORDING) {
             add(PlayerActionSpec(stringResource(R.string.player_stop_recording), onStopRecording))
         } else {
             add(PlayerActionSpec(stringResource(R.string.player_record), onStartRecording))

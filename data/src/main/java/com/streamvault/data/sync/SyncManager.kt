@@ -226,7 +226,6 @@ class SyncManager @Inject constructor(
     private val providerSyncWorkScheduler: ProviderSyncWorkScheduler,
     private val m3uClassificationDao: M3uClassificationDao? = null,
     private val m3uClassificationRepository: M3uClassificationRepository? = null,
-    private val pendingBackupRestoreCoordinator: PendingBackupRestoreCoordinator? = null
 ) : ProviderSyncCommands, CatalogHydrationCommands, ProviderSyncStateSource, ProviderSyncLifecycle {
     private val syncProviderSnapshotAdapter = SyncProviderSnapshotAdapter(providerSnapshotRepository)
     private val initialOnboardingBackgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -603,7 +602,6 @@ class SyncManager @Inject constructor(
             sanitizeThrowableMessage = ::sanitizeThrowableMessage,
             userMessage = { error, fallback -> syncErrorSanitizer.userMessage(error, fallback) },
             requiredHiddenCategoryIds = { providerId, type ->
-                pendingBackupRestoreCoordinator?.requiredHiddenCategoryIds(providerId, type).orEmpty()
             }
         )
     }
@@ -637,7 +635,6 @@ class SyncManager @Inject constructor(
             categoryFailureWarning = ::categoryFailureWarning,
             sanitizeThrowableMessage = ::sanitizeThrowableMessage,
             requiredHiddenCategoryIds = { providerId, type ->
-                pendingBackupRestoreCoordinator?.requiredHiddenCategoryIds(providerId, type).orEmpty()
             }
         )
     }
@@ -710,7 +707,6 @@ class SyncManager @Inject constructor(
     private suspend fun Result<Unit>.alsoApplyPendingRestore(providerId: Long): Result<Unit> {
         if (this is Result.Success) {
             val startedAt = System.currentTimeMillis()
-            pendingBackupRestoreCoordinator?.applyForProvider(providerId)
             Log.i(TAG, "backup restore resolution provider=$providerId took=${System.currentTimeMillis() - startedAt}ms")
         }
         return this
@@ -1245,7 +1241,6 @@ class SyncManager @Inject constructor(
                 }
                 val restoreStartedAt = System.currentTimeMillis()
                 progress(providerId, onProgress, "Restoring backup choices...")
-                pendingBackupRestoreCoordinator?.applyForProvider(providerId)
                 Log.i(TAG, "backup restore resolution provider=$providerId took=${System.currentTimeMillis() - restoreStartedAt}ms")
                 publishSyncState(providerId, if (outcome.requiresPartialActivation) {
                     SyncState.Partial("Sync completed with warnings", outcome.warnings)
@@ -1427,7 +1422,6 @@ class SyncManager @Inject constructor(
                 status = if (outcome.requiresPartialActivation) "PARTIAL" else "SUCCESS"
             )
             progress(providerId, onProgress, "Restoring backup choices...")
-            pendingBackupRestoreCoordinator?.applyForProvider(providerId)
             publishSyncState(
                 providerId,
                 if (outcome.requiresPartialActivation) {
@@ -1798,7 +1792,6 @@ class SyncManager @Inject constructor(
         categories: List<CategoryEntity>
     ): List<CategoryEntity> {
         val hiddenCategoryIds = preferencesRepository.getHiddenCategoryIds(providerId, contentType).first()
-        val requiredHiddenIds = pendingBackupRestoreCoordinator
             ?.requiredHiddenCategoryIds(providerId, contentType)
             .orEmpty()
         return categories.filterNot { category ->

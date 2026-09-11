@@ -23,8 +23,6 @@ import com.streamvault.app.ui.theme.Primary
 import com.streamvault.app.ui.theme.Secondary
 import com.streamvault.app.ui.time.LocalAppTimeFormat
 import com.streamvault.app.ui.time.createDateTimeFormat
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingStatus
 
 @Composable
 internal fun RecordingMetricCard(
@@ -71,18 +69,15 @@ internal fun StatusTonePill(
     }
 }
 
-internal fun recordingDisplayTitle(item: RecordingItem): String {
     val title = item.programTitle?.trim().orEmpty()
     return if (title.isNotBlank()) title else item.channelName
 }
 
-internal fun recordingDisplaySubtitle(item: RecordingItem): String? {
     val title = item.programTitle?.trim().orEmpty()
     return if (title.isNotBlank() && title != item.channelName) item.channelName else null
 }
 
 @Composable
-internal fun recordingListSecondaryLine(item: RecordingItem): String {
     val subtitle = recordingDisplaySubtitle(item)
     val appTimeFormat = LocalAppTimeFormat.current
     val dateTimeFormat = remember(appTimeFormat) { appTimeFormat.createDateTimeFormat() }
@@ -94,18 +89,6 @@ internal fun recordingListSecondaryLine(item: RecordingItem): String {
 }
 
 @Composable
-internal fun recordingStatusLabel(status: RecordingStatus): String = when (status) {
-    RecordingStatus.SCHEDULED -> stringResource(R.string.settings_recording_status_scheduled)
-    RecordingStatus.RECORDING -> stringResource(R.string.settings_recording_status_recording)
-    RecordingStatus.COMPLETED -> stringResource(R.string.settings_recording_status_completed)
-    RecordingStatus.FAILED -> stringResource(R.string.settings_recording_status_failed)
-    RecordingStatus.CANCELLED -> stringResource(R.string.settings_recording_status_cancelled)
 }
 
-internal fun recordingStatusAccent(status: RecordingStatus): Color = when (status) {
-    RecordingStatus.RECORDING -> Primary
-    RecordingStatus.SCHEDULED -> Secondary
-    RecordingStatus.COMPLETED -> Color(0xFF7BA7FF)
-    RecordingStatus.FAILED -> ErrorColor
-    RecordingStatus.CANCELLED -> OnSurfaceDim
 }

@@ -34,15 +34,10 @@ import com.streamvault.app.ui.theme.Secondary
 import com.streamvault.app.ui.theme.SurfaceElevated
 import com.streamvault.app.ui.time.LocalAppTimeFormat
 import com.streamvault.app.ui.time.createDateTimeFormat
-import com.streamvault.domain.model.RecordingFailureCategory
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingStatus
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun RecordingItemCard(
-    item: RecordingItem,
     onPlay: () -> Unit,
     onStop: () -> Unit,
     onCancel: () -> Unit,
@@ -85,19 +80,9 @@ internal fun RecordingItemCard(
                 }
                 Text(
                     text = when (item.status) {
-                        RecordingStatus.SCHEDULED -> stringResource(R.string.settings_recording_status_scheduled)
-                        RecordingStatus.RECORDING -> stringResource(R.string.settings_recording_status_recording)
-                        RecordingStatus.COMPLETED -> stringResource(R.string.settings_recording_status_completed)
-                        RecordingStatus.FAILED -> stringResource(R.string.settings_recording_status_failed)
-                        RecordingStatus.CANCELLED -> stringResource(R.string.settings_recording_status_cancelled)
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = when (item.status) {
-                        RecordingStatus.RECORDING -> Primary
-                        RecordingStatus.COMPLETED -> OnBackground
-                        RecordingStatus.FAILED -> ErrorColor
-                        RecordingStatus.CANCELLED -> OnSurfaceDim
-                        RecordingStatus.SCHEDULED -> Secondary
                     }
                 )
             }
@@ -120,13 +105,9 @@ internal fun RecordingItemCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                if (item.recurrence != RecordingRecurrence.NONE) {
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(start = 8.dp))
                     Text(
                         text = when (item.recurrence) {
-                            RecordingRecurrence.DAILY -> stringResource(R.string.settings_recording_recurrence_daily)
-                            RecordingRecurrence.WEEKLY -> stringResource(R.string.settings_recording_recurrence_weekly)
-                            RecordingRecurrence.NONE -> stringResource(R.string.settings_recording_recurrence_none)
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = Secondary,
@@ -188,21 +169,18 @@ internal fun RecordingItemCard(
                 modifier = Modifier.fillMaxWidth(),
                 maxItemsInEachRow = 4
             ) {
-                if (item.status == RecordingStatus.COMPLETED && (!item.outputUri.isNullOrBlank() || !item.outputPath.isNullOrBlank())) {
                     CompactRecordingActionChip(
                         label = "Play",
                         accent = Primary,
                         onClick = onPlay
                     )
                 }
-                if (item.status == RecordingStatus.RECORDING) {
                     CompactRecordingActionChip(
                         label = stringResource(R.string.settings_recording_stop),
                         accent = ErrorColor,
                         onClick = onStop
                     )
                 }
-                if (item.status == RecordingStatus.SCHEDULED) {
                     CompactRecordingActionChip(
                         label = stringResource(
                             if (item.scheduleEnabled) R.string.settings_recording_disable
@@ -224,8 +202,6 @@ internal fun RecordingItemCard(
                         onClick = onCancel
                     )
                 }
-                if (item.status == RecordingStatus.COMPLETED || item.status == RecordingStatus.FAILED || item.status == RecordingStatus.CANCELLED) {
-                    if (item.status == RecordingStatus.FAILED) {
                         CompactRecordingActionChip(
                             label = stringResource(R.string.settings_recording_retry),
                             accent = Primary,
@@ -269,7 +245,6 @@ internal fun CompactRecordingActionChip(label: String, accent: Color, onClick: (
     }
 }
 
-internal fun RecordingItem.playbackUrl(): String? {
     val persistedUri = outputUri?.trim()?.takeIf { it.isNotBlank() }
     if (persistedUri != null) {
         return persistedUri

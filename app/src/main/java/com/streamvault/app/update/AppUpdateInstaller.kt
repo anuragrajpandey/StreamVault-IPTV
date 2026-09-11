@@ -1,6 +1,5 @@
 package com.streamvault.app.update
 
-import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -51,7 +50,6 @@ class AppUpdateInstaller @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferencesRepository: PreferencesRepository
 ) {
-    private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _downloadState = MutableStateFlow(AppUpdateDownloadState())
     private var downloadPollingJob: Job? = null
@@ -98,7 +96,6 @@ class AppUpdateInstaller @Inject constructor(
 
         val trackedVersionName = downloadingVersionName ?: downloadedVersionName
         val query = DownloadManager.Query().setFilterById(downloadId)
-        downloadManager.query(query).use { cursor ->
             if (!cursor.moveToFirst()) {
                 preferencesRepository.setAppUpdateDownloadId(null)
                 preferencesRepository.setAppUpdateDownloadVersionName(null)
@@ -159,59 +156,6 @@ class AppUpdateInstaller @Inject constructor(
         }
     }
 
-    suspend fun startDownload(releaseInfo: GitHubReleaseInfo): Result<Unit> = withContext(Dispatchers.IO) {
-        val downloadUrl = releaseInfo.downloadUrl
-            ?: return@withContext Result.error("Update download is unavailable for this release")
-        if (!isHttpsUrl(downloadUrl)) {
-            return@withContext Result.error("Update download is unavailable because the download URL is not HTTPS")
-        }
-
-        try {
-            val targetFile = apkFileForVersion(releaseInfo.versionName)
-            targetFile.parentFile?.mkdirs()
-            if (targetFile.exists()) {
-                targetFile.delete()
-            }
-
-            val existingVersion = preferencesRepository.downloadedAppUpdateVersionName.first()
-            if (existingVersion != null && existingVersion != releaseInfo.versionName) {
-                apkFileForVersion(existingVersion).delete()
-            }
-            preferencesRepository.appUpdateDownloadId.first()?.let { oldDownloadId ->
-                runCatching { downloadManager.remove(oldDownloadId) }
-            }
-
-            val request = DownloadManager.Request(Uri.parse(downloadUrl))
-                .setTitle("EliteStocks TV ${releaseInfo.versionName}")
-                .setDescription("Downloading the latest EliteStocks TV update")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setMimeType("application/vnd.android.package-archive")
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(true)
-                .setDestinationInExternalFilesDir(
-                    context,
-                    Environment.DIRECTORY_DOWNLOADS,
-                    targetFile.name
-                )
-
-            val downloadId = downloadManager.enqueue(request)
-            preferencesRepository.setAppUpdateDownloadId(downloadId)
-            preferencesRepository.setAppUpdateDownloadVersionName(releaseInfo.versionName)
-            preferencesRepository.setDownloadedAppUpdateVersionName(null)
-            val state = AppUpdateDownloadState(
-                status = AppUpdateDownloadStatus.Downloading,
-                versionName = releaseInfo.versionName,
-                downloadId = downloadId
-            )
-            _downloadState.value = state
-            syncPollingForState(state)
-            Result.success(Unit)
-        } catch (error: IllegalArgumentException) {
-            Result.error("Failed to start update download", error)
-        } catch (error: SecurityException) {
-            Result.error("Update download requires additional permissions", error)
-        }
-    }
 
     suspend fun installDownloadedUpdate(expectedSha256: String? = null): Result<Unit> = withContext(Dispatchers.IO) {
         val currentState = refreshState()

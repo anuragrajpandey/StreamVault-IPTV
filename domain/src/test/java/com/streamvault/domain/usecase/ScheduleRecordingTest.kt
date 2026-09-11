@@ -1,14 +1,9 @@
 package com.streamvault.domain.usecase
 
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.domain.manager.RecordingManager
 import com.streamvault.domain.model.Channel
 import com.streamvault.domain.model.ContentType
 import com.streamvault.domain.model.Program
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingRequest
-import com.streamvault.domain.model.RecordingStorageState
 import com.streamvault.domain.model.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -30,7 +25,6 @@ class ScheduleRecordingTest {
                 streamUrl = "https://example.com/live.ts",
                 currentProgram = null,
                 nextProgram = null,
-                recurrence = RecordingRecurrence.NONE,
                 nowMs = 1_000L
             )
         )
@@ -52,14 +46,12 @@ class ScheduleRecordingTest {
                 streamUrl = "https://example.com/live.ts",
                 currentProgram = program(title = "Current", startTime = 1_000L, endTime = 2_000L),
                 nextProgram = program(title = "Next", startTime = 3_000L, endTime = 4_000L),
-                recurrence = RecordingRecurrence.DAILY,
                 nowMs = 1_500L
             )
         )
 
         assertThat(manager.lastScheduledRequest?.programTitle).isEqualTo("Next")
         assertThat(manager.lastScheduledRequest?.scheduledStartMs).isEqualTo(3_000L)
-        assertThat(manager.lastScheduledRequest?.recurrence).isEqualTo(RecordingRecurrence.DAILY)
     }
 
     @Test
@@ -75,7 +67,6 @@ class ScheduleRecordingTest {
                 streamUrl = "https://example.com/live.ts",
                 currentProgram = program(title = "Current", startTime = 1_000L, endTime = 4_000L),
                 nextProgram = null,
-                recurrence = RecordingRecurrence.NONE,
                 nowMs = 2_500L
             )
         )
@@ -98,7 +89,6 @@ class ScheduleRecordingTest {
                 streamUrl = "https://example.com/live.ts",
                 currentProgram = program(title = "Ended", startTime = 1_000L, endTime = 2_000L),
                 nextProgram = null,
-                recurrence = RecordingRecurrence.NONE,
                 nowMs = 2_000L
             )
         )
@@ -127,25 +117,8 @@ class ScheduleRecordingTest {
     private class FakeRecordingManager : RecordingManager {
         var lastScheduledRequest: RecordingRequest? = null
 
-        override fun observeRecordingItems(): Flow<List<RecordingItem>> = flowOf(emptyList())
         override fun observeStorageState(): Flow<RecordingStorageState> = flowOf(RecordingStorageState())
-        override suspend fun startManualRecording(request: RecordingRequest): Result<RecordingItem> = error("Not used in test")
-        override suspend fun scheduleRecording(request: RecordingRequest): Result<RecordingItem> {
-            lastScheduledRequest = request
-            return Result.success(
-                RecordingItem(
-                    id = "scheduled-1",
-                    providerId = request.providerId,
-                    channelId = request.channelId,
-                    channelName = request.channelName,
-                    streamUrl = request.streamUrl,
-                    scheduledStartMs = request.scheduledStartMs,
-                    scheduledEndMs = request.scheduledEndMs,
-                    programTitle = request.programTitle,
-                    recurrence = request.recurrence
-                )
-            )
-        }
+
         override suspend fun stopRecording(recordingId: String): Result<Unit> = error("Not used in test")
         override suspend fun cancelRecording(recordingId: String): Result<Unit> = error("Not used in test")
         override suspend fun deleteRecording(recordingId: String): Result<Unit> = error("Not used in test")

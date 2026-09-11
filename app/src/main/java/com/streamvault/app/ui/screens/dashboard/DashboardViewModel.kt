@@ -34,8 +34,6 @@ import com.streamvault.domain.usecase.ContinueWatchingResult
 import com.streamvault.domain.usecase.ContinueWatchingScope
 import com.streamvault.domain.usecase.GetContinueWatching
 import com.streamvault.domain.usecase.GetCustomCategories
-import com.streamvault.domain.manager.RecordingManager
-import com.streamvault.domain.model.RecordingStatus
 import android.content.Context
 import com.streamvault.app.R
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -76,7 +74,6 @@ class DashboardViewModel @Inject constructor(
     private val getCustomCategories: GetCustomCategories,
     private val syncManager: ProviderSyncStateSource,
     private val appUpdateInstaller: AppUpdateInstaller,
-    private val recordingManager: RecordingManager
 ) : ViewModel() {
     private companion object {
         const val FAVORITE_CHANNEL_LIMIT = 12
@@ -100,10 +97,8 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             recordingManager.observeRecordingItems().collect { items ->
                 _recordingChannelIds.value = items
-                    .filter { it.status == RecordingStatus.RECORDING }
                     .map { it.channelId }.toSet()
                 _scheduledChannelIds.value = items
-                    .filter { it.status == RecordingStatus.SCHEDULED }
                     .map { it.channelId }.toSet()
             }
         }

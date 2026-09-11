@@ -13,7 +13,6 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import com.streamvault.data.remote.http.useCancellableResponse
-import com.streamvault.domain.manager.BackupManager
 import com.streamvault.domain.manager.DriveAccount
 import com.streamvault.domain.manager.DriveAuthState
 import com.streamvault.domain.manager.DriveBackupArtifact
@@ -86,9 +85,7 @@ private fun buildDefaultGoogleDriveClient(context: Context): GoogleSignInClient 
  *   standalone backup and credentials files for backwards compatibility.
  */
 @Singleton
-class GoogleDriveBackupSyncManager private constructor(
     @ApplicationContext private val context: Context,
-    private val backupManager: BackupManager,
     private val httpClient: OkHttpClient,
     driveApiBaseUrl: String,
     private val fixedAccessToken: String?,

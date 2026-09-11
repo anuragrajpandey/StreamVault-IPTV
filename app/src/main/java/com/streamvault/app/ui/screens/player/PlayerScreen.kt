@@ -77,7 +77,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import com.streamvault.app.R
 import com.streamvault.app.MainActivity
-import com.streamvault.app.cast.CastConnectionState
 import com.streamvault.app.ui.components.PlayerRenderView
 import com.streamvault.app.ui.design.requestFocusSafely
 import com.streamvault.app.ui.notifications.rememberNotificationPermissionGate
@@ -177,7 +176,6 @@ fun PlayerScreen(
     val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()
     val autoPlayCountdown by viewModel.autoPlayCountdown.collectAsStateWithLifecycle()
     val playbackTitle by viewModel.playbackTitle.collectAsStateWithLifecycle()
-    val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()
     val currentSeriesSeasons = remember(currentSeries) {
         currentSeries?.seasons.sanitizedForPlayer()
     }
@@ -208,7 +206,6 @@ fun PlayerScreen(
     val showDiagnostics by viewModel.showDiagnostics.collectAsStateWithLifecycle()
     val playerDiagnostics by viewModel.playerDiagnostics.collectAsStateWithLifecycle()
     val playerNotice by viewModel.playerNotice.collectAsStateWithLifecycle()
-    val currentChannelRecording by viewModel.currentChannelRecording.collectAsStateWithLifecycle()
     val isMuted by viewModel.isMuted.collectAsStateWithLifecycle()
     val mediaTitle by viewModel.mediaTitle.collectAsStateWithLifecycle()
     val playbackSpeed by viewModel.playbackSpeed.collectAsStateWithLifecycle()
@@ -542,7 +539,6 @@ fun PlayerScreen(
         }
     }
 
-    BackHandler(enabled = !resumePrompt.show) {
         handleBackPress()
     }
 
@@ -937,7 +933,6 @@ fun PlayerScreen(
             )
         }
 
-        if (currentChannelRecording?.status == com.streamvault.domain.model.RecordingStatus.RECORDING) {
             val recordingPulse = rememberInfiniteTransition(label = "recordingPulse")
             val recordingAlpha by recordingPulse.animateFloat(
                 initialValue = 1f,
@@ -1023,7 +1018,6 @@ fun PlayerScreen(
             liveTranslationAvailable = liveTranslationAvailable,
             audioTrackCount = availableAudioTracks.size,
             videoQualityCount = availableVideoQualities.size,
-            currentRecordingStatus = currentChannelRecording?.status,
             isMuted = isMuted,
             playbackSpeed = playbackSpeed,
             mediaTitle = mediaTitle,
@@ -1142,9 +1136,7 @@ fun PlayerScreen(
         }
 
         // Resume Prompt Dialog
-        if (!isInPictureInPictureMode && resumePrompt.show) {
             PlayerResumePrompt(
-                title = resumePrompt.title,
                 onStartOver = { viewModel.dismissResumePrompt(resume = false) },
                 onResume = { viewModel.dismissResumePrompt(resume = true) }
             )
@@ -1346,7 +1338,6 @@ fun PlayerScreen(
                         viewModel.closeChannelInfoOverlay()
                         viewModel.openLastVisitedCategory()
                     },
-                    currentRecordingStatus = currentChannelRecording?.status,
                     onStartRecording = {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.startManualRecording()
@@ -1443,7 +1434,6 @@ private fun PlayerControlsOverlayHost(
     liveTranslationAvailable: Boolean,
     audioTrackCount: Int,
     videoQualityCount: Int,
-    currentRecordingStatus: com.streamvault.domain.model.RecordingStatus?,
     isMuted: Boolean,
     playbackSpeed: Float,
     mediaTitle: String?,

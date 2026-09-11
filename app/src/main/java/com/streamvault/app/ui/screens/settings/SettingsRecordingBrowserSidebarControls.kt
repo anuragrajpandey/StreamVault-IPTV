@@ -38,7 +38,6 @@ import com.streamvault.app.ui.theme.OnSurfaceDim
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.app.ui.theme.SurfaceElevated
 import com.streamvault.app.ui.theme.SurfaceHighlight
-import com.streamvault.domain.model.RecordingStatus
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -47,8 +46,6 @@ internal fun RecordingBrowserSidebarControls(
     totalCount: Int,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    statusFilter: RecordingStatus?,
-    onStatusFilterChange: (RecordingStatus?) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -73,7 +70,6 @@ internal fun RecordingBrowserSidebarControls(
                 accent = if (statusFilter == null) Primary else OnSurfaceDim,
                 onClick = { onStatusFilterChange(null) }
             )
-            RecordingStatus.entries.forEach { status ->
                 CompactRecordingActionChip(
                     label = recordingStatusLabel(status),
                     accent = if (statusFilter == status) recordingStatusAccent(status) else OnSurfaceDim,

@@ -50,10 +50,7 @@ internal const val STREAM_VAULT_DATABASE_VERSION = 77
         ChannelEpgMappingEntity::class,
         CombinedM3uProfileEntity::class,
         CombinedM3uProfileMemberEntity::class,
-        RecordingScheduleEntity::class,
-        RecordingRunEntity::class,
         ProgramReminderEntity::class,
-        RecordingStorageEntity::class,
         PlaybackCompatibilityRecordEntity::class,
         XtreamContentIndexEntity::class,
         XtreamIndexJobEntity::class,
@@ -62,13 +59,9 @@ internal const val STREAM_VAULT_DATABASE_VERSION = 77
         StalkerPortalStateEntity::class,
         StalkerRemoteIdentityEntity::class,
         StalkerDiscoveryStageEntity::class,
-        DownloadEntity::class,
         ProviderDeletionCleanupEntity::class,
         PluginProviderOwnershipEntity::class,
         ProviderConfigRevisionEntity::class,
-        BackupRestoreCheckpointEntity::class,
-        BackupRestoreJobEntity::class,
-        BackupRestoreItemEntity::class,
         ProviderWorkflowEntity::class,
         ProviderWorkflowPhaseEntity::class,
         M3uClassificationOverrideEntity::class,
@@ -107,10 +100,7 @@ abstract class StreamVaultDatabase : RoomDatabase() {
     abstract fun channelEpgMappingDao(): ChannelEpgMappingDao
     abstract fun combinedM3uProfileDao(): CombinedM3uProfileDao
     abstract fun combinedM3uProfileMemberDao(): CombinedM3uProfileMemberDao
-    abstract fun recordingScheduleDao(): RecordingScheduleDao
-    abstract fun recordingRunDao(): RecordingRunDao
     abstract fun programReminderDao(): ProgramReminderDao
-    abstract fun recordingStorageDao(): RecordingStorageDao
     abstract fun playbackCompatibilityDao(): PlaybackCompatibilityDao
     abstract fun xtreamContentIndexDao(): XtreamContentIndexDao
     abstract fun xtreamIndexJobDao(): XtreamIndexJobDao
@@ -119,12 +109,9 @@ abstract class StreamVaultDatabase : RoomDatabase() {
     abstract fun stalkerPortalStateDao(): StalkerPortalStateDao
     abstract fun stalkerRemoteIdentityDao(): StalkerRemoteIdentityDao
     abstract fun stalkerDiscoveryStageDao(): StalkerDiscoveryStageDao
-    abstract fun downloadDao(): DownloadDao
     abstract fun providerDeletionCleanupDao(): ProviderDeletionCleanupDao
     abstract fun pluginProviderOwnershipDao(): PluginProviderOwnershipDao
     abstract fun providerConfigRevisionDao(): ProviderConfigRevisionDao
-    abstract fun backupRestoreCheckpointDao(): BackupRestoreCheckpointDao
-    abstract fun backupRestoreLedgerDao(): BackupRestoreLedgerDao
     abstract fun providerWorkflowDao(): ProviderWorkflowDao
     abstract fun m3uClassificationDao(): M3uClassificationDao
 

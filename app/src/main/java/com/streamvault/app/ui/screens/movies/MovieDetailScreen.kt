@@ -56,7 +56,6 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.streamvault.app.MainActivity
 import com.streamvault.app.R
-import com.streamvault.app.cast.CastUiEvent
 import com.streamvault.app.device.rememberIsTelevisionDevice
 import com.streamvault.app.ui.components.rememberCrossfadeImageModel
 import com.streamvault.app.util.formatPositionMs
@@ -87,7 +86,6 @@ fun MovieDetailScreen(
     val mainActivity = remember(context) { context.findMainActivity() }
 
     LaunchedEffect(viewModel, context, mainActivity) {
-        viewModel.castEvents.collect { event ->
             when (event) {
                 CastUiEvent.OpenRouteChooser -> mainActivity?.openCastRouteChooser()
                 is CastUiEvent.ShowMessage ->
@@ -127,7 +125,6 @@ fun MovieDetailScreen(
                 movie = movie,
                 hasResume = uiState.hasResume,
                 resumePositionMs = uiState.resumePositionMs,
-                isCasting = uiState.isCasting,
                 externalRatings = uiState.externalRatings,
                 isLoadingExternalRatings = uiState.isLoadingExternalRatings,
                 relatedContent = uiState.relatedContent,
@@ -156,7 +153,6 @@ private fun MovieDetailContent(
     movie: Movie,
     hasResume: Boolean,
     resumePositionMs: Long,
-    isCasting: Boolean,
     externalRatings: ExternalRatings,
     isLoadingExternalRatings: Boolean,
     relatedContent: List<Movie>,
@@ -250,7 +246,6 @@ private fun MovieDetailContent(
                             movie = movie,
                             hasResume = hasResume,
                             resumePositionMs = resumePositionMs,
-                            isCasting = isCasting,
                             externalRatings = externalRatings,
                             isLoadingExternalRatings = isLoadingExternalRatings,
                             onPlay = onPlay,
@@ -283,7 +278,6 @@ private fun MovieDetailContent(
                             movie = movie,
                             hasResume = hasResume,
                             resumePositionMs = resumePositionMs,
-                            isCasting = isCasting,
                             externalRatings = externalRatings,
                             isLoadingExternalRatings = isLoadingExternalRatings,
                             onPlay = onPlay,
@@ -385,7 +379,6 @@ private fun MovieDetailHeroText(
     movie: Movie,
     hasResume: Boolean,
     resumePositionMs: Long,
-    isCasting: Boolean,
     externalRatings: ExternalRatings,
     isLoadingExternalRatings: Boolean,
     onPlay: () -> Unit,
@@ -483,7 +476,6 @@ private fun MovieDetailHeroText(
             }
             TvButton(
                 onClick = onCast,
-                enabled = !isCasting,
                 colors = ButtonDefaults.colors(
                     containerColor = AppColors.SurfaceEmphasis,
                     contentColor = AppColors.TextPrimary
@@ -491,7 +483,6 @@ private fun MovieDetailHeroText(
             ) {
                 Text(
                     stringResource(
-                        if (isCasting) R.string.cast_launching else R.string.cast_button_label
                     )
                 )
             }

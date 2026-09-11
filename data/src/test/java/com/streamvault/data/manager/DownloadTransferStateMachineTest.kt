@@ -1,7 +1,6 @@
 package com.streamvault.data.manager
 
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.domain.model.DownloadStatus
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException

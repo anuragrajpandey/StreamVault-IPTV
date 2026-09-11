@@ -5,13 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.streamvault.data.local.entity.RecordingRunEntity
-import com.streamvault.data.local.entity.RecordingRunWithSchedule
-import com.streamvault.data.local.entity.RecordingScheduleEntity
-import com.streamvault.data.local.entity.RecordingStorageEntity
 import com.streamvault.data.local.entity.ProgramReminderEntity
 import com.streamvault.domain.model.ProgramReminderDeliveryState
-import com.streamvault.domain.model.RecordingStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -90,7 +85,6 @@ interface RecordingRunDao {
     suspend fun deleteAll()
 
     @Query("SELECT * FROM recording_runs WHERE status = :status ORDER BY scheduled_start_ms ASC")
-    suspend fun getByStatus(status: RecordingStatus): List<RecordingRunEntity>
 
     @Query(
         """

@@ -3,8 +3,6 @@ package com.streamvault.app.ui.screens.player
 import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.streamvault.app.cast.CastConnectionState
-import com.streamvault.app.cast.CastPlaybackReportMode
 import com.streamvault.app.util.isPlaybackComplete
 import com.streamvault.domain.model.Category
 import com.streamvault.domain.model.ChannelNumberingMode
@@ -16,9 +14,6 @@ import com.streamvault.domain.model.DecoderMode
 import com.streamvault.domain.model.Episode
 import com.streamvault.domain.model.LiveChannelObservedQuality
 import com.streamvault.domain.model.PlaybackHistory
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingStatus
 import com.streamvault.domain.model.ProviderType
 import com.streamvault.domain.model.Result
 import com.streamvault.domain.model.Series
@@ -64,8 +59,6 @@ class PlayerViewModel @Inject constructor(
     internal val playerPreferencesCoordinator: PlayerPreferencesCoordinator,
     internal val playerPreviewCoordinator: PlayerPreviewCoordinator,
     internal val playerThumbnailCoordinator: PlayerThumbnailCoordinator,
-    internal val playerRecordingCoordinator: PlayerRecordingCoordinator,
-    internal val playerCastCoordinator: PlayerCastCoordinator,
     internal val playerTranslationCoordinator: PlayerTranslationCoordinator,
     internal val playerContentResolver: PlayerContentResolver,
     internal val playerPlaybackContextCoordinator: PlayerPlaybackContextCoordinator,
@@ -121,7 +114,6 @@ class PlayerViewModel @Inject constructor(
     val playbackTitle: StateFlow<String> = playbackTitleFlow.asStateFlow()
     
     internal val _resumePrompt = MutableStateFlow(ResumePromptState())
-    val resumePrompt: StateFlow<ResumePromptState> = _resumePrompt.asStateFlow()
 
     internal val _aspectRatio = MutableStateFlow(AspectRatio.FIT)
     val aspectRatio: StateFlow<AspectRatio> = _aspectRatio.asStateFlow()
@@ -177,10 +169,6 @@ class PlayerViewModel @Inject constructor(
     val audioVideoOffsetUiState: StateFlow<PlayerAudioVideoOffsetUiState> = _audioVideoOffsetUiState.asStateFlow()
     internal val _seekPreview = MutableStateFlow(SeekPreviewState())
     val seekPreview: StateFlow<SeekPreviewState> = _seekPreview.asStateFlow()
-    private val _recordingItems = MutableStateFlow<List<RecordingItem>>(emptyList())
-    val recordingItems: StateFlow<List<RecordingItem>> = _recordingItems.asStateFlow()
-    private val currentChannelFlowRecording = MutableStateFlow<RecordingItem?>(null)
-    val currentChannelRecording: StateFlow<RecordingItem?> = currentChannelFlowRecording.asStateFlow()
     private val _timeshiftUiState = MutableStateFlow(PlayerTimeshiftUiState())
     val timeshiftUiState: StateFlow<PlayerTimeshiftUiState> = _timeshiftUiState.asStateFlow()
     internal val _sleepTimerUiState = MutableStateFlow(SleepTimerUiState())
@@ -208,9 +196,6 @@ class PlayerViewModel @Inject constructor(
     internal var mutePersistJob: Job? = null
     internal var numericInputBuffer: String = ""
     internal val probePassedPlaybackKeys = mutableSetOf<String>()
-    private val notifiedRecordingFailureIds = mutableSetOf<String>()
-    internal val livePlaybackRecordCoordinator =
-        LivePlaybackRecordCoordinator(playbackHistoryCoordinator::recordPlayback)
     private var currentStreamClassLabel: String = "Primary"
     internal var lastRecordedVariantObservationSignature: String? = null
     internal var lastRecordedVodVariantObservationSignature: String? = null
@@ -398,12 +383,9 @@ class PlayerViewModel @Inject constructor(
     val liveTranslationActive: StateFlow<Boolean> = _liveTranslationActive.asStateFlow()
     internal val _liveTranslationDetectedLanguage = MutableStateFlow<String?>(null)
     val liveTranslationDetectedLanguage: StateFlow<String?> = _liveTranslationDetectedLanguage.asStateFlow()
-    internal var castPlaybackReportMode: CastPlaybackReportMode = CastPlaybackReportMode.NONE
     private var downloadPlaybackSlotActive = false
     private var currentPlaybackUsesDownloadSlot = false
     private var externalProviderPlaybackHold = false
-
-    val castConnectionState: StateFlow<CastConnectionState> = playerCastCoordinator.connectionState
 
     private fun <T> activeEngineState(
         initialValue: T,
@@ -811,29 +793,19 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
-    internal fun refreshCurrentChannelRecording(items: List<RecordingItem> = _recordingItems.value) {
         val channelId = currentChannelFlow.value?.id ?: -1L
         currentChannelFlowRecording.value = items.firstOrNull {
             it.providerId == currentProviderId &&
                 it.channelId == channelId &&
-                (it.status == RecordingStatus.RECORDING || it.status == RecordingStatus.SCHEDULED)
         }
     }
 
     private fun handleRecordingStateChanges(
-        previousItems: List<RecordingItem>,
-        newItems: List<RecordingItem>
     ) {
-        val previousStatuses = previousItems.associateBy(RecordingItem::id)
         val failedNow = newItems.firstOrNull { item ->
-            previousStatuses[item.id]?.status == RecordingStatus.RECORDING &&
-                item.status == RecordingStatus.FAILED &&
-                notifiedRecordingFailureIds.add(item.id)
         }
 
-        notifiedRecordingFailureIds.retainAll(
             newItems.asSequence()
-                .filter { it.status == RecordingStatus.FAILED }
                 .map { it.id }
                 .toSet()
         )

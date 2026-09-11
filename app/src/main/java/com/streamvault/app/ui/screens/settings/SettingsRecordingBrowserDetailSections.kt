@@ -14,12 +14,9 @@ import com.streamvault.app.ui.theme.ErrorColor
 import com.streamvault.app.ui.theme.OnBackground
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.app.ui.theme.Secondary
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingStatus
 
 @Composable
 internal fun RecordingDetailMetricsRow(
-    item: RecordingItem,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -51,7 +48,6 @@ internal fun RecordingDetailMetricsRow(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun RecordingDetailActions(
-    item: RecordingItem,
     modifier: Modifier = Modifier,
     onPlay: () -> Unit,
     onStop: () -> Unit,
@@ -67,21 +63,18 @@ internal fun RecordingDetailActions(
         modifier = modifier.fillMaxWidth(),
         maxItemsInEachRow = 4
     ) {
-        if (item.status == RecordingStatus.COMPLETED && (!item.outputUri.isNullOrBlank() || !item.outputPath.isNullOrBlank())) {
             CompactRecordingActionChip(
                 label = "Play",
                 accent = Primary,
                 onClick = onPlay
             )
         }
-        if (item.status == RecordingStatus.RECORDING) {
             CompactRecordingActionChip(
                 label = stringResource(R.string.settings_recording_stop),
                 accent = ErrorColor,
                 onClick = onStop
             )
         }
-        if (item.status == RecordingStatus.SCHEDULED) {
             CompactRecordingActionChip(
                 label = stringResource(
                     if (item.scheduleEnabled) R.string.settings_recording_disable
@@ -103,8 +96,6 @@ internal fun RecordingDetailActions(
                 onClick = onCancel
             )
         }
-        if (item.status == RecordingStatus.COMPLETED || item.status == RecordingStatus.FAILED || item.status == RecordingStatus.CANCELLED) {
-            if (item.status == RecordingStatus.FAILED) {
                 CompactRecordingActionChip(
                     label = stringResource(R.string.settings_recording_retry),
                     accent = Primary,

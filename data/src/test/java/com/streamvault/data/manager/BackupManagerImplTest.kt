@@ -13,35 +13,25 @@ import com.streamvault.data.local.dao.MovieDao
 import com.streamvault.data.local.dao.PlaybackHistoryDao
 import com.streamvault.data.local.dao.ProviderDao
 import com.streamvault.data.local.dao.ProviderSnapshotDao
-import com.streamvault.data.local.dao.BackupRestoreCheckpointDao
-import com.streamvault.data.local.dao.BackupRestoreLedgerDao
 import com.streamvault.data.local.dao.ChannelDao
 import com.streamvault.data.local.dao.CategoryDao
-import com.streamvault.data.local.dao.RecordingScheduleDao
 import com.streamvault.data.local.dao.SeriesDao
 import com.streamvault.data.local.dao.VirtualGroupDao
 import com.streamvault.data.local.entity.ProviderEntity
 import com.streamvault.data.local.entity.ProviderConfigEntity
 import com.streamvault.data.provider.ProviderConfigurationCodec
 import com.streamvault.data.local.entity.EpgSourceEntity
-import com.streamvault.data.local.entity.BackupRestoreCheckpointEntity
 import com.streamvault.data.local.entity.ChannelEntity
 import com.streamvault.data.local.entity.CategoryEntity
 import com.streamvault.data.local.entity.EpisodeEntity
 import com.streamvault.data.local.entity.MovieEntity
-import com.streamvault.data.local.entity.RecordingScheduleEntity
 import com.streamvault.data.local.entity.SeriesEntity
 import com.streamvault.data.local.entity.VirtualGroupEntity
 import com.streamvault.data.mapper.toEntity
 import com.streamvault.data.provider.toProviderSnapshot
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.data.security.CredentialCrypto
-import com.streamvault.domain.manager.BackupData
 import com.streamvault.domain.manager.ActiveLiveSourceBackup
-import com.streamvault.domain.manager.BackupConflictStrategy
-import com.streamvault.domain.manager.BackupImportPlan
-import com.streamvault.domain.manager.BackupRestoreOutcome
-import com.streamvault.domain.manager.BackupProviderReference
 import com.streamvault.domain.manager.PortableCategoryReference
 import com.streamvault.domain.manager.PortableCategorySortReference
 import com.streamvault.domain.manager.PortableChannelReference
@@ -64,9 +54,6 @@ import com.streamvault.domain.manager.ManualEpgMappingBackup
 import com.streamvault.domain.manager.M3uClassificationOverrideBackup
 import com.streamvault.domain.manager.M3uClassificationRuleBackup
 import com.streamvault.domain.manager.ProgramReminderBackup
-import com.streamvault.domain.manager.RecordingStorageBackup
-import com.streamvault.domain.manager.RecordingManager
-import com.streamvault.domain.manager.RecordingScheduleImportDisposition
 import com.streamvault.domain.manager.ScheduledRecordingBackup
 import com.streamvault.domain.model.AppHomeDashboardShelf
 import com.streamvault.domain.model.AppTopLevelDestination
@@ -79,10 +66,6 @@ import com.streamvault.domain.model.PlaybackHistory
 import com.streamvault.domain.model.LegacyProvider as Provider
 import com.streamvault.domain.model.ProviderStatus
 import com.streamvault.domain.model.ProviderType
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingStatus
-import com.streamvault.domain.model.RecordingStorageState
 import com.streamvault.domain.model.Result
 import com.streamvault.domain.model.StalkerTransportMode
 import com.streamvault.domain.model.StalkerConfig
@@ -117,7 +100,6 @@ class BackupManagerImplTest {
     fun `v14 import durably queues catalog state that is unavailable before sync`() = runBlocking {
         val context: Context = mock()
         val resolver: ContentResolver = mock()
-        val ledgerDao: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val provider = BackupProviderReference(
             serverUrl = "https://example.com/",
@@ -237,7 +219,6 @@ class BackupManagerImplTest {
         )
 
         val manager = backupManagerForValidation(context)
-        val readMethod = BackupManagerImpl::class.java
             .getDeclaredMethod("readBackupData", String::class.java)
             .apply { isAccessible = true }
         val parsed = readMethod.invoke(manager, "content://v14-portable-state")
@@ -300,7 +281,6 @@ class BackupManagerImplTest {
         )
         whenever(categoryRepository.getCategories(targetProvider.id)).thenReturn(flowOf(emptyList()))
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock(),
             credentialCrypto = mock(),
@@ -389,7 +369,6 @@ class BackupManagerImplTest {
         )
 
         val manager = backupManagerForValidation(context)
-        val readMethod = BackupManagerImpl::class.java
             .getDeclaredMethod("readBackupData", String::class.java)
             .apply { isAccessible = true }
         val parsed = readMethod.invoke(manager, "content://portable-state")
@@ -419,7 +398,6 @@ class BackupManagerImplTest {
         whenever(contentResolver.openInputStream(anyOrNull())).thenReturn(ByteArrayInputStream(json.toByteArray()))
 
         val manager = backupManagerForValidation(context)
-        val readMethod = BackupManagerImpl::class.java
             .getDeclaredMethod("readBackupData", String::class.java)
             .apply { isAccessible = true }
         val parsed = readMethod.invoke(manager, uriString)
@@ -445,7 +423,6 @@ class BackupManagerImplTest {
         assertThat(data.portableProviderPreferences?.channelPreferences?.single()?.audioVideoOffsetMs)
             .isEqualTo(125)
 
-        val verifyMethod = BackupManagerImpl::class.java
             .getDeclaredMethod("verifyChecksum", parsed::class.java)
             .apply { isAccessible = true }
         assertThat(verifyMethod.invoke(manager, parsed) as Boolean).isTrue()
@@ -672,7 +649,6 @@ class BackupManagerImplTest {
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_060_000L
         )
-        val existingItem = RecordingItem(
             id = "existing",
             providerId = provider.id,
             channelId = incomingItem.channelId,
@@ -680,7 +656,6 @@ class BackupManagerImplTest {
             streamUrl = incomingItem.streamUrl,
             scheduledStartMs = incomingItem.scheduledStartMs,
             scheduledEndMs = incomingItem.scheduledEndMs,
-            status = RecordingStatus.SCHEDULED
         )
         val incoming = List(20_000) { incomingItem }
         val existing = List(20_000) { existingItem }
@@ -781,7 +756,6 @@ class BackupManagerImplTest {
         val configurationCodec = ProviderConfigurationCodec(gson, credentialCrypto)
         whenever(providerSnapshotDao.getConfig(any())).thenReturn(null)
         whenever(providerSnapshotDao.commitConfiguration(any())).thenReturn(true)
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock(),
             credentialCrypto = credentialCrypto,
@@ -887,7 +861,6 @@ class BackupManagerImplTest {
             MovieEntity(id = 55L, streamId = 5500L, name = "Movie", providerId = 7L)
         )
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock<PreferencesRepository>(),
             credentialCrypto = mock<CredentialCrypto>(),
@@ -1020,7 +993,6 @@ class BackupManagerImplTest {
             Unit
         }.whenever(episodeDao).syncWatchProgressFromHistoryByProvider(any())
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock<PreferencesRepository>(),
             credentialCrypto = mock<CredentialCrypto>(),
@@ -1143,7 +1115,6 @@ class BackupManagerImplTest {
         whenever(favoriteDao.get(any(), any(), any(), any())).thenReturn(null)
         whenever(playbackHistoryDao.get(any(), any(), any())).thenReturn(null)
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock(),
             credentialCrypto = mock(),
@@ -1254,7 +1225,6 @@ class BackupManagerImplTest {
         whenever(virtualGroupDao.insert(any())).thenReturn(88L)
         whenever(favoriteDao.get(any(), any(), any(), any())).thenReturn(null)
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock(),
             credentialCrypto = mock(),
@@ -1361,7 +1331,6 @@ class BackupManagerImplTest {
         whenever(movieDao.getByStreamId(7L, 9001L)).thenReturn(targetMovie)
         whenever(movieDao.getByStreamId(7L, 9999L)).thenReturn(null)
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock(),
             credentialCrypto = mock(),
@@ -1413,7 +1382,6 @@ class BackupManagerImplTest {
         val playbackHistoryDao: PlaybackHistoryDao = mock()
         val virtualGroupDao: VirtualGroupDao = mock()
         val categoryRepository: CategoryRepository = mock()
-        val recordingManager: RecordingManager = mock()
         val movieDao: MovieDao = mock()
         val sourceProvider = Provider(
             id = 100L,
@@ -1481,7 +1449,6 @@ class BackupManagerImplTest {
             )
         )
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = mock(),
             credentialCrypto = mock(),
@@ -1563,7 +1530,6 @@ class BackupManagerImplTest {
         whenever(favoriteDao.get(any(), any(), any(), any())).thenReturn(null)
         whenever(favoriteDao.insert(any())).thenThrow(IllegalStateException("favorite insert failed"))
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = preferencesRepository,
             credentialCrypto = mock<CredentialCrypto>(),
@@ -2191,7 +2157,6 @@ class BackupManagerImplTest {
             )
         )
 
-        val projectionMethod = BackupManagerImpl::class.java
             .getDeclaredMethod("withLegacyProviderProjection", BackupData::class.java)
             .apply { isAccessible = true }
         val hydrated = projectionMethod.invoke(manager, backup) as BackupData
@@ -2861,7 +2826,6 @@ class BackupManagerImplTest {
         val context: Context = mock()
         val contentResolver: ContentResolver = mock()
         val providerDao: ProviderDao = mock()
-        val checkpointDao: BackupRestoreCheckpointDao = mock()
         val gson = Gson()
         var checkpoint: BackupRestoreCheckpointEntity? = null
         whenever(context.contentResolver).thenReturn(contentResolver)
@@ -2926,7 +2890,6 @@ class BackupManagerImplTest {
         val context: Context = mock()
         val contentResolver: ContentResolver = mock()
         val providerDao: ProviderDao = mock()
-        val checkpointDao: BackupRestoreCheckpointDao = mock()
         val credentialCrypto: CredentialCrypto = mock()
         whenever(context.contentResolver).thenReturn(contentResolver)
         whenever(providerDao.getAllSync()).thenReturn(emptyList())
@@ -3002,7 +2965,6 @@ class BackupManagerImplTest {
         )
         whenever(providerDao.getAllSync()).thenReturn(emptyList())
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = preferencesRepository,
             credentialCrypto = mock<CredentialCrypto>(),
@@ -3148,7 +3110,6 @@ class BackupManagerImplTest {
         )
         whenever(providerDao.getAllSync()).thenReturn(emptyList())
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = preferencesRepository,
             credentialCrypto = mock<CredentialCrypto>(),
@@ -3210,7 +3171,6 @@ class BackupManagerImplTest {
         )
         whenever(providerDao.getAllSync()).thenReturn(emptyList())
 
-        val manager = BackupManagerImpl(
             context = context,
             preferencesRepository = preferencesRepository,
             credentialCrypto = mock<CredentialCrypto>(),
@@ -3264,7 +3224,6 @@ class BackupManagerImplTest {
             username = "user",
             stalkerMacAddress = ""
         )
-        val item = RecordingItem(
             id = "scheduled-1",
             scheduleId = 21L,
             providerId = 7L,
@@ -3274,8 +3233,6 @@ class BackupManagerImplTest {
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_540_000L,
             programTitle = "World News",
-            recurrence = RecordingRecurrence.DAILY,
-            status = RecordingStatus.SCHEDULED
         )
         val schedule = RecordingScheduleEntity(
             id = 21L,
@@ -3286,7 +3243,6 @@ class BackupManagerImplTest {
             programTitle = "World News",
             requestedStartMs = 1_700_000_120_000L,
             requestedEndMs = 1_700_000_480_000L,
-            recurrence = RecordingRecurrence.DAILY
         )
 
         val backup = item.toScheduledRecordingBackup(provider, schedule)
@@ -3311,7 +3267,6 @@ class BackupManagerImplTest {
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_540_000L,
             programTitle = "World News",
-            recurrence = RecordingRecurrence.NONE
         )
 
         val request = backup.toRecordingRequest(providerId = 7L)
@@ -3337,7 +3292,6 @@ class BackupManagerImplTest {
             paddingBeforeMs = 120_000L,
             paddingAfterMs = 60_000L,
             programTitle = "World News",
-            recurrence = RecordingRecurrence.WEEKLY,
             recurringRuleId = "rule-1"
         )
 
@@ -3347,7 +3301,6 @@ class BackupManagerImplTest {
         assertThat(request.scheduledEndMs).isEqualTo(backup.requestedEndMs)
         assertThat(request.paddingBeforeMs).isEqualTo(backup.paddingBeforeMs)
         assertThat(request.paddingAfterMs).isEqualTo(backup.paddingAfterMs)
-        assertThat(request.recurrence).isEqualTo(RecordingRecurrence.WEEKLY)
         assertThat(request.recurringRuleId).isEqualTo("rule-1")
     }
 
@@ -3364,7 +3317,6 @@ class BackupManagerImplTest {
             requestedStartMs = 1_700_000_120_000L,
             requestedEndMs = 1_700_000_480_000L,
             programTitle = "World News",
-            recurrence = RecordingRecurrence.DAILY,
             recurringRuleId = "rule-1"
         )
         val recurringSecond = recurringFirst.copy(
@@ -3382,7 +3334,6 @@ class BackupManagerImplTest {
             scheduledStartMs = 1_700_010_000_000L,
             scheduledEndMs = 1_700_010_540_000L,
             programTitle = "Documentary",
-            recurrence = RecordingRecurrence.NONE
         )
 
         val normalized = listOf(recurringSecond, oneShot, recurringFirst).normalizedRecurringBackups()
@@ -3403,7 +3354,6 @@ class BackupManagerImplTest {
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_540_000L,
             programTitle = "World News",
-            recurrence = RecordingRecurrence.DAILY
         )
         val second = first.copy(
             scheduledStartMs = 1_700_086_400_000L,
@@ -3417,7 +3367,6 @@ class BackupManagerImplTest {
 
     @Test
     fun `importScheduledRecordingBackups reports skipped and failed outcomes`() {
-        val recordingManager: RecordingManager = mock()
         val provider = Provider(
             id = 7L,
             name = "Provider",
@@ -3425,7 +3374,6 @@ class BackupManagerImplTest {
             serverUrl = "https://example.com",
             username = "user"
         )
-        val existingSchedule = RecordingItem(
             id = "existing-1",
             providerId = 7L,
             channelId = 100L,
@@ -3433,7 +3381,6 @@ class BackupManagerImplTest {
             streamUrl = "https://example.com/live.ts",
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_540_000L,
-            status = RecordingStatus.SCHEDULED
         )
         val keepExisting = ScheduledRecordingBackup(
             providerServerUrl = provider.serverUrl,
@@ -3484,7 +3431,6 @@ class BackupManagerImplTest {
 
     @Test
     fun `importScheduledRecordingBackups reports replaced existing schedules`() {
-        val recordingManager: RecordingManager = mock()
         val provider = Provider(
             id = 7L,
             name = "Provider",
@@ -3492,7 +3438,6 @@ class BackupManagerImplTest {
             serverUrl = "https://example.com",
             username = "user"
         )
-        val existingSchedule = RecordingItem(
             id = "existing-1",
             providerId = 7L,
             channelId = 100L,
@@ -3500,7 +3445,6 @@ class BackupManagerImplTest {
             streamUrl = "https://example.com/live.ts",
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_540_000L,
-            status = RecordingStatus.SCHEDULED
         )
         val imported = ScheduledRecordingBackup(
             providerServerUrl = provider.serverUrl,
@@ -3541,7 +3485,6 @@ class BackupManagerImplTest {
 
     @Test
     fun `importScheduledRecordingBackups keeps old schedule when replacement cancellation fails`() = runBlocking {
-        val recordingManager: RecordingManager = mock()
         val provider = Provider(
             id = 7L,
             name = "Provider",
@@ -3549,7 +3492,6 @@ class BackupManagerImplTest {
             serverUrl = "https://example.com",
             username = "user"
         )
-        val existingSchedule = RecordingItem(
             id = "existing-1",
             providerId = 7L,
             channelId = 100L,
@@ -3557,7 +3499,6 @@ class BackupManagerImplTest {
             streamUrl = "https://example.com/live.ts",
             scheduledStartMs = 1_700_000_000_000L,
             scheduledEndMs = 1_700_000_540_000L,
-            status = RecordingStatus.SCHEDULED
         )
         val imported = ScheduledRecordingBackup(
             providerServerUrl = provider.serverUrl,
@@ -3667,11 +3608,9 @@ class BackupManagerImplTest {
         epgSourceDao: EpgSourceDao? = null,
         recordingManager: RecordingManager = mock(),
         storedProviders: List<Provider> = emptyList(),
-    ): BackupManagerImpl {
         whenever(preferencesRepository.defaultCategoryId).thenReturn(flowOf(null))
         whenever(recordingManager.observeRecordingItems()).thenReturn(flowOf(emptyList()))
         whenever(recordingManager.observeStorageState()).thenReturn(flowOf(RecordingStorageState()))
-        return BackupManagerImpl(
             context = context,
             preferencesRepository = preferencesRepository,
             credentialCrypto = credentialCrypto,

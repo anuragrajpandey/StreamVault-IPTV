@@ -21,7 +21,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
-import com.streamvault.app.backup.BackupFileBridge
 import com.streamvault.app.device.isFireTvDevice
 import com.streamvault.app.device.isTelevisionDevice
 import com.streamvault.app.device.removableAppStorageDirs
@@ -317,12 +316,7 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(uiState.recordingItems) {
         dialogState.selectedRecordingId = when {
-            uiState.recordingItems.isEmpty() -> null
-            dialogState.selectedRecordingId == null -> uiState.recordingItems.first().id
-            uiState.recordingItems.any { item -> item.id == dialogState.selectedRecordingId } -> dialogState.selectedRecordingId
-            else -> uiState.recordingItems.first().id
         }
     }
 

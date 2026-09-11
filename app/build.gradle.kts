@@ -243,7 +243,6 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.appcompat)
     implementation(libs.mediarouter)
-    implementation(libs.play.services.cast.framework)
 
     // Test
     testImplementation(libs.junit)

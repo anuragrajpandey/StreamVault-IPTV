@@ -28,11 +28,7 @@ import com.streamvault.domain.repository.EpgSourceRepository
 import com.streamvault.domain.repository.FavoriteRepository
 import com.streamvault.domain.repository.LiveStreamProgramRequest
 import com.streamvault.domain.repository.ProviderRepository
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingRequest
 import com.streamvault.domain.model.Result
-import com.streamvault.domain.manager.RecordingManager
 import com.streamvault.domain.usecase.GetCustomCategories
 import com.streamvault.domain.usecase.ScheduleRecording
 import com.streamvault.domain.usecase.ScheduleRecordingCommand
@@ -75,7 +71,6 @@ import com.streamvault.player.PlayerEngine
 import javax.inject.Provider as InjectProvider
 
 data class RecordingConflictInfo(
-    val conflictingItems: List<RecordingItem>,
     val pendingRequest: RecordingRequest,
     val programTitle: String
 )
@@ -280,7 +275,6 @@ class EpgViewModel @Inject constructor(
     private val programReminderManager: ProgramReminderManager,
     private val getCustomCategories: GetCustomCategories,
     private val scheduleRecording: ScheduleRecording,
-    private val recordingManager: RecordingManager,
     @param:AuxiliaryPlayerEngine private val playerEngineProvider: InjectProvider<PlayerEngine>,
     private val pluginManager: StreamVaultPluginManager,
     private val livePreviewHandoffManager: LivePreviewHandoffManager,
@@ -785,65 +779,6 @@ class EpgViewModel @Inject constructor(
         }
     }
 
-    fun scheduleRecording(channel: Channel, program: Program, recurrence: RecordingRecurrence = RecordingRecurrence.NONE) {
-        // When the program is airing now, capture starts immediately. Free the provider connection
-        // the guide preview is holding, or on single-connection Xtream accounts the capture would
-        // be a second connection and get a 403. Recording from the guide means "record without
-        // watching", so dropping the preview is intended; it only restarts on an explicit click.
-        // Future programs schedule for later, so leave the preview running.
-        if (program.startTime <= System.currentTimeMillis()) {
-            clearPreview()
-        }
-        viewModelScope.launch {
-            val command = ScheduleRecordingCommand(
-                contentType = ContentType.LIVE,
-                providerId = channel.providerId,
-                channel = channel,
-                streamUrl = channel.streamUrl,
-                currentProgram = program,
-                nextProgram = null,
-                recurrence = recurrence
-            )
-            val result = scheduleRecording(command)
-            when (result) {
-                is Result.Success -> {
-                    _uiState.update { it.copy(recordingMessage = "Recording scheduled: ${program.title}") }
-                }
-                is Result.Error -> {
-                    val msg = result.message.orEmpty()
-                    if (msg.contains("conflicts", ignoreCase = true)) {
-                        val scheduledStartMs = maxOf(System.currentTimeMillis(), program.startTime)
-                        val conflicts = recordingManager.getConflictingRecordings(
-                            scheduledStartMs, program.endTime, channel.providerId
-                        )
-                        if (conflicts.isNotEmpty()) {
-                            _uiState.update {
-                                it.copy(
-                                    pendingRecordingConflict = RecordingConflictInfo(
-                                        conflictingItems = conflicts,
-                                        pendingRequest = RecordingRequest(
-                                            providerId = channel.providerId,
-                                            channelId = channel.id,
-                                            channelName = channel.name,
-                                            streamUrl = channel.streamUrl,
-                                            scheduledStartMs = scheduledStartMs,
-                                            scheduledEndMs = program.endTime,
-                                            programTitle = program.title,
-                                            recurrence = recurrence
-                                        ),
-                                        programTitle = program.title ?: channel.name
-                                    )
-                                )
-                            }
-                            return@launch
-                        }
-                    }
-                    _uiState.update { it.copy(recordingMessage = msg.ifBlank { "Failed to schedule recording" }) }
-                }
-                else -> {}
-            }
-        }
-    }
 
     fun forceScheduleRecording() {
         val conflict = _uiState.value.pendingRecordingConflict ?: return

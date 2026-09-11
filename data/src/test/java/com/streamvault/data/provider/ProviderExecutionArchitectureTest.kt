@@ -38,7 +38,6 @@ class ProviderExecutionArchitectureTest {
     fun `runtime resolver boundaries do not branch on provider type`() {
         val boundaries = listOf(
             "data/src/main/java/com/EliteStocks TV/data/remote/xtream/XtreamStreamUrlResolver.kt",
-            "data/src/main/java/com/EliteStocks TV/data/manager/RecordingManagerImpl.kt",
             "data/src/main/java/com/EliteStocks TV/data/epg/EpgResolutionEngine.kt"
         )
         val violations = boundaries.filter { relative ->

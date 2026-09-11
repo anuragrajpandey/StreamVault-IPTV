@@ -9,7 +9,6 @@ import com.streamvault.app.plugins.StreamVaultPluginManager
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.domain.manager.ParentalControlManager
 import com.streamvault.domain.manager.ProgramReminderManager
-import com.streamvault.domain.manager.RecordingManager
 import com.streamvault.player.PlayerEngine
 import com.streamvault.domain.model.Category
 import com.streamvault.domain.model.CategorySortMode
@@ -71,7 +70,6 @@ class EpgViewModelTest {
     private val parentalControlManager: ParentalControlManager = mock()
     private val programReminderManager: ProgramReminderManager = mock()
     private val scheduleRecording: ScheduleRecording = mock()
-    private val recordingManager: RecordingManager = mock()
     private val livePreviewHandoffManager: LivePreviewHandoffManager = mock()
     private val pluginManager: StreamVaultPluginManager = mock()
     private val playerEngine: PlayerEngine = mock()

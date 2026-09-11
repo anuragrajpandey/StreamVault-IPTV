@@ -59,7 +59,6 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.streamvault.app.MainActivity
 import com.streamvault.app.R
-import com.streamvault.app.cast.CastUiEvent
 import com.streamvault.app.device.rememberIsTelevisionDevice
 import com.streamvault.app.ui.components.rememberCrossfadeImageModel
 import com.streamvault.app.util.formatPositionMs
@@ -95,7 +94,6 @@ fun SeriesDetailScreen(
     val mainActivity = remember(context) { context.findMainActivity() }
 
     LaunchedEffect(viewModel, context, mainActivity) {
-        viewModel.castEvents.collect { event ->
             when (event) {
                 CastUiEvent.OpenRouteChooser -> mainActivity?.openCastRouteChooser()
                 is CastUiEvent.ShowMessage ->
@@ -136,7 +134,6 @@ fun SeriesDetailScreen(
         selectedSeason = uiState.selectedSeason,
         resumeEpisode = uiState.resumeEpisode,
         unwatchedEpisodeCount = uiState.unwatchedEpisodeCount,
-        isCasting = uiState.isCasting,
         externalRatings = uiState.externalRatings,
         isLoadingExternalRatings = uiState.isLoadingExternalRatings,
         onToggleFavorite = viewModel::toggleFavorite,
@@ -166,7 +163,6 @@ private fun SeriesDetailContent(
     selectedSeason: Season?,
     resumeEpisode: Episode?,
     unwatchedEpisodeCount: Int,
-    isCasting: Boolean,
     externalRatings: ExternalRatings,
     isLoadingExternalRatings: Boolean,
     onToggleFavorite: () -> Unit,
@@ -329,7 +325,6 @@ private fun SeriesDetailContent(
                                     series = series,
                                     resumeEpisode = ep,
                                      hasProgress = hasProgress,
-                                     isCasting = isCasting,
                                      onResumeClick = onResumeClick,
                                      onCopyUrl = { copyEpisodeUrl(ep) },
                                      onCast = onCastResumeEpisode,
@@ -417,7 +412,6 @@ private fun SeriesDetailContent(
                                     series = series,
                                     resumeEpisode = ep,
                                      hasProgress = hasProgress,
-                                     isCasting = isCasting,
                                      onResumeClick = onResumeClick,
                                      onCopyUrl = { copyEpisodeUrl(ep) },
                                      onCast = onCastResumeEpisode,
@@ -482,7 +476,6 @@ private fun SeriesDetailContent(
                         onCopyUrl = { copyEpisodeUrl(episode) },
                         onDownload = { onDownloadEpisode(episode) },
                         onCast = { onCastEpisode(episode) },
-                        isCasting = isCasting
                     )
                 }
                 if (visibleEpisodes.size < season.episodes.size) {
@@ -547,7 +540,6 @@ private fun SeriesDetailActions(
     series: Series,
     resumeEpisode: Episode,
     hasProgress: Boolean,
-    isCasting: Boolean,
     onResumeClick: (Episode) -> Unit,
     onCopyUrl: () -> Unit,
     onCast: () -> Unit,
@@ -589,7 +581,6 @@ private fun SeriesDetailActions(
         }
         TvButton(
             onClick = onCast,
-            enabled = !isCasting,
             colors = ButtonDefaults.colors(
                 containerColor = AppColors.SurfaceEmphasis,
                 contentColor = AppColors.TextPrimary
@@ -597,7 +588,6 @@ private fun SeriesDetailActions(
         ) {
             Text(
                 stringResource(
-                    if (isCasting) R.string.cast_launching else R.string.cast_button_label
                 )
             )
         }
@@ -668,7 +658,6 @@ fun EpisodeItem(
     onCopyUrl: () -> Unit,
     onDownload: () -> Unit,
     onCast: () -> Unit,
-    isCasting: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -705,11 +694,9 @@ fun EpisodeItem(
             }
             TvButton(
                 onClick = onCast,
-                enabled = !isCasting
             ) {
                 Text(
                     stringResource(
-                        if (isCasting) R.string.cast_launching else R.string.cast_button_label
                     )
                 )
             }

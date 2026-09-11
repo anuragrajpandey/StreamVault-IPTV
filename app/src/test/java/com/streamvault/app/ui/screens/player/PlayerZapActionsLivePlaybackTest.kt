@@ -25,7 +25,6 @@ class PlayerZapActionsLivePlaybackTest {
             add(Result.success(Unit))
         }
         var writes = 0
-        val coordinator = LivePlaybackRecordCoordinator {
             writes++
             results.removeFirst()
         }
@@ -43,7 +42,6 @@ class PlayerZapActionsLivePlaybackTest {
         val firstWriteStarted = CompletableDeferred<Unit>()
         val releaseFirstWrite = CompletableDeferred<Unit>()
         val writes = mutableListOf<Long>()
-        val coordinator = LivePlaybackRecordCoordinator { history ->
             writes += history.contentId
             if (writes.size == 1) {
                 firstWriteStarted.complete(Unit)
@@ -76,7 +74,6 @@ class PlayerZapActionsLivePlaybackTest {
         val writeStarted = CompletableDeferred<Unit>()
         val releaseWrite = CompletableDeferred<Unit>()
         var writes = 0
-        val coordinator = LivePlaybackRecordCoordinator {
             writes++
             writeStarted.complete(Unit)
             releaseWrite.await()
@@ -98,7 +95,6 @@ class PlayerZapActionsLivePlaybackTest {
     fun `cancelled repository write clears in flight marker and permits retry`() = runTest {
         val firstWriteStarted = CompletableDeferred<Unit>()
         var writes = 0
-        val coordinator = LivePlaybackRecordCoordinator {
             writes++
             if (writes == 1) {
                 firstWriteStarted.complete(Unit)
@@ -124,7 +120,6 @@ class PlayerZapActionsLivePlaybackTest {
         val staleWriteStarted = CompletableDeferred<Unit>()
         val releaseStaleWrite = CompletableDeferred<Unit>()
         val writes = mutableListOf<Long>()
-        val coordinator = LivePlaybackRecordCoordinator { history ->
             writes += history.contentId
             if (writes.size == 2) {
                 staleWriteStarted.complete(Unit)

@@ -1,7 +1,6 @@
 package com.streamvault.app.ui.screens.settings
 
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.domain.manager.BackupPreview
 import com.streamvault.domain.manager.DriveAuthState
 import com.streamvault.domain.manager.DriveAccount
 import com.streamvault.domain.manager.DriveBackupArtifact
