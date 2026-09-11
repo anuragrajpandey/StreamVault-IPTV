@@ -61,7 +61,7 @@ jobs:
         continue-on-error: true
         run: ./gradlew :app:compileDebugKotlin --no-daemon --stacktrace
       - name: Commit cleanup
-        if: steps.build.outcome == 'success'
+        if: steps.build.conclusion == 'success'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -70,7 +70,7 @@ jobs:
           git commit -m 'refactor: streamline EliteStocks TV features [skip ci]'
           git push origin HEAD:elitestocks-tv-feature-cleanup
       - name: Build failure
-        if: steps.build.outcome != 'success'
+        if: steps.build.conclusion != 'success'
         run: |
           echo 'Cleanup codemod was not committed because compilation failed.'
           exit 1
