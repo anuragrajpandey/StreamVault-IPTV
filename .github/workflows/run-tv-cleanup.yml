@@ -29,6 +29,10 @@ jobs:
           fetch-depth: 1
       - name: Apply codemod
         run: python3 scripts/apply_tv_cleanup.py
+      - name: Remove remaining backup and recording sources
+        run: |
+          find domain/src/main/java/com/streamvault/domain/usecase -type f \( -iname '*backup*.kt' -o -iname '*recording*.kt' \) -delete 2>/dev/null || true
+          find domain/src/main/java/com/streamvault/domain/model -maxdepth 1 -type f \( -iname '*backup*.kt' -o -iname '*recording*.kt' \) -delete 2>/dev/null || true
       - name: Check diff
         run: git diff --check
       - name: Compile app
