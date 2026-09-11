@@ -1,0 +1,41 @@
+name: Feature Audit
+
+on:
+  push:
+    branches: [elitestocks-tv-feature-cleanup]
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit feature references
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          needles = ['download','record','dvr','cast','backup','restore','pictureinpicture','picture_in_picture','pip','resume','start over','recent']
+          roots = [Path('app/src/main'), Path('data/src/main'), Path('domain/src/main'), Path('player/src/main')]
+          exts = {'.kt','.kts','.xml','.gradle','.properties'}
+          out=[]
+          for root in roots:
+            for p in root.rglob('*'):
+              if p.is_file() and p.suffix in exts:
+                try: text=p.read_text(errors='ignore')
+                except: continue
+                hits=[]
+                low=text.lower()
+                for n in needles:
+                  if n in low: hits.append(n)
+                if hits: out.append(f'{p}: {", ".join(sorted(set(hits)))}')
+          Path('feature-audit.txt').write_text('\n'.join(sorted(out))+'\n')
+          PY
+      - name: Commit audit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add feature-audit.txt
+          git diff --cached --quiet || git commit -m 'chore: add feature audit report'
+          git push
