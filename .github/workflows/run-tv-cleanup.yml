@@ -47,9 +47,12 @@ jobs:
           fi
           database='data/src/main/java/com/streamvault/data/local/StreamVaultDatabase.kt'
           if [ -f "$database" ]; then
-            sed -i '/RecordingScheduleEntity::class/d' "$database"
-            sed -i '/RecordingRunEntity::class/d' "$database"
-            sed -i '/RecordingStorageEntity::class/d' "$database"
+            sed -i '/Recording[A-Za-z]*Entity::class/d' "$database"
+            sed -i '/DownloadEntity::class/d' "$database"
+            sed -i '/BackupRestore[A-Za-z]*Entity::class/d' "$database"
+            sed -i '/abstract fun recording[A-Za-z]*Dao()/d' "$database"
+            sed -i '/abstract fun downloadDao()/d' "$database"
+            sed -i '/abstract fun backupRestore[A-Za-z]*Dao()/d' "$database"
           fi
       - name: Check diff
         run: git diff --check
