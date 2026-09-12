@@ -90,81 +90,102 @@ jobs:
                   out.append(line)
               return ''.join(out)
 
+          # Finish the app-level dependency edges left by the generic cleanup.
           for name in [
               'app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailViewModel.kt',
               'app/src/main/java/com/streamvault/app/ui/screens/movies/MovieDetailViewModel.kt',
           ]:
               f = Path(name)
-              if f.exists():
-                  s = f.read_text()
-                  for marker in ['observeCastPlaybackEvents', 'fun sendToCast', 'fun startCast', 'fun stopCast']:
-                      s = remove_block(s, marker)
-                  s = strip_dependency_lines(s)
-                  write_clean(f, s)
-
-          f = Path('app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsViewModel.kt')
-          if f.exists():
               s = f.read_text()
-              for marker in [
-                  'private val exportBackup =', 'private val importBackup =',
-                  'private val backupActions =', 'private val driveBackupActions =',
-                  'private val recordingActions =', 'driveBackupActions.observeAuthState',
-                  'backupRestoreStatusStore.observeRestoreJobs', 'registerRecordingObservers('
-              ]:
+              for marker in ['observeCastPlaybackEvents', 'fun sendToCast', 'fun startCast', 'fun stopCast']:
                   s = remove_block(s, marker)
-              for match in list(re.finditer(r'^\s*(?:private |internal |public |override )*(?:suspend )?fun\s+\w*(?:Backup|Restore|Recording)\w*\s*\(', s, re.M)):
-                  s = remove_block(s, match.group(0))
-              s = strip_dependency_lines(s)
-              write_clean(f, s)
+              write_clean(f, strip_dependency_lines(s))
 
-          f = Path('app/src/main/java/com/streamvault/app/ui/screens/provider/ProviderSetupViewModel.kt')
-          if f.exists():
+          for name, patterns in {
+              'app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsViewModel.kt': [r'\w*(?:Backup|Restore|Recording)\w*'],
+              'app/src/main/java/com/streamvault/app/ui/screens/provider/ProviderSetupViewModel.kt': [r'\w*(?:Backup|Restore|ImportBackup|InspectBackup)\w*'],
+              'app/src/main/java/com/streamvault/app/ui/screens/epg/EpgViewModel.kt': [r'\w*(?:Recording|ScheduleRecording)\w*'],
+          }.items():
+              f = Path(name)
               s = f.read_text()
-              for match in list(re.finditer(r'^\s*(?:private |internal |public |override )*(?:suspend )?fun\s+\w*(?:Backup|Restore|ImportBackup|InspectBackup)\w*\s*\(', s, re.M)):
-                  s = remove_block(s, match.group(0))
-              s = strip_dependency_lines(s)
-              write_clean(f, s)
-
-          f = Path('app/src/main/java/com/streamvault/app/ui/screens/epg/EpgViewModel.kt')
-          if f.exists():
-              s = f.read_text()
-              s = remove_block(s, 'data class RecordingConflictInfo')
-              for match in list(re.finditer(r'^\s*(?:private |internal |public |override )*(?:suspend )?fun\s+\w*(?:Recording|ScheduleRecording)\w*\s*\(', s, re.M)):
-                  s = remove_block(s, match.group(0))
-              s = strip_dependency_lines(s)
-              write_clean(f, s)
+              if 'EpgViewModel' in name:
+                  s = remove_block(s, 'data class RecordingConflictInfo')
+              for pat in patterns:
+                  for match in list(re.finditer(r'^\s*(?:private |internal |public |override )*(?:suspend )?fun\s+' + pat + r'\s*\(', s, re.M)):
+                      s = remove_block(s, match.group(0))
+              write_clean(f, strip_dependency_lines(s))
 
           f = Path('app/src/main/java/com/streamvault/app/MainActivity.kt')
-          if f.exists():
+          s = strip_dependency_lines(f.read_text())
+          for marker in ['fun openCastRouteChooser', 'enterPlayerPictureInPictureModeIfEligible', 'fun updatePlayerPictureInPictureState', 'fun clearPlayerPictureInPictureState', 'fun enterPlayerPictureInPictureModeFromPlayer', 'private fun applyPlayerPictureInPictureParams', 'private fun videoAspectRatioOrNull', 'private fun supportsPictureInPicture']:
+              s = remove_block(s, marker)
+          write_clean(f, s)
+
+          # Restore the two retained Android receivers after the historical substring-based cast cleanup.
+          for name in ['ProgramReminderAlarmReceiver.kt', 'ProgramReminderRestoreReceiver.kt']:
+              f = Path('data/src/main/java/com/streamvault/data/manager/reminder') / name
               s = f.read_text()
-              s = strip_dependency_lines(s)
-              for marker in ['fun openCastRouteChooser', 'enterPlayerPictureInPictureModeIfEligible', 'fun updatePlayerPictureInPictureState', 'fun clearPlayerPictureInPictureState', 'fun enterPlayerPictureInPictureModeFromPlayer', 'private fun applyPlayerPictureInPictureParams', 'private fun videoAspectRatioOrNull', 'private fun supportsPictureInPicture']:
-                  s = remove_block(s, marker)
-              s = re.sub(r'^\s*private data class PlayerPictureInPictureState\(.*?^\s*\)\s*\n', '', s, flags=re.S|re.M)
-              s = re.sub(r'^\s*private const val MAX_PIP_ASPECT_RATIO.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*private const val MIN_PIP_ASPECT_RATIO.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*override fun onUserLeaveHint\(\).*?^\s*\}\s*\n', '', s, flags=re.S|re.M)
-              s = re.sub(r'^\s*override fun onPictureInPictureModeChanged\(.*?^\s*\}\s*\n', '', s, flags=re.S|re.M)
+              if 'BroadcastReceiver' in s and 'import android.content.BroadcastReceiver' not in s:
+                  marker = next((line for line in s.splitlines() if line.startswith('import ')), None)
+                  if marker:
+                      s = s.replace(marker, 'import android.content.BroadcastReceiver\n' + marker, 1)
               write_clean(f, s)
 
-          for root in [Path('app/src/main'), Path('app/src/test'), Path('app/src/androidTest')]:
-              if not root.exists():
-                  continue
-              for p in root.rglob('*.kt'):
-                  s = p.read_text(errors='ignore')
-                  for match in list(re.finditer(r'^\s*(?:private |internal |public |override )*(?:suspend )?fun\s+\w*(?:Backup|Restore|Recording|Cast)\w*\s*\(', s, re.M)):
-                      s = remove_block(s, match.group(0))
-                  s = strip_dependency_lines(s)
-                  p.write_text(s.rstrip() + '\n')
+          # Remove every remaining recording-alarm branch and preserve reminder + sync cleanup.
+          f = Path('data/src/main/java/com/streamvault/data/repository/ProviderDeletionCleanupWorker.kt')
+          s = f.read_text()
+          for marker in ['ProviderDeletionCleanupWorker.RECORDING_ALARM ->', 'RECORDING_ALARM ->']:
+              while marker in s:
+                  s = remove_block(s, marker)
+          write_clean(f, s)
 
-          # Keep the reminder feature, but isolate it from the former combined recording files.
+          # Provider deletion must enqueue reminder cleanup and sync runtime only.
+          f = Path('data/src/main/java/com/streamvault/data/repository/ProviderRepositoryImpl.kt')
+          s = f.read_text()
+          s = re.sub(r'(?ms)\s*recordingRunIds\.map\s*\{.*?\}\s*\+\s*reminderIds\.map', '\n                    reminderIds.map', s, count=1)
+          s = re.sub(r'^\s*val recordingRunIds\s*=.*\n', '', s, flags=re.M)
+          write_clean(f, s)
+
+          # Hidden-category filtering no longer has a backup-required exception.
+          f = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+          s = f.read_text()
+          pattern = r'(?ms)^    private suspend fun allVisibleStalkerIndexCategories\(.*?^    private suspend fun visibleStalkerIndexCategories\('
+          replacement = '''    private suspend fun allVisibleStalkerIndexCategories(
+              providerId: Long,
+              contentType: ContentType,
+              categories: List<CategoryEntity>
+          ): List<CategoryEntity> {
+              val hiddenCategoryIds = preferencesRepository.getHiddenCategoryIds(providerId, contentType).first()
+              return categories.filterNot { category ->
+                  category.categoryId in hiddenCategoryIds
+              }
+          }
+
+          private suspend fun visibleStalkerIndexCategories('''
+          s2 = re.sub(pattern, replacement, s, count=1)
+          if s2 == s:
+              raise SystemExit('Could not normalize allVisibleStalkerIndexCategories')
+          write_clean(f, s2)
+
+          # Isolate the retained reminder Room types from the former combined recording files.
           dao = Path('data/src/main/java/com/streamvault/data/local/dao/RecordingDaos.kt')
           if dao.exists():
               s = dao.read_text()
               m = re.search(r'(?ms)^@Dao\s+interface ProgramReminderDao\s*\{.*?^\}', s)
               if not m:
                   raise SystemExit('ProgramReminderDao block missing')
-              header = 'package com.streamvault.data.local.dao\n\nimport androidx.room.Dao\nimport androidx.room.Insert\nimport androidx.room.OnConflictStrategy\nimport androidx.room.Query\nimport androidx.room.Update\nimport com.streamvault.data.local.entity.ProgramReminderEntity\nimport com.streamvault.domain.model.ProgramReminderDeliveryState\nimport kotlinx.coroutines.flow.Flow\n\n'
+              header = '''package com.streamvault.data.local.dao
+
+          import androidx.room.Dao
+          import androidx.room.Insert
+          import androidx.room.OnConflictStrategy
+          import androidx.room.Query
+          import androidx.room.Update
+          import com.streamvault.data.local.entity.ProgramReminderEntity
+          import com.streamvault.domain.model.ProgramReminderDeliveryState
+          import kotlinx.coroutines.flow.Flow
+
+          '''
               write_clean('data/src/main/java/com/streamvault/data/local/dao/ProgramReminderDao.kt', header + m.group(0))
               dao.unlink()
 
@@ -174,11 +195,19 @@ jobs:
               m = re.search(r'(?ms)^@Entity\(\s*tableName = "program_reminders".*?^data class ProgramReminderEntity\(.*?^\)\s*$', s)
               if not m:
                   raise SystemExit('ProgramReminderEntity block missing')
-              header = 'package com.streamvault.data.local.entity\n\nimport androidx.room.ColumnInfo\nimport androidx.room.Entity\nimport androidx.room.ForeignKey\nimport androidx.room.Index\nimport androidx.room.PrimaryKey\nimport com.streamvault.domain.model.ProgramReminderDeliveryState\n\n'
+              header = '''package com.streamvault.data.local.entity
+
+          import androidx.room.ColumnInfo
+          import androidx.room.Entity
+          import androidx.room.ForeignKey
+          import androidx.room.Index
+          import androidx.room.PrimaryKey
+          import com.streamvault.domain.model.ProgramReminderDeliveryState
+
+          '''
               write_clean('data/src/main/java/com/streamvault/data/local/entity/ProgramReminderEntity.kt', header + m.group(0))
               entity.unlink()
 
-          # Database must retain only the reminder DAO/entity from the old combined files.
           db = Path('data/src/main/java/com/streamvault/data/local/StreamVaultDatabase.kt')
           s = db.read_text()
           for name in ['RecordingScheduleEntity','RecordingRunEntity','RecordingStorageEntity','DownloadEntity','BackupRestoreCheckpointEntity','BackupRestoreJobEntity','BackupRestoreItemEntity']:
