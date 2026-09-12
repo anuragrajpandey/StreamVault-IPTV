@@ -20,6 +20,7 @@ jobs:
           set -euo pipefail
           git restore --source=55cd29e5cd20ac57ab98d4b625e7da63d5ca5ec1 -- app data domain player gradle/libs.versions.toml
           python3 scripts/final_tv_cleanup_v3.py
+          git restore --source=55cd29e5cd20ac57ab98d4b625e7da63d5ca5ec1 -- app/src/main/java/com/streamvault/app/ui/screens/dashboard/DashboardViewModel.kt
           rm -f domain/src/main/java/com/streamvault/domain/model/DownloadModels.kt
 
           cat > domain/src/main/java/com/streamvault/domain/manager/ProviderCredentials.kt <<'EOF'
@@ -90,7 +91,6 @@ jobs:
                   out.append(line)
               return ''.join(out)
 
-          # Finish the app-level dependency edges left by the generic cleanup.
           for name in [
               'app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailViewModel.kt',
               'app/src/main/java/com/streamvault/app/ui/screens/movies/MovieDetailViewModel.kt',
@@ -121,7 +121,6 @@ jobs:
               s = remove_block(s, marker)
           write_clean(f, s)
 
-          # Restore the two retained Android receivers after the historical substring-based cast cleanup.
           for name in ['ProgramReminderAlarmReceiver.kt', 'ProgramReminderRestoreReceiver.kt']:
               f = Path('data/src/main/java/com/streamvault/data/manager/reminder') / name
               s = f.read_text()
@@ -131,7 +130,6 @@ jobs:
                       s = s.replace(marker, 'import android.content.BroadcastReceiver\n' + marker, 1)
               write_clean(f, s)
 
-          # Remove every remaining recording-alarm branch and preserve reminder + sync cleanup.
           f = Path('data/src/main/java/com/streamvault/data/repository/ProviderDeletionCleanupWorker.kt')
           s = f.read_text()
           for marker in ['ProviderDeletionCleanupWorker.RECORDING_ALARM ->', 'RECORDING_ALARM ->']:
@@ -139,14 +137,12 @@ jobs:
                   s = remove_block(s, marker)
           write_clean(f, s)
 
-          # Provider deletion must enqueue reminder cleanup and sync runtime only.
           f = Path('data/src/main/java/com/streamvault/data/repository/ProviderRepositoryImpl.kt')
           s = f.read_text()
           s = re.sub(r'(?ms)\s*recordingRunIds\.map\s*\{.*?\}\s*\+\s*reminderIds\.map', '\n                    reminderIds.map', s, count=1)
           s = re.sub(r'^\s*val recordingRunIds\s*=.*\n', '', s, flags=re.M)
           write_clean(f, s)
 
-          # Hidden-category filtering no longer has a backup-required exception.
           f = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
           s = f.read_text()
           pattern = r'(?ms)^    private suspend fun allVisibleStalkerIndexCategories\(.*?^    private suspend fun visibleStalkerIndexCategories\('
@@ -167,7 +163,6 @@ jobs:
               raise SystemExit('Could not normalize allVisibleStalkerIndexCategories')
           write_clean(f, s2)
 
-          # Isolate the retained reminder Room types from the former combined recording files.
           dao = Path('data/src/main/java/com/streamvault/data/local/dao/RecordingDaos.kt')
           if dao.exists():
               s = dao.read_text()
