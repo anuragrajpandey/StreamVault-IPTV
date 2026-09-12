@@ -211,6 +211,9 @@ jobs:
               s = re.sub(r'^\s*abstract fun ' + name + r'\([^\n]*\):[^\n]*$', '', s, flags=re.M)
           write_clean(db, s)
 
+          # DashboardViewModel is restored from the clean baseline above, so remove
+          # only its recording integration here. Keep this in the same Python process
+          # so write_clean remains in scope.
           f = Path('app/src/main/java/com/streamvault/app/ui/screens/dashboard/DashboardViewModel.kt')
           s = f.read_text()
           s = re.sub(r'^import com\.streamvault\.domain\.manager\.RecordingManager\n', '', s, flags=re.M)
