@@ -236,3 +236,10 @@ for root in [Path('app/src/test'),Path('app/src/androidTest'),Path('data/src/tes
         for path in root.rglob('*.kt'):
             if any(x in path.name.lower() for x in ['backup','recording','cast','downloads']):
                 path.unlink()
+
+# Backup restore is gone, so executors that still expose this callback must receive an empty set.
+f = Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
+if f.exists():
+    s = f.read_text()
+    s = re.sub(r'requiredHiddenCategoryIds\s*=\s*\{\s*providerId,\s*type\s*->\s*\}', 'requiredHiddenCategoryIds = { _, _ -> emptySet() }', s)
+    f.write_text(s)
