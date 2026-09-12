@@ -22,8 +22,6 @@ jobs:
           python3 scripts/final_tv_cleanup_v3.py
           rm -f domain/src/main/java/com/streamvault/domain/model/DownloadModels.kt
 
-          # ProviderCredentials is shared domain API used by ProviderRepository.
-          # It originally lived inside DriveBackupSyncManager, which is being removed.
           cat > domain/src/main/java/com/streamvault/domain/manager/ProviderCredentials.kt <<'EOF'
           package com.streamvault.domain.manager
 
@@ -41,66 +39,89 @@ jobs:
           from pathlib import Path
           import re
 
+          def write_clean(path, text):
+              Path(path).write_text(text.rstrip() + '\n')
+
           f=Path('data/src/main/java/com/streamvault/data/local/entity/RecordingEntities.kt')
           if f.exists():
-              s=f.read_text(); marker='@Entity(\n    tableName = "program_reminders"'; p=s.find(marker)
-              header=''.join(x for x in s[:p].splitlines(True) if x.startswith('package ') or x.startswith('import '))+'\n'
+              s=f.read_text()
+              marker='@Entity(\n    tableName = "program_reminders"'
+              p=s.find(marker)
+              if p < 0: raise SystemExit('ProgramReminderEntity marker missing')
+              header=''.join(x for x in s[:p].splitlines(True) if x.startswith('package ') or x.startswith('import '))
               m=re.search(r'(?ms)^@Entity\(\s*tableName = "program_reminders".*?^data class ProgramReminderEntity\(.*?^\)\s*$', s[p:])
               if not m: raise SystemExit('ProgramReminderEntity block missing')
-              f.write_text(header+m.group(0).rstrip()+'\n')
+              write_clean(f, header + m.group(0))
 
           for name in ['ProgramReminderAlarmReceiver.kt','ProgramReminderRestoreReceiver.kt']:
               f=Path('data/src/main/java/com/streamvault/data/manager/reminder')/name
               if f.exists():
                   s=f.read_text()
                   if 'BroadcastReceiver' in s and 'import android.content.BroadcastReceiver' not in s:
-                      s=s.replace('\n\n','\n\nimport android.content.BroadcastReceiver\n',1); f.write_text(s)
+                      s=s.replace('\n\n','\n\nimport android.content.BroadcastReceiver\n',1)
+                  write_clean(f,s)
 
           f=Path('data/src/main/java/com/streamvault/data/repository/ProviderDeletionCleanupWorker.kt')
           if f.exists():
               s=f.read_text()
-              while 'ProviderDeletionCleanupEntity.RECORDING_ALARM' in s:
-                  p=s.find('ProviderDeletionCleanupEntity.RECORDING_ALARM'); start=s.rfind('\n',0,p)+1; depth=0; started=False; end=start
-                  for line in s[start:].splitlines(True):
-                      depth += line.count('{')-line.count('}'); end += len(line)
-                      if '{' in line: started=True
-                      if started and depth==0: break
-                  s=s[:start]+s[end:]
-              s=re.sub(r'^\s*const val RECORDING_ALARM.*$', '', s, flags=re.M)
-              s=re.sub(r'^\s*fun recordingAlarmScheduler\(\):.*$', '', s, flags=re.M)
-              s=s.replace('cancelRecordingAlarm = entry.recordingAlarmScheduler()::cancel,\n','')
-              f.write_text(s)
+              s=re.sub(r'^import .*RecordingAlarmScheduler.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*fun recordingAlarmScheduler\(\):.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*const val RECORDING_ALARM\s*=.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*cancelRecordingAlarm\s*=.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*ProviderDeletionCleanupWorker\.RECORDING_ALARM\s*->.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*cancelRecordingAlarm:\s*\(String\)\s*->\s*Unit,\s*\n','',s,flags=re.M)
+              write_clean(f,s)
 
           f=Path('data/src/main/java/com/streamvault/data/repository/ProviderRepositoryImpl.kt')
           if f.exists():
               s=f.read_text()
-              s=re.sub(r'^\s*val estimatedRecordingRunIds\s*=.*$', '', s, flags=re.M)
+              s=re.sub(r'^import .*RecordingAlarmScheduler.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*val estimatedRecordingRunIds\s*=.*\n','',s,flags=re.M)
               s=s.replace('                (estimatedRecordingRunIds.size + estimatedReminderIds.size) * ALARM_STEP_WEIGHT +\n','')
-              s=re.sub(r'^\s*val recordingRunIds\s*=.*$', '', s, flags=re.M)
-              s=re.sub(r'(?s)recordingRunIds\.map \{.*?\}\s*\+\s*', '', s, count=1)
-              s=re.sub(r'^\s*private const val ALARM_STEP_WEIGHT.*$', '', s, flags=re.M)
-              f.write_text(s)
+              s=re.sub(r'^\s*val recordingRunIds\s*=.*\n','',s,flags=re.M)
+              s=re.sub(r'(?ms)^\s*recordingRunIds\.map \{.*?^\s*\}\s*\+\s*','',s,count=1)
+              s=re.sub(r'^\s*private const val ALARM_STEP_WEIGHT.*\n','',s,flags=re.M)
+              write_clean(f,s)
 
           f=Path('data/src/main/java/com/streamvault/data/sync/SyncManager.kt')
           if f.exists():
               s=f.read_text()
-              s=re.sub(r'(?ms)^\s*requiredHiddenCategoryIds = \{ providerId, type ->.*?^\s*\}\n', '', s)
-              s=re.sub(r'(?ms)^\s*val requiredHiddenIds = pendingBackupRestoreCoordinator.*?^\s*\.orEmpty\(\)\n', '', s)
+              s=re.sub(r'^import .*PendingBackupRestoreCoordinator.*\n','',s,flags=re.M)
+              s=re.sub(r'^\s*private val pendingBackupRestoreCoordinator: PendingBackupRestoreCoordinator\? = null,?\n','',s,flags=re.M)
+              s=re.sub(r'^\s*val requiredHiddenIds\s*=.*\n','',s,flags=re.M)
               s=s.replace('category.categoryId in hiddenCategoryIds && category.categoryId !in requiredHiddenIds','category.categoryId in hiddenCategoryIds')
-              f.write_text(s)
+              while 'requiredHiddenCategoryIds' in s:
+                  pos=s.find('requiredHiddenCategoryIds')
+                  start=s.rfind('\n',0,pos)+1
+                  brace=s.find('{',pos)
+                  if brace < 0:
+                      s=s[:start]+s[pos+len('requiredHiddenCategoryIds'):]
+                      continue
+                  depth=0; end=None
+                  for i in range(brace,len(s)):
+                      if s[i]=='{': depth += 1
+                      elif s[i]=='}':
+                          depth -= 1
+                          if depth==0:
+                              end=i+1
+                              while end < len(s) and s[end] in ' \t': end += 1
+                              if end < len(s) and s[end]==',': end += 1
+                              if end < len(s) and s[end]=='\n': end += 1
+                              break
+                  if end is None: raise SystemExit('Could not remove requiredHiddenCategoryIds block')
+                  s=s[:start]+s[end:]
+              write_clean(f,s)
 
           f=Path('data/src/main/java/com/streamvault/data/local/StreamVaultDatabase.kt')
           if f.exists():
               s=f.read_text()
               for name in ['RecordingScheduleEntity','RecordingRunEntity','RecordingStorageEntity','DownloadEntity','BackupRestoreCheckpointEntity','BackupRestoreJobEntity','BackupRestoreItemEntity']:
-                  s=re.sub(r'^\s*'+name+r'::class,?\s*$', '', s, flags=re.M)
-              f.write_text(s)
+                  s=re.sub(r'^\s*'+name+r'::class,?\s*$','',s,flags=re.M)
+              write_clean(f,s)
 
-          # Normalize every transformed Kotlin file to one trailing newline.
           for root in [Path('app/src'),Path('data/src'),Path('domain/src'),Path('player/src')]:
               for p in root.rglob('*.kt'):
-                  s=p.read_text(errors='ignore').rstrip()+'\n'
-                  p.write_text(s)
+                  write_clean(p,p.read_text(errors='ignore'))
           PY
           git diff --check
 
@@ -110,7 +131,7 @@ jobs:
       - name: Final residual audit
         run: |
           set -euo pipefail
-          if git grep -n -E 'PlayerResumePrompt|PlayerCastCoordinator|PlayerRecordingCoordinator|CastMediaRequestFactory|CastPlaybackCoordinator|CastRouteChooserActivity|RecordingRunDao|RecordingScheduleDao|RecordingStorageDao|RecordingAlarmScheduler|RecordingManager|DownloadDao|DownloadEntity|DownloadStatus|DownloadItem|DownloadRequest|DownloadContentType|PendingBackupRestoreCoordinator|BackupManagerImpl|BackupFileBridge|BackupRestore|GoogleDriveBackupSyncManager|DriveBackupSyncManager' -- 'app/src' 'data/src' 'domain/src' 'player/src'; then exit 1; fi
+          if git grep -n -E 'PlayerResumePrompt|PlayerCastCoordinator|PlayerRecordingCoordinator|CastMediaRequestFactory|CastPlaybackCoordinator|CastRouteChooserActivity|RecordingRunDao|RecordingScheduleDao|RecordingStorageDao|RecordingAlarmScheduler|RecordingManager|DownloadDao|DownloadEntity|DownloadStatus|DownloadItem|DownloadRequest|DownloadContentType|PendingBackupRestoreCoordinator|BackupManagerImpl|BackupFileBridge|BackupRestore|GoogleDriveBackupSyncManager|DriveBackupSyncManager|requiredHiddenCategoryIds|requiredHiddenIds' -- 'app/src' 'data/src' 'domain/src' 'player/src'; then exit 1; fi
           test ! -d app/src/main/java/com/streamvault/app/cast
           test ! -d app/src/main/java/com/streamvault/app/backup
           test ! -d app/src/main/java/com/streamvault/app/ui/screens/downloads
