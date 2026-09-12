@@ -217,7 +217,7 @@ jobs:
           s = re.sub(r'^import com\.streamvault\.domain\.model\.RecordingStatus\n', '', s, flags=re.M)
           s = re.sub(r'(?ms)^    private val recordingManager: RecordingManager\n', '', s)
           s = re.sub(r'(?ms)^\n        viewModelScope\.launch \{\n            recordingManager\.observeRecordingItems\(\)\.collect \{ items ->.*?^        \}\n', '\n', s, count=1)
-          s = re.sub(r'(?ms)^\n    private val _recordingChannelIds = MutableStateFlow<Set<Long>>\(emptySet\(\)\)\n    val recordingChannelIds: StateFlow<Set<Long>> = _recordingChannelIds\.asStateFlow\(\)\n\n    private val _scheduledChannelIds = MutableStateFlow<Set<Long>>\(emptySet\(\)\)\n    val scheduledChannelIds: StateFlow<Set<Long>> = _scheduledChannelIds\.asStateFlow\(\n', '\n', s, count=1)
+          s = re.sub(r'(?ms)^\n    private val _recordingChannelIds = MutableStateFlow<Set<Long>>\(emptySet\(\)\)\n    val recordingChannelIds: StateFlow<Set<Long>> = _recordingChannelIds\.asStateFlow\(\)\n\n    private val _scheduledChannelIds = MutableStateFlow<Set<Long>>\(emptySet\(\)\)\n    val scheduledChannelIds: StateFlow<Set<Long>> = _scheduledChannelIds\.asStateFlow\(\)\n', '\n', s, count=1)
           s = re.sub(r',\n    \) : ViewModel\(\)', '\n) : ViewModel()', s)
           write_clean(f, s)
           PY
