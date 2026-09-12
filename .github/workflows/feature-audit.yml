@@ -15,262 +15,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply complete TV cleanup
+      - name: Apply hardened TV cleanup
         shell: bash
         run: |
           set -euo pipefail
-          BASE=55cd29e5cd20ac57ab98d4b625e7da63d5ca5ec1
+          BASE=a4e690bed7ff51587a59318c0b31f5ce8d73734d
           git restore --source="$BASE" -- app data domain player gradle/libs.versions.toml
-
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          roots = [
-              Path('app/src/main'), Path('app/src/test'), Path('app/src/androidTest'),
-              Path('data/src/main'), Path('data/src/test'),
-              Path('domain/src/main'), Path('domain/src/test'), Path('player/src/main')
-          ]
-
-          # Delete only feature-owned files. Do not delete arbitrary files whose names
-          # merely contain a feature word: shared infrastructure such as ProviderCredentials
-          # must survive the TV feature removal.
-          exact = {
-              # Cast
-              'PlayerCastCoordinator.kt','CastMediaRequestFactory.kt','CastManager.kt','CastModels.kt',
-              'CastPlaybackCoordinator.kt','CastRouteChooserActivity.kt','CastUiMessages.kt',
-              'StreamVaultCastOptionsProvider.kt','CastModule.kt',
-              # Downloads
-              'DownloadForegroundService.kt','DownloadManagerImpl.kt','DownloadManager.kt',
-              'DownloadsScreen.kt','DownloadsUiState.kt','DownloadsViewModel.kt',
-              'DownloadDao.kt','DownloadEntity.kt','DownloadStatus.kt','DownloadItem.kt','DownloadRequest.kt',
-              # Recording / DVR
-              'PlayerRecordingCoordinator.kt','RecordingManager.kt','RecordingManagerImpl.kt','RecordingModels.kt',
-              'RecordingDaos.kt','RecordingEntities.kt','RecordingConflictDetector.kt','RecordingAlarmScheduler.kt',
-              'RecordingAlarmReceiver.kt','RecordingCaptureEngine.kt','RecordingForegroundIdleGate.kt',
-              'RecordingForegroundService.kt','RecordingReconcileWorker.kt','RecordingRestoreReceiver.kt',
-              'RecordingServiceLauncher.kt','RecordingSourceResolver.kt','RecordingSupport.kt',
-              'ScheduleRecording.kt','RecordingRecurrence.kt','RecordingStatus.kt','RecordingItem.kt',
-              # Backup / restore
-              'BackupFileBridge.kt','BackupManager.kt','BackupManagerImpl.kt','BackupRestoreStatusStoreImpl.kt',
-              'PendingBackupRestoreCoordinator.kt','ExportBackup.kt','ImportBackup.kt',
-              'BackupRestoreCheckpointDao.kt','BackupRestoreLedgerDao.kt','BackupRestoreLedgerEntities.kt',
-              'DriveBackupSyncManager.kt'
-          }
-          for root in roots:
-              if root.exists():
-                  for p in root.rglob('*.kt'):
-                      if p.name in exact:
-                          p.unlink()
-
-          for d in [
-              Path('app/src/main/java/com/streamvault/app/cast'),
-              Path('app/src/main/java/com/streamvault/app/backup'),
-              Path('app/src/main/java/com/streamvault/app/ui/screens/downloads')
-          ]:
-              if d.exists():
-                  for p in sorted(d.rglob('*'), reverse=True):
-                      if p.is_file(): p.unlink()
-                      elif p.is_dir(): p.rmdir()
-                  d.rmdir()
-
-          # Preserve ProviderCredentials, which was historically colocated with the Drive
-          # backup interface. It is provider infrastructure, not a backup feature.
-          provider_repo = Path('domain/src/main/java/com/streamvault/domain/repository/ProviderRepository.kt')
-          drive = Path('domain/src/main/java/com/streamvault/domain/manager/DriveBackupSyncManager.kt')
-          provider_credentials = Path('domain/src/main/java/com/streamvault/domain/manager/ProviderCredentials.kt')
-          if not provider_credentials.exists() and provider_repo.exists():
-              # ProviderCredentials is emitted below with the same package and model dependency.
-              provider_credentials.write_text('''package com.streamvault.domain.manager\n\nimport com.streamvault.domain.model.ProviderType\n\ndata class ProviderCredentials(\n    val serverUrl: String,\n    val username: String,\n    val password: String,\n    val providerType: ProviderType? = null,\n)\n''')
-
-          def remove_balanced_block(text, marker, from_depth=None):
-              lines = text.splitlines(True)
-              out = []
-              i = 0
-              while i < len(lines):
-                  line = lines[i]
-                  if marker in line and (from_depth is None or brace_depth(''.join(lines[:i])) == from_depth):
-                      depth = brace_depth(line)
-                      if depth > 0:
-                          i += 1
-                          while i < len(lines) and depth > 0:
-                              depth += brace_delta(lines[i])
-                              i += 1
-                          continue
-                  out.append(line)
-                  i += 1
-              return ''.join(out)
-
-          def brace_delta(s):
-              return s.count('{') - s.count('}')
-
-          def brace_depth(s):
-              return brace_delta(s)
-
-          # MainActivity: remove all player PiP plumbing and backup-import intent plumbing,
-          # while keeping normal external navigation and TV lifecycle behavior.
-          main = Path('app/src/main/java/com/streamvault/app/MainActivity.kt')
-          if main.exists():
-              s = main.read_text()
-              for imp in [
-                  'import android.content.pm.PackageManager\n', 'import android.util.Rational\n'
-              ]:
-                  s = s.replace(imp, '')
-              s = re.sub(r'\n\s*private const val MAX_PIP_ASPECT_RATIO.*?MIN_PIP_ASPECT_RATIO = 1f / MAX_PIP_ASPECT_RATIO\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*private data class PlayerPictureInPictureState.*?\n\s*}\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*private val _pictureInPictureModeFlow.*?\n\s*private var playerPictureInPictureState.*?\n', '\n', s, flags=re.S)
-              s = s.replace('        _pictureInPictureModeFlow.value = isInPictureInPictureMode\n', '')
-              s = re.sub(r'\n\s*override fun onUserLeaveHint\(\).*?\n\s*}\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*override fun onPictureInPictureModeChanged\(.*?\n\s*}\n', '\n', s, flags=re.S)
-              for name in [
-                  'updatePlayerPictureInPictureState','clearPlayerPictureInPictureState',
-                  'enterPlayerPictureInPictureModeFromPlayer','enterPlayerPictureInPictureModeIfEligible',
-                  'applyPlayerPictureInPictureParams','videoAspectRatioOrNull','supportsPictureInPicture'
-              ]:
-                  s = remove_balanced_block(s, name)
-              s = re.sub(r'\n\s*private object PictureInPictureCompat.*?\n\s*}\n\s*\n', '\n', s, flags=re.S)
-              # Remove backup import intent branch and helper methods.
-              s = re.sub(r'\n\s*readImportedBackupUri\(\)\?\.let \{ return it \}\n', '\n', s)
-              s = remove_balanced_block(s, 'private fun Intent.readImportedBackupUri')
-              s = remove_balanced_block(s, 'private fun Intent.isBackupJsonCandidate')
-              s = re.sub(r'\n\s*import android\.net\.Uri\n', '\n', s) if 'readStreamUriExtra' not in s else s
-              s = re.sub(r'\n\s*private fun Intent.readStreamUriExtra.*?\n\s*}\n', '\n', s, flags=re.S)
-              main.write_text(s)
-
-          # PlayerScreen: remove PiP state/effects, resume prompt UI, Cast/DVR actions,
-          # and recording-only notification wiring. Keep the actual player and history logic.
-          screen = Path('app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt')
-          if screen.exists():
-              s = screen.read_text()
-              for imp in [
-                  'import com.streamvault.app.ui.screens.player.overlay.PlayerResumePrompt\n'
-              ]:
-                  s = s.replace(imp, '')
-              s = re.sub(r'\n\s*val notificationPermissionGate = rememberNotificationPermissionGate\(.*?\n\s*\)\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*val isInPictureInPictureMode = mainActivity.*?\n\s*\?: false\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*val castConnectionState by viewModel\.castConnectionState.*?\n', '\n', s)
-              s = re.sub(r'\n\s*val currentPictureInPictureMode by rememberUpdatedState.*?\n', '\n', s)
-              s = re.sub(r'\n\s*val enterPictureInPicture = remember\(mainActivity\).*?\n\s*}\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*LaunchedEffect\(mainActivity, streamUrl, playbackState, isPlaying, videoFormat\.width, videoFormat\.height, videoFormat\.pixelWidthHeightRatio\).*?\n\s*}\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*LaunchedEffect\(isInPictureInPictureMode\).*?\n\s*}\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*LifecycleEventEffect\(Lifecycle\.Event\.ON_STOP\).*?\n\s*}\n', '\n', s, flags=re.S)
-              s = re.sub(r'\n\s*DisposableEffect\(mainActivity\).*?\n\s*}\n', '\n', s, flags=re.S)
-              s = s.replace('    val nextEpisodeCountdownVisible = !isInPictureInPictureMode && autoPlayCountdown != null\n', '    val nextEpisodeCountdownVisible = autoPlayCountdown != null\n')
-              s = s.replace('    BackHandler(enabled = !resumePrompt.show) {', '    BackHandler {')
-              # Remove any balanced UI block containing the resume prompt marker.
-              s = remove_balanced_block(s, 'if (resumePrompt.show)')
-              s = re.sub(r'\n\s*val resumePrompt by viewModel\.resumePrompt.*?\n', '\n', s)
-              # Remove individual cast/recording/download callback arguments left in control calls.
-              s = re.sub(r'^\s*castConnectionState\s*=.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*onCast[^\n]*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*currentChannelRecording\s*=.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*onRecord[^\n]*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*onStartRecording[^\n]*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*onStopRecording[^\n]*\n', '', s, flags=re.M)
-              screen.write_text(s)
-
-          # PlayerViewModel: remove DVR/cast/download integration and turn the old VOD
-          # resume prompt into automatic seek after preparation.
-          p = Path('app/src/main/java/com/streamvault/app/ui/screens/player/PlayerViewModel.kt')
-          if p.exists():
-              s = p.read_text()
-              for imp in [
-                  'import com.streamvault.app.ui.screens.player.overlay.PlayerResumePrompt\n'
-              ]:
-                  s = s.replace(imp, '')
-              s = re.sub(r'^\s*internal val _resumePrompt.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*val resumePrompt.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*internal var castPlaybackReportMode.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*private var downloadPlaybackSlotActive.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*private var currentPlaybackUsesDownloadSlot.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*private var externalProviderPlaybackHold.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*val castConnectionState.*\n', '', s, flags=re.M)
-              s = re.sub(r'^\s*observeCastPlaybackEvents\(\)\n', '', s, flags=re.M)
-              s = re.sub(r'(?ms)^\s*viewModelScope\.launch \{\n\s*playerRecordingCoordinator\.observeRecordingItems\(\).*?^\s*\}\n(?=\s*viewModelScope\.launch)', '\n', s, count=1)
-              s = remove_balanced_block(s, 'internal fun refreshCurrentChannelRecording')
-              s = remove_balanced_block(s, 'private fun handleRecordingStateChanges')
-              # Remove old prompt gate and replace it with automatic resume.
-              old = re.compile(r'(?ms)\n\s*// Check for resume position after the player is fully prepared \(VOD only\)\..*?\n\s*}\n\s*}\n\s*\}\n')
-              replacement = '''\n                // Automatically restore the saved VOD/series position after preparation.\n                if (currentContentType != ContentType.LIVE && currentContentId != -1L && currentProviderId != -1L) {\n                    val history = playbackHistoryCoordinator.getPlaybackHistory(\n                        contentId = currentContentId,\n                        contentType = currentContentType,\n                        providerId = currentProviderId,\n                        seriesId = currentSeriesId,\n                        seasonNumber = currentSeasonNumber,\n                        episodeNumber = currentEpisodeNumber\n                    )\n                    if (isActivePlaybackSession(requestVersion, playbackLogicalUrl) &&\n                        history != null &&\n                        history.resumePositionMs > 5000L &&\n                        !isPlaybackComplete(history.resumePositionMs, history.totalDurationMs)\n                    ) {\n                        playerEngine.seekTo(history.resumePositionMs)\n                    }\n                }\n            }\n        }\n'''
-              s, n = old.subn(replacement, s, count=1)
-              if n == 0:
-                  # Fallback for formatting variants: remove prompt assignment block only.
-                  s = re.sub(r'(?ms)\n\s*if \(showResumePrompt.*?_resumePrompt\.value = ResumePromptState\(.*?\n\s*}\n\s*}\n', replacement, s, count=1)
-              # The public parameter remains for call compatibility but no longer controls a dialog.
-              s = s.replace('        showResumePrompt: Boolean = true\n', '')
-              s = re.sub(r',\s*showResumePrompt\s*=\s*true', '', s)
-              p.write_text(s)
-
-          # Strip imports/references to deleted feature types from the remaining source.
-          bad_import = re.compile(r'^\s*import .*?(?:cast|download|recording|backup).*?\n', re.I | re.M)
-          for root in roots:
-              if not root.exists(): continue
-              for f in root.rglob('*.kt'):
-                  s = f.read_text(errors='ignore')
-                  s = bad_import.sub('', s)
-                  # Remove simple standalone calls to deleted feature managers.
-                  s = re.sub(r'^\s*(?:player)?(?:Cast|Recording|Download|Backup)[A-Za-z0-9_]*\.[A-Za-z0-9_]+\([^\n]*\)\s*\n', '', s, flags=re.M)
-                  f.write_text(s)
-
-          # Remove feature-only manifest components and dependencies. Android's platform
-          # allowBackup attribute is intentionally NOT touched: it is unrelated to the
-          # in-app Backup & Restore feature.
-          manifest = Path('app/src/main/AndroidManifest.xml')
-          if manifest.exists():
-              s = manifest.read_text()
-              s = re.sub(r'\s*<[^>]*(?:Download|Recording|Cast)[^>]*/>','',s,flags=re.I)
-              s = re.sub(r'\s*<[^>]*(?:Download|Recording|Cast)[^>]*>.*?</[^>]+>','',s,flags=re.I|re.S)
-              manifest.write_text(s)
-
-          gradle = Path('app/build.gradle.kts')
-          if gradle.exists():
-              s = gradle.read_text()
-              s = re.sub(r'^\s*implementation\(libs\.play\.services\.cast\.framework\)\s*\n','',s,flags=re.M)
-              s = re.sub(r'^\s*implementation\(libs\.mediarouter\)\s*\n','',s,flags=re.M)
-              gradle.write_text(s)
-
-          # Remove obvious feature-only navigation/settings declarations without touching
-          # shared provider/playback infrastructure.
-          for root in [Path('app/src/main')]:
-              for f in root.rglob('*.kt'):
-                  s = f.read_text(errors='ignore')
-                  s = re.sub(r'^\s*import .*?(?:Downloads|Recording|Backup|Cast).*?\n','',s,flags=re.I|re.M)
-                  f.write_text(s)
-          PY
-
+          python3 scripts/final_tv_cleanup.py
           git diff --check
 
       - name: Build and test once
         run: ./gradlew :domain:compileKotlin :data:compileDebugKotlin :app:compileDebugKotlin :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Final residual audit
+        shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          roots=[Path('app/src/main'),Path('app/src/test'),Path('app/src/androidTest'),Path('data/src/main'),Path('data/src/test'),Path('domain/src/main'),Path('domain/src/test'),Path('player/src/main')]
-          forbidden=[
-              'PlayerResumePrompt','PlayerCastCoordinator','PlayerRecordingCoordinator','CastMediaRequestFactory',
-              'CastPlaybackCoordinator','CastRouteChooserActivity','DownloadForegroundService','DownloadManagerImpl',
-              'DownloadsScreen','DownloadsViewModel','DriveBackupSyncManager','BackupManagerImpl','RecordingManagerImpl',
-              'RecordingAlarmScheduler','startManualRecording','stopCurrentRecording','scheduleDailyRecording',
-              'scheduleWeeklyRecording','castCurrentMedia','stopCasting','enterPlayerPictureInPictureModeIfEligible',
-              'enterPlayerPictureInPictureModeFromPlayer','updatePlayerPictureInPictureState','clearPlayerPictureInPictureState'
-          ]
-          files=[]
-          for r in roots:
-              if r.exists(): files.extend(r.rglob('*.kt'))
-          for sym in forbidden:
-              for f in files:
-                  if sym in f.read_text(errors='ignore'):
-                      raise SystemExit(f'forbidden symbol remains: {sym} in {f}')
-          PY
+          if git grep -n -E 'PlayerResumePrompt|PlayerCastCoordinator|PlayerRecordingCoordinator|DownloadManager|PendingBackupRestoreCoordinator|BackupManager|RecordingManager|CastMediaRequestFactory|CastPlaybackCoordinator|CastRouteChooserActivity|RecordingRunDao|RecordingScheduleDao|RecordingStorageDao|DownloadDao|DownloadEntity|RecordingRunEntity|RecordingScheduleEntity|RecordingStorageEntity|BackupRestoreCheckpointDao|BackupRestoreLedgerDao' -- 'app/src' 'data/src' 'domain/src' 'player/src' ':!data/src/main/java/com/streamvault/data/local/FeatureMigrationsV49To75.kt'; then
+            echo 'Forbidden TV feature symbol remains in source.'
+            exit 1
+          fi
+          test ! -d app/src/main/java/com/streamvault/app/cast
+          test ! -d app/src/main/java/com/streamvault/app/backup
+          test ! -d app/src/main/java/com/streamvault/app/ui/screens/downloads
+          echo 'TV cleanup residual audit passed.'
 
       - name: Commit final cleanup
-        if: success()
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'refactor: complete EliteStocks TV cleanup [skip ci]' || exit 0
-          git push
+          git rm -f scripts/final_tv_cleanup.py 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit.'
+          else
+            git commit -m 'refactor: complete EliteStocks TV cleanup [skip ci]'
+            git push origin HEAD:elitestocks-tv-feature-cleanup
+          fi
