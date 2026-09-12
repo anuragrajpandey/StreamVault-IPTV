@@ -21,6 +21,22 @@ jobs:
           git restore --source=55cd29e5cd20ac57ab98d4b625e7da63d5ca5ec1 -- app data domain player gradle/libs.versions.toml
           python3 scripts/final_tv_cleanup_v3.py
           rm -f domain/src/main/java/com/streamvault/domain/model/DownloadModels.kt
+
+          # ProviderCredentials is shared domain API used by ProviderRepository.
+          # It originally lived inside DriveBackupSyncManager, which is being removed.
+          cat > domain/src/main/java/com/streamvault/domain/manager/ProviderCredentials.kt <<'EOF'
+          package com.streamvault.domain.manager
+
+          import com.streamvault.domain.model.ProviderType
+
+          data class ProviderCredentials(
+              val serverUrl: String,
+              val username: String,
+              val password: String,
+              val providerType: ProviderType? = null,
+          )
+          EOF
+
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -99,13 +115,14 @@ jobs:
           test ! -d app/src/main/java/com/streamvault/app/backup
           test ! -d app/src/main/java/com/streamvault/app/ui/screens/downloads
           test ! -f domain/src/main/java/com/streamvault/domain/model/DownloadModels.kt
+          test -f domain/src/main/java/com/streamvault/domain/manager/ProviderCredentials.kt
           echo 'Final TV cleanup audit passed.'
 
       - name: Commit final cleanup
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@github.com'
           git add -A
           git rm -f scripts/final_tv_cleanup.py scripts/final_tv_cleanup_v3.py 2>/dev/null || true
           if git diff --cached --quiet; then echo 'No source changes to commit.'; else git commit -m 'refactor: complete EliteStocks TV cleanup [skip ci]'; git push origin HEAD:elitestocks-tv-feature-cleanup; fi
