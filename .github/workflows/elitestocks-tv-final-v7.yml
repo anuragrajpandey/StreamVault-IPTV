@@ -89,7 +89,6 @@ jobs:
               s=f.read_text()
               s=re.sub(r'^import .*PendingBackupRestoreCoordinator.*\n','',s,flags=re.M)
               s=re.sub(r'^\s*private val pendingBackupRestoreCoordinator: PendingBackupRestoreCoordinator\? = null,?\n','',s,flags=re.M)
-              # Replace the entire category-visibility helper with the normal hidden-category behavior.
               pattern=r'(?ms)    private suspend fun allVisibleStalkerIndexCategories\(.*?^    private suspend fun visibleStalkerIndexCategories\('
               replacement='''    private suspend fun allVisibleStalkerIndexCategories(\n        providerId: Long,\n        contentType: ContentType,\n        categories: List<CategoryEntity>\n    ): List<CategoryEntity> {\n        val hiddenCategoryIds = preferencesRepository.getHiddenCategoryIds(providerId, contentType).first()\n        return categories.filterNot { category ->\n            category.categoryId in hiddenCategoryIds\n        }\n    }\n\n    private suspend fun visibleStalkerIndexCategories('''
               s2=re.sub(pattern,replacement,s,count=1)
