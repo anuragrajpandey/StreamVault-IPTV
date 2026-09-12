@@ -59,9 +59,6 @@ jobs:
                       return text[:start] + text[end:]
               return text
 
-          # The generic cleanup intentionally leaves these app-level dependency edges for
-          # a structural pass. Remove the edges and their feature-only implementation blocks
-          # before KSP sees the generated Hilt graph.
           exact_types = [
               'DownloadManager', 'BackupManager', 'ScheduleRecording', 'ImportBackup',
               'CastManager', 'CastMediaRequestFactory', 'CastPlaybackCoordinator',
@@ -93,7 +90,6 @@ jobs:
                   out.append(line)
               return ''.join(out)
 
-          # Series/movie detail ViewModels only need playback history and stream preparation.
           for name in [
               'app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailViewModel.kt',
               'app/src/main/java/com/streamvault/app/ui/screens/movies/MovieDetailViewModel.kt',
@@ -106,8 +102,6 @@ jobs:
                   s = strip_dependency_lines(s)
                   write_clean(f, s)
 
-          # Settings contains feature-specific action objects and observers. Remove those
-          # whole blocks before stripping the remaining dependency lines.
           f = Path('app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsViewModel.kt')
           if f.exists():
               s = f.read_text()
@@ -123,7 +117,6 @@ jobs:
               s = strip_dependency_lines(s)
               write_clean(f, s)
 
-          # Provider setup keeps normal provider onboarding, but no backup import/restore.
           f = Path('app/src/main/java/com/streamvault/app/ui/screens/provider/ProviderSetupViewModel.kt')
           if f.exists():
               s = f.read_text()
@@ -132,7 +125,6 @@ jobs:
               s = strip_dependency_lines(s)
               write_clean(f, s)
 
-          # EPG keeps reminders and guide/preview functionality, but not DVR scheduling.
           f = Path('app/src/main/java/com/streamvault/app/ui/screens/epg/EpgViewModel.kt')
           if f.exists():
               s = f.read_text()
@@ -142,7 +134,6 @@ jobs:
               s = strip_dependency_lines(s)
               write_clean(f, s)
 
-          # MainActivity has no reason to know about Cast once player casting is removed.
           f = Path('app/src/main/java/com/streamvault/app/MainActivity.kt')
           if f.exists():
               s = f.read_text()
@@ -156,8 +147,6 @@ jobs:
               s = re.sub(r'^\s*override fun onPictureInPictureModeChanged\(.*?^\s*\}\s*\n', '', s, flags=re.S|re.M)
               write_clean(f, s)
 
-          # Remove any remaining feature-only symbols from UI files, but keep generic Android
-          # BroadcastReceiver imports and unrelated app update/download APIs.
           for root in [Path('app/src/main'), Path('app/src/test'), Path('app/src/androidTest')]:
               if not root.exists():
                   continue
@@ -168,7 +157,35 @@ jobs:
                   s = strip_dependency_lines(s)
                   p.write_text(s.rstrip() + '\n')
 
-          git_diff = []
+          # Keep the reminder feature, but isolate it from the former combined recording files.
+          dao = Path('data/src/main/java/com/streamvault/data/local/dao/RecordingDaos.kt')
+          if dao.exists():
+              s = dao.read_text()
+              m = re.search(r'(?ms)^@Dao\s+interface ProgramReminderDao\s*\{.*?^\}', s)
+              if not m:
+                  raise SystemExit('ProgramReminderDao block missing')
+              header = 'package com.streamvault.data.local.dao\n\nimport androidx.room.Dao\nimport androidx.room.Insert\nimport androidx.room.OnConflictStrategy\nimport androidx.room.Query\nimport androidx.room.Update\nimport com.streamvault.data.local.entity.ProgramReminderEntity\nimport com.streamvault.domain.model.ProgramReminderDeliveryState\nimport kotlinx.coroutines.flow.Flow\n\n'
+              write_clean('data/src/main/java/com/streamvault/data/local/dao/ProgramReminderDao.kt', header + m.group(0))
+              dao.unlink()
+
+          entity = Path('data/src/main/java/com/streamvault/data/local/entity/RecordingEntities.kt')
+          if entity.exists():
+              s = entity.read_text()
+              m = re.search(r'(?ms)^@Entity\(\s*tableName = "program_reminders".*?^data class ProgramReminderEntity\(.*?^\)\s*$', s)
+              if not m:
+                  raise SystemExit('ProgramReminderEntity block missing')
+              header = 'package com.streamvault.data.local.entity\n\nimport androidx.room.ColumnInfo\nimport androidx.room.Entity\nimport androidx.room.ForeignKey\nimport androidx.room.Index\nimport androidx.room.PrimaryKey\nimport com.streamvault.domain.model.ProgramReminderDeliveryState\n\n'
+              write_clean('data/src/main/java/com/streamvault/data/local/entity/ProgramReminderEntity.kt', header + m.group(0))
+              entity.unlink()
+
+          # Database must retain only the reminder DAO/entity from the old combined files.
+          db = Path('data/src/main/java/com/streamvault/data/local/StreamVaultDatabase.kt')
+          s = db.read_text()
+          for name in ['RecordingScheduleEntity','RecordingRunEntity','RecordingStorageEntity','DownloadEntity','BackupRestoreCheckpointEntity','BackupRestoreJobEntity','BackupRestoreItemEntity']:
+              s = re.sub(r'^\s*' + name + r'::class,?\s*$', '', s, flags=re.M)
+          for name in ['recordingScheduleDao','recordingRunDao','recordingStorageDao','downloadDao','backupRestoreCheckpointDao','backupRestoreLedgerDao']:
+              s = re.sub(r'^\s*abstract fun ' + name + r'\([^\n]*\):[^\n]*$', '', s, flags=re.M)
+          write_clean(db, s)
           PY
           git diff --check
 
