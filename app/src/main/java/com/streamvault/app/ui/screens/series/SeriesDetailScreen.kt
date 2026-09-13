@@ -57,10 +57,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
-import com.streamvault.app.MainActivity
 import com.streamvault.app.R
-import com.streamvault.app.cast.CastUiEvent
-import com.streamvault.app.device.rememberIsTelevisionDevice
 import com.streamvault.app.ui.components.rememberCrossfadeImageModel
 import com.streamvault.app.util.formatPositionMs
 import com.streamvault.app.ui.components.shell.ContentMetadataStrip
@@ -92,17 +89,6 @@ fun SeriesDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val series = uiState.series
     val context = LocalContext.current
-    val mainActivity = remember(context) { context.findMainActivity() }
-
-    LaunchedEffect(viewModel, context, mainActivity) {
-        viewModel.castEvents.collect { event ->
-            when (event) {
-                CastUiEvent.OpenRouteChooser -> mainActivity?.openCastRouteChooser()
-                is CastUiEvent.ShowMessage ->
-                    Toast.makeText(context, context.getString(event.messageResId), Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 
     if (uiState.isLoading) {
         Box(
@@ -136,7 +122,7 @@ fun SeriesDetailScreen(
         selectedSeason = uiState.selectedSeason,
         resumeEpisode = uiState.resumeEpisode,
         unwatchedEpisodeCount = uiState.unwatchedEpisodeCount,
-        isCasting = uiState.isCasting,
+        isCasting = false,
         externalRatings = uiState.externalRatings,
         isLoadingExternalRatings = uiState.isLoadingExternalRatings,
         onToggleFavorite = viewModel::toggleFavorite,
@@ -151,11 +137,9 @@ fun SeriesDetailScreen(
                 Result.Loading -> null
             }
         },
-        onDownloadEpisode = { episode ->
-            viewModel.downloadEpisode(context, episode)
-        },
-        onCastResumeEpisode = viewModel::castResumeEpisode,
-        onCastEpisode = viewModel::castEpisode,
+        onDownloadEpisode = {},
+        onCastResumeEpisode = {},
+        onCastEpisode = {},
         onBack = onBack
     )
 }
@@ -328,13 +312,13 @@ private fun SeriesDetailContent(
                                 SeriesDetailActions(
                                     series = series,
                                     resumeEpisode = ep,
-                                     hasProgress = hasProgress,
-                                     isCasting = isCasting,
-                                     onResumeClick = onResumeClick,
-                                     onCopyUrl = { copyEpisodeUrl(ep) },
-                                     onCast = onCastResumeEpisode,
-                                     onToggleFavorite = onToggleFavorite
-                                 )
+                                    hasProgress = hasProgress,
+                                    isCasting = false,
+                                    onResumeClick = onResumeClick,
+                                    onCopyUrl = { copyEpisodeUrl(ep) },
+                                    onCast = {},
+                                    onToggleFavorite = onToggleFavorite
+                                )
                             }
                             if (resumeEpisode == null) {
                                 SeriesDetailFavoriteAction(series = series, onToggleFavorite = onToggleFavorite)
@@ -416,13 +400,13 @@ private fun SeriesDetailContent(
                                 SeriesDetailActions(
                                     series = series,
                                     resumeEpisode = ep,
-                                     hasProgress = hasProgress,
-                                     isCasting = isCasting,
-                                     onResumeClick = onResumeClick,
-                                     onCopyUrl = { copyEpisodeUrl(ep) },
-                                     onCast = onCastResumeEpisode,
-                                     onToggleFavorite = onToggleFavorite
-                                 )
+                                    hasProgress = hasProgress,
+                                    isCasting = false,
+                                    onResumeClick = onResumeClick,
+                                    onCopyUrl = { copyEpisodeUrl(ep) },
+                                    onCast = {},
+                                    onToggleFavorite = onToggleFavorite
+                                )
                             }
                             if (resumeEpisode == null) {
                                 SeriesDetailFavoriteAction(series = series, onToggleFavorite = onToggleFavorite)
@@ -471,18 +455,16 @@ private fun SeriesDetailContent(
                         )
                     }
                 }
-                val fallbackCover = series?.let {
-                        it.posterUrl ?: it.backdropUrl
-                    }
+                val fallbackCover = series.posterUrl ?: series.backdropUrl
                 items(visibleEpisodes, key = { it.id }) { episode ->
                     EpisodeItem(
                         episode = episode,
                         fallbackImageUrl = fallbackCover,
                         onClick = { onEpisodeClick(episode) },
                         onCopyUrl = { copyEpisodeUrl(episode) },
-                        onDownload = { onDownloadEpisode(episode) },
-                        onCast = { onCastEpisode(episode) },
-                        isCasting = isCasting
+                        onDownload = {},
+                        onCast = {},
+                        isCasting = false
                     )
                 }
                 if (visibleEpisodes.size < season.episodes.size) {
@@ -587,20 +569,6 @@ private fun SeriesDetailActions(
         ) {
             Text(stringResource(R.string.stream_url_copy))
         }
-        TvButton(
-            onClick = onCast,
-            enabled = !isCasting,
-            colors = ButtonDefaults.colors(
-                containerColor = AppColors.SurfaceEmphasis,
-                contentColor = AppColors.TextPrimary
-            )
-        ) {
-            Text(
-                stringResource(
-                    if (isCasting) R.string.cast_launching else R.string.cast_button_label
-                )
-            )
-        }
         SeriesDetailFavoriteAction(series = series, onToggleFavorite = onToggleFavorite)
     }
 }
@@ -690,29 +658,8 @@ fun EpisodeItem(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TvButton(
-                onClick = onDownload,
-                colors = ButtonDefaults.colors(
-                    containerColor = AppColors.SurfaceEmphasis,
-                    contentColor = AppColors.TextPrimary
-                )
-            ) {
-                Text(stringResource(R.string.download_button_label))
-            }
-            TvButton(onClick = onCopyUrl) {
-                Text(stringResource(R.string.stream_url_copy))
-            }
-            TvButton(
-                onClick = onCast,
-                enabled = !isCasting
-            ) {
-                Text(
-                    stringResource(
-                        if (isCasting) R.string.cast_launching else R.string.cast_button_label
-                    )
-                )
-            }
+        TvButton(onClick = onCopyUrl) {
+            Text(stringResource(R.string.stream_url_copy))
         }
     }
 }
@@ -725,10 +672,4 @@ private fun copyStreamUrlToClipboard(context: android.content.Context, url: Stri
     context.getSystemService(ClipboardManager::class.java)
         ?.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.stream_url_clip_label), url))
     Toast.makeText(context, context.getString(R.string.stream_url_copied), Toast.LENGTH_SHORT).show()
-}
-
-private tailrec fun Context.findMainActivity(): MainActivity? = when (this) {
-    is MainActivity -> this
-    is ContextWrapper -> baseContext.findMainActivity()
-    else -> null
 }
