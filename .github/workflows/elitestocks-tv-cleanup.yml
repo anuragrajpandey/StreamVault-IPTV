@@ -8,7 +8,6 @@ permissions:
 
 env:
   GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m
-  TV_BRANCH: elitestocks-tv-feature-cleanup
 
 jobs:
   cleanup-and-verify:
@@ -16,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout EliteStocks TV branch
+      - name: Checkout master
         uses: actions/checkout@v4
         with:
-          ref: elitestocks-tv-feature-cleanup
+          ref: master
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -41,7 +40,7 @@ jobs:
       - name: Build release APK
         run: ./gradlew :app:assembleRelease --no-daemon --parallel --stacktrace
 
-      - name: Commit verified changes
+      - name: Commit verified changes to master
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
@@ -51,5 +50,5 @@ jobs:
             echo 'No changes to commit.'
           else
             git commit -m 'refactor: complete EliteStocks TV cleanup'
-            git push origin HEAD:elitestocks-tv-feature-cleanup
+            git push origin HEAD:master
           fi
