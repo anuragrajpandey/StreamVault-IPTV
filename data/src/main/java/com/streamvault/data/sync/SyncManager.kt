@@ -104,6 +104,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -231,6 +232,7 @@ class SyncManager @Inject constructor(
 ) : ProviderSyncCommands, CatalogHydrationCommands, ProviderSyncStateSource, ProviderSyncLifecycle {
     private val syncProviderSnapshotAdapter = SyncProviderSnapshotAdapter(providerSnapshotRepository)
     private val initialOnboardingBackgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val initialOnboardingBackgroundProviders = ConcurrentHashMap.newKeySet<Long>()
     private val initialOnboardingBackgroundProviders = ConcurrentHashMap.newKeySet<Long>()
     private val initialOnboardingBackgroundProviders = ConcurrentHashMap.newKeySet<Long>()
     private val syncStatusPublicationCoordinator = SyncStatusPublicationCoordinator(
