@@ -1,6 +1,8 @@
 name: Apply Automatic VOD Resume
 
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
