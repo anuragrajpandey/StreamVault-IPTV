@@ -1,0 +1,39 @@
+name: Fix Series TV Device Check Once
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Fix missing TV device helper
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailScreen.kt')
+          s = p.read_text(encoding='utf-8')
+          if 'rememberIsTelevisionDevice()' in s:
+              s = s.replace('import android.content.ContextWrapper\n', 'import android.content.ContextWrapper\nimport android.content.res.Configuration\n', 1)
+              s = s.replace('val isTelevisionDevice = rememberIsTelevisionDevice()', 'val isTelevisionDevice = (LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION', 1)
+              p.write_text(s, encoding='utf-8')
+          else:
+              raise SystemExit('Expected missing helper call was not found')
+      - name: Commit and remove helper
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/streamvault/app/ui/screens/series/SeriesDetailScreen.kt
+          git commit -m 'fix: restore series TV device detection'
+          git rm .github/workflows/_fix-series-device.yml
+          git commit -m 'chore: remove temporary series device helper'
+          git push origin HEAD:master
