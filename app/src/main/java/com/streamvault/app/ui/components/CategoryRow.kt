@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusGroup
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
@@ -96,13 +97,15 @@ fun <T : Any> CategoryRow(
         }
 
         LazyRow(
-            modifier = Modifier.focusRestorer(),
+            modifier = Modifier
+                .focusGroup()
+                .focusRestorer(),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(
                 items = items,
-                key = keySelector,  // null = index-based keys (safe default)
+                key = keySelector,
                 contentType = resolvedContentTypeSelector
             ) { item ->
                 itemContent(item)
