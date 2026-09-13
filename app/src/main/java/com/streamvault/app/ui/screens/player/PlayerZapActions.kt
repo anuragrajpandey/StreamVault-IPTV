@@ -37,7 +37,6 @@ internal data class LivePlaybackRecordAttempt(
     val attemptId: Long
 )
 
-internal class LivePlaybackRecordCoordinator(
     private val recordPlayback: suspend (PlaybackHistory) -> com.streamvault.domain.model.Result<Unit>
 ) {
     private val stateLock = Any()
@@ -381,10 +380,8 @@ internal fun PlayerViewModel.recordActiveLivePlayback(channel: Channel? = curren
         channel = channel
     ) ?: return
 
-    val attempt = livePlaybackRecordCoordinator.begin(candidate) ?: return
 
     viewModelScope.launch {
-        livePlaybackRecordCoordinator.execute(attempt)?.let { result ->
             logRepositoryFailure(operation = "Record live playback", result = result)
         }
     }

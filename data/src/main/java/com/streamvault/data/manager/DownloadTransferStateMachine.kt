@@ -1,6 +1,5 @@
 package com.streamvault.data.manager
 
-import com.streamvault.domain.model.DownloadStatus
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream

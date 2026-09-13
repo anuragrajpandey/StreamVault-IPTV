@@ -8,26 +8,9 @@ import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
 import com.streamvault.data.local.DatabaseTransactionRunner
 import com.streamvault.data.local.dao.ProviderDao
-import com.streamvault.data.local.dao.RecordingRunDao
-import com.streamvault.data.local.dao.RecordingScheduleDao
-import com.streamvault.data.local.dao.RecordingStorageDao
 import com.streamvault.data.local.entity.ProviderEntity
-import com.streamvault.data.local.entity.RecordingRunEntity
-import com.streamvault.data.local.entity.RecordingStorageEntity
-import com.streamvault.data.manager.recording.HlsLiveCaptureEngine
-import com.streamvault.data.manager.recording.RecordingAlarmScheduler
-import com.streamvault.data.manager.recording.RecordingServiceLauncher
-import com.streamvault.data.manager.recording.RecordingSourceResolver
-import com.streamvault.data.manager.recording.ResolvedRecordingSource
-import com.streamvault.data.manager.recording.TsPassThroughCaptureEngine
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.domain.model.ProviderType
-import com.streamvault.domain.model.RecordingFailureCategory
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingReconciliationResult
-import com.streamvault.domain.model.RecordingRequest
-import com.streamvault.domain.model.RecordingSourceType
-import com.streamvault.domain.model.RecordingStatus
 import com.streamvault.domain.model.Result
 import java.io.File
 import java.io.IOException
@@ -128,7 +111,6 @@ class RecordingManagerImplTest {
         val result = manager.startManualRecording(request)
 
         assertThat(result).isInstanceOf(com.streamvault.domain.model.Result.Success::class.java)
-        verify(recordingRunDao).insert(argThat { status == RecordingStatus.RECORDING })
         verify(alarmScheduler).scheduleStop(any(), eq(request.scheduledEndMs))
         verify(recordingServiceLauncher).startCapture(eq(context), any())
     }
@@ -147,7 +129,6 @@ class RecordingManagerImplTest {
             }
 
             assertThat(result).isInstanceOf(com.streamvault.domain.model.Result.Success::class.java)
-            verify(recordingRunDao).update(argThat { id == run.id && status == RecordingStatus.RECORDING })
             verify(alarmScheduler).scheduleStop(run.id, run.scheduledEndMs)
         }
     }
@@ -157,11 +138,9 @@ class RecordingManagerImplTest {
         runBlocking {
             val run = scheduledRun(
                 id = "scheduled-recurring",
-                recurrence = RecordingRecurrence.DAILY,
                 recurringRuleId = "rule-1"
             )
             whenever(recordingRunDao.getById(run.id)).thenReturn(run)
-            whenever(recordingRunDao.getByStatus(RecordingStatus.SCHEDULED)).thenReturn(emptyList())
             whenever(recordingRunDao.getRecordingRuns()).thenReturn(emptyList())
             whenever(recordingSourceResolver.resolveLiveSource(any(), any(), any())).thenReturn(resolvedSource())
 
@@ -179,7 +158,6 @@ class RecordingManagerImplTest {
 
     @Test
     fun `reconcileRecordingState marks stale recording failed instead of restarting capture`() = runBlocking {
-        val staleRun = scheduledRun(id = "stale-recording", status = RecordingStatus.RECORDING)
         runBlocking {
             whenever(recordingRunDao.getRecordingRuns()).thenReturn(listOf(staleRun))
             whenever(recordingRunDao.getById(staleRun.id)).thenReturn(staleRun)
@@ -192,7 +170,6 @@ class RecordingManagerImplTest {
         verify(recordingRunDao, atLeastOnce()).update(
             argThat {
                 id == staleRun.id &&
-                    status == RecordingStatus.FAILED &&
                     failureCategory == RecordingFailureCategory.UNKNOWN
             }
         )
@@ -231,7 +208,6 @@ class RecordingManagerImplTest {
         verify(recordingRunDao, atLeastOnce()).update(
             argThat {
                 id == malformed.id &&
-                    status == RecordingStatus.FAILED &&
                     failureReason?.contains("Malformed legacy schedule") == true
             }
         )
@@ -269,7 +245,6 @@ class RecordingManagerImplTest {
 
     @Test
     fun `foreground service timeout joins capture and persists a terminal reason`() = runBlocking {
-        val activeRun = scheduledRun(id = "quota-timeout", status = RecordingStatus.RECORDING)
         whenever(recordingRunDao.getById(activeRun.id)).thenReturn(activeRun)
 
         val manager = createManager()
@@ -280,14 +255,12 @@ class RecordingManagerImplTest {
         verify(recordingRunDao).update(
             argThat {
                 id == activeRun.id &&
-                    status == RecordingStatus.FAILED &&
                     failureReason?.contains("foreground-service time allowance") == true &&
                     terminalAtMs != null
             }
         )
     }
 
-    private fun createManager() = RecordingManagerImpl(
         context = context,
         gson = Gson(),
         transactionRunner = transactionRunner,
@@ -322,8 +295,6 @@ class RecordingManagerImplTest {
 
     private fun scheduledRun(
         id: String,
-        status: RecordingStatus = RecordingStatus.SCHEDULED,
-        recurrence: RecordingRecurrence = RecordingRecurrence.NONE,
         recurringRuleId: String? = null
     ) = RecordingRunEntity(
         id = id,

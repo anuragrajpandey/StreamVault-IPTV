@@ -1,15 +1,8 @@
 package com.streamvault.data.manager
 
-import com.streamvault.data.local.entity.RecordingRunEntity
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingFailureCategory
-import com.streamvault.domain.model.RecordingStatus
 
-internal fun Iterable<RecordingItem>.findRecordingConflict(
     candidateStartMs: Long,
     candidateEndMs: Long,
-    statuses: Set<RecordingStatus>
-): RecordingItem? {
     return firstOrNull { item ->
         item.status in statuses &&
             item.scheduledStartMs < candidateEndMs &&
@@ -20,7 +13,6 @@ internal fun Iterable<RecordingItem>.findRecordingConflict(
 internal fun Iterable<RecordingRunEntity>.findRecordingRunConflict(
     candidateStartMs: Long,
     candidateEndMs: Long,
-    statuses: Set<RecordingStatus>,
     ignoredRunId: String? = null
 ): RecordingRunEntity? {
     return firstOrNull { item ->
@@ -40,7 +32,6 @@ internal fun RecordingRunEntity.toConflictFailure(
 ): RecordingRunEntity {
     return copy(
         id = java.util.UUID.randomUUID().toString(),
-        status = RecordingStatus.FAILED,
         scheduledStartMs = conflictStartMs,
         scheduledEndMs = conflictEndMs,
         sourceType = com.streamvault.domain.model.RecordingSourceType.UNKNOWN,

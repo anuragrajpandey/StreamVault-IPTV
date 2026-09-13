@@ -50,24 +50,12 @@ import com.streamvault.app.ui.theme.SurfaceElevated
 import com.streamvault.app.ui.time.LocalAppTimeFormat
 import com.streamvault.app.ui.time.createDateTimeFormat
 import com.streamvault.app.ui.theme.SurfaceHighlight
-import com.streamvault.domain.model.RecordingFailureCategory
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingStatus
 import androidx.compose.foundation.border
 @Composable
 internal fun RecordingBrowserDialog(
-    recordingItems: List<RecordingItem>,
     selectedRecordingId: String?,
     onSelectedRecordingChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onPlay: (RecordingItem) -> Unit,
-    onStop: (RecordingItem) -> Unit,
-    onCancel: (RecordingItem) -> Unit,
-    onSkipOccurrence: (RecordingItem) -> Unit,
-    onDelete: (RecordingItem) -> Unit,
-    onRetry: (RecordingItem) -> Unit,
-    onToggleSchedule: (RecordingItem, Boolean) -> Unit
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -108,8 +96,6 @@ internal fun RecordingBrowserDialog(
                                 color = OnBackground
                             )
                             Text(
-                                text = if (recordingItems.isNotEmpty()) {
-                                    stringResource(R.string.settings_recording_item_count, recordingItems.size)
                                 } else {
                                     stringResource(R.string.settings_recording_empty_title)
                                 },
@@ -124,7 +110,6 @@ internal fun RecordingBrowserDialog(
                         )
                     }
 
-                    if (recordingItems.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -136,7 +121,6 @@ internal fun RecordingBrowserDialog(
                         }
                     } else {
                         RecordingBrowserPanel(
-                            recordingItems = recordingItems,
                             selectedRecordingId = selectedRecordingId,
                             onSelectedRecordingChange = onSelectedRecordingChange,
                             onPlay = onPlay,
@@ -156,22 +140,10 @@ internal fun RecordingBrowserDialog(
 
 @Composable
 private fun RecordingBrowserPanel(
-    recordingItems: List<RecordingItem>,
     selectedRecordingId: String?,
     onSelectedRecordingChange: (String) -> Unit,
-    onPlay: (RecordingItem) -> Unit,
-    onStop: (RecordingItem) -> Unit,
-    onCancel: (RecordingItem) -> Unit,
-    onSkipOccurrence: (RecordingItem) -> Unit,
-    onDelete: (RecordingItem) -> Unit,
-    onRetry: (RecordingItem) -> Unit,
-    onToggleSchedule: (RecordingItem, Boolean) -> Unit
 ) {
-    val selectedItem = recordingItems.firstOrNull { it.id == selectedRecordingId } ?: recordingItems.first()
     var searchQuery by remember { mutableStateOf("") }
-    var statusFilter by remember { mutableStateOf<RecordingStatus?>(null) }
-    val filteredItems = remember(recordingItems, searchQuery, statusFilter) {
-        recordingItems.filter { item ->
             val matchesSearch = searchQuery.isBlank() ||
                 item.channelName.contains(searchQuery, ignoreCase = true) ||
                 item.programTitle?.contains(searchQuery, ignoreCase = true) == true
@@ -200,7 +172,6 @@ private fun RecordingBrowserPanel(
             ) {
                 RecordingBrowserSidebarControls(
                     filteredCount = filteredItems.size,
-                    totalCount = recordingItems.size,
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     statusFilter = statusFilter,
@@ -240,7 +211,6 @@ private fun RecordingBrowserPanel(
 
 @Composable
 private fun RecordingPickerRow(
-    item: RecordingItem,
     selected: Boolean,
     onSelected: () -> Unit
 ) {
@@ -317,7 +287,6 @@ private fun RecordingPickerRow(
 
 @Composable
 private fun RecordingDetailPanel(
-    item: RecordingItem,
     modifier: Modifier = Modifier,
     onPlay: () -> Unit,
     onStop: () -> Unit,
@@ -369,12 +338,8 @@ private fun RecordingDetailPanel(
                         label = recordingStatusLabel(item.status),
                         accent = accent
                     )
-                    if (item.recurrence != RecordingRecurrence.NONE) {
                         StatusTonePill(
                             label = when (item.recurrence) {
-                                RecordingRecurrence.DAILY -> stringResource(R.string.settings_recording_recurrence_daily)
-                                RecordingRecurrence.WEEKLY -> stringResource(R.string.settings_recording_recurrence_weekly)
-                                RecordingRecurrence.NONE -> stringResource(R.string.settings_recording_recurrence_none)
                             },
                             accent = Secondary
                         )

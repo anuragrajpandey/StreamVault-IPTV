@@ -38,7 +38,6 @@ import com.streamvault.app.ui.screens.series.SeriesScreen
 import com.streamvault.app.ui.screens.vod.VodScreen
 import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
-import com.streamvault.app.ui.screens.downloads.DownloadsScreen
 import com.streamvault.app.MainActivity
 import com.streamvault.domain.model.AppLandingDestination
 import com.streamvault.domain.model.AppTopLevelDestination
@@ -107,11 +106,10 @@ object Routes {
     const val MOVIES = "movies"
     const val SERIES = "series"
     const val VOD = "vod"
-    const val DOWNLOADS = "downloads"
     const val EPG = "epg"
     const val EPG_DESTINATION = "epg?categoryId={categoryId}&anchorTime={anchorTime}&favoritesOnly={favoritesOnly}"
     const val SETTINGS = "settings"
-    const val SETTINGS_DESTINATION = "settings?backupUri={backupUri}"
+    const val SETTINGS_DESTINATION = "settings"
     const val PLUGINS = "plugins"
     const val PLAYER = "player"
     const val SEARCH = "search"

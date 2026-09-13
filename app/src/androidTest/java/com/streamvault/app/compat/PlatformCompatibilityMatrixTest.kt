@@ -5,7 +5,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.streamvault.app.navigation.ExternalDestination
-import com.streamvault.app.service.DownloadServiceStartMode
 import com.streamvault.app.service.resolveDownloadServiceStartMode
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets

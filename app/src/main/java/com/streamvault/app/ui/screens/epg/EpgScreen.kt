@@ -727,7 +727,6 @@ fun FullEpgScreen(
                 onScheduleDailyRecording = if (channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
                     {
                         notificationPermissionGate.runRecordingAction {
-                            viewModel.scheduleRecording(channel, program, com.streamvault.domain.model.RecordingRecurrence.DAILY)
                         }
                     }
                 } else {
@@ -736,7 +735,6 @@ fun FullEpgScreen(
                 onScheduleWeeklyRecording = if (channel.streamUrl.isNotBlank() && program.endTime > currentGuideNow()) {
                     {
                         notificationPermissionGate.runRecordingAction {
-                            viewModel.scheduleRecording(channel, program, com.streamvault.domain.model.RecordingRecurrence.WEEKLY)
                         }
                     }
                 } else {

@@ -5,7 +5,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.tasks.Tasks
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.domain.manager.BackupManager
 import com.streamvault.domain.manager.DriveAuthState
 import com.streamvault.domain.manager.DriveSyncError
 import com.streamvault.domain.manager.ProviderCredentials
@@ -46,7 +45,6 @@ class GoogleDriveBackupSyncManagerTest {
     private lateinit var server: MockWebServer
     private lateinit var cacheDir: File
     private val context: Context = mock()
-    private val backupManager: BackupManager = mock()
 
     @Before
     fun setUp() {
@@ -221,7 +219,6 @@ class GoogleDriveBackupSyncManagerTest {
         whenever(client.revokeAccess()).thenReturn(Tasks.forResult(null))
         whenever(client.signOut()).thenReturn(Tasks.forResult(null))
 
-        val driveManager = GoogleDriveBackupSyncManager(
             context = context,
             backupManager = backupManager,
             httpClient = okhttp3.OkHttpClient(),
@@ -377,7 +374,6 @@ class GoogleDriveBackupSyncManagerTest {
         assertThat(server.takeRequest().method).isEqualTo("DELETE")
     }
 
-    private fun manager(): GoogleDriveBackupSyncManager = GoogleDriveBackupSyncManager(
         context = context,
         backupManager = backupManager,
         httpClient = okhttp3.OkHttpClient(),

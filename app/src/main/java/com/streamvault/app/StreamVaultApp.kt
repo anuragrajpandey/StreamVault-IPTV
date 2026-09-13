@@ -13,7 +13,6 @@ import com.streamvault.app.diagnostics.RuntimeDiagnosticsManager
 import com.streamvault.app.plugins.StreamVaultPluginManager
 import com.streamvault.app.ui.accessibility.isReducedMotionEnabled
 import com.streamvault.data.remote.jellyfin.JellyfinImageAuthInterceptor
-import com.streamvault.domain.repository.DownloadManager
 import com.streamvault.domain.manager.ProgramReminderManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -29,8 +28,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.streamvault.data.manager.recording.RecordingReconcileWorker
-import com.streamvault.data.manager.PendingBackupRestoreCoordinator
 import com.streamvault.data.sync.ProviderSyncWorker
 import com.streamvault.data.sync.XtreamIndexWorker
 import com.streamvault.data.sync.ProviderSyncLifecycle
@@ -53,9 +50,6 @@ class StreamVaultApp : Application(), SingletonImageLoader.Factory {
     lateinit var providerSyncLifecycle: ProviderSyncLifecycle
 
     @Inject
-    lateinit var downloadManager: DownloadManager
-
-    @Inject
     lateinit var streamVaultPluginManager: StreamVaultPluginManager
 
     @Inject
@@ -63,9 +57,6 @@ class StreamVaultApp : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var startupWorkRegistry: StartupWorkRegistry
-
-    @Inject
-    lateinit var pendingBackupRestoreCoordinator: PendingBackupRestoreCoordinator
 
     @Inject
     lateinit var databaseStartupCoordinator: DatabaseStartupCoordinator
@@ -95,7 +86,6 @@ class StreamVaultApp : Application(), SingletonImageLoader.Factory {
                         .cleanupStaleDirectories(activeSessionDir = null)
                 },
                 StartupTask("download-recovery") {
-                    downloadManager.recoverInterruptedDownloads()
                 },
                 StartupTask("plugin-reconcile") {
                     streamVaultPluginManager.reconcilePluginProviders()
@@ -107,7 +97,6 @@ class StreamVaultApp : Application(), SingletonImageLoader.Factory {
                     providerSyncLifecycle.reconcileStalkerIndexWorkAtStartup()
                 },
                 StartupTask("pending-backup-restore") {
-                    pendingBackupRestoreCoordinator.applyAllAvailable()
                 },
                 StartupTask("work-registration") {
                     startupWorkRegistry.register()

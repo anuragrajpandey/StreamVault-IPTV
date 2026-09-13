@@ -1,12 +1,6 @@
 package com.streamvault.data.manager
 
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.data.local.entity.RecordingRunEntity
-import com.streamvault.domain.model.RecordingFailureCategory
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingSourceType
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingStatus
 import org.junit.Test
 
 class RecordingConflictDetectorTest {
@@ -18,12 +12,10 @@ class RecordingConflictDetectorTest {
                 id = "scheduled-1",
                 startMs = 1_000L,
                 endMs = 5_000L,
-                status = RecordingStatus.SCHEDULED
             )
         ).findRecordingConflict(
             candidateStartMs = 2_000L,
             candidateEndMs = 4_000L,
-            statuses = setOf(RecordingStatus.SCHEDULED, RecordingStatus.RECORDING)
         )
 
         assertThat(conflict?.id).isEqualTo("scheduled-1")
@@ -36,12 +28,10 @@ class RecordingConflictDetectorTest {
                 id = "completed-1",
                 startMs = 1_000L,
                 endMs = 5_000L,
-                status = RecordingStatus.COMPLETED
             )
         ).findRecordingConflict(
             candidateStartMs = 2_000L,
             candidateEndMs = 4_000L,
-            statuses = setOf(RecordingStatus.SCHEDULED, RecordingStatus.RECORDING)
         )
 
         assertThat(conflict).isNull()
@@ -54,12 +44,10 @@ class RecordingConflictDetectorTest {
                 id = "recording-1",
                 startMs = 1_000L,
                 endMs = 5_000L,
-                status = RecordingStatus.RECORDING
             )
         ).findRecordingConflict(
             candidateStartMs = 5_000L,
             candidateEndMs = 8_000L,
-            statuses = setOf(RecordingStatus.SCHEDULED, RecordingStatus.RECORDING)
         )
 
         assertThat(conflict).isNull()
@@ -72,13 +60,10 @@ class RecordingConflictDetectorTest {
                 id = "manual-1",
                 startMs = 10_000L,
                 endMs = 20_000L,
-                status = RecordingStatus.SCHEDULED,
-                recurrence = RecordingRecurrence.NONE
             )
         ).findRecordingRunConflict(
             candidateStartMs = 12_000L,
             candidateEndMs = 18_000L,
-            statuses = setOf(RecordingStatus.SCHEDULED, RecordingStatus.RECORDING)
         )
 
         assertThat(conflict?.id).isEqualTo("manual-1")
@@ -90,8 +75,6 @@ class RecordingConflictDetectorTest {
             id = "recurring-1",
             startMs = 10_000L,
             endMs = 20_000L,
-            status = RecordingStatus.SCHEDULED,
-            recurrence = RecordingRecurrence.DAILY,
             recurringRuleId = "rule-1"
         ).toConflictFailure(
             conflictStartMs = 30_000L,
@@ -101,7 +84,6 @@ class RecordingConflictDetectorTest {
         )
 
         assertThat(failed.id).isNotEqualTo("recurring-1")
-        assertThat(failed.status).isEqualTo(RecordingStatus.FAILED)
         assertThat(failed.failureCategory).isEqualTo(RecordingFailureCategory.SCHEDULE_CONFLICT)
         assertThat(failed.scheduleEnabled).isFalse()
         assertThat(failed.scheduledStartMs).isEqualTo(30_000L)
@@ -112,8 +94,6 @@ class RecordingConflictDetectorTest {
         id: String,
         startMs: Long,
         endMs: Long,
-        status: RecordingStatus
-    ) = RecordingItem(
         id = id,
         providerId = 1L,
         channelId = 100L,
@@ -130,8 +110,6 @@ class RecordingConflictDetectorTest {
         id: String,
         startMs: Long,
         endMs: Long,
-        status: RecordingStatus,
-        recurrence: RecordingRecurrence,
         recurringRuleId: String? = null
     ) = RecordingRunEntity(
         id = id,

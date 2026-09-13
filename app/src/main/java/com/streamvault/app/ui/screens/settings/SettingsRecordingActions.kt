@@ -2,9 +2,6 @@ package com.streamvault.app.ui.screens.settings
 
 import android.app.Application
 import com.streamvault.app.R
-import com.streamvault.domain.manager.RecordingManager
-import com.streamvault.domain.model.RecordingStorageConfig
-import com.streamvault.domain.model.RecordingReconciliationResult
 import com.streamvault.domain.model.Result
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +12,6 @@ import kotlinx.coroutines.sync.withLock
 
 internal class SettingsRecordingActions(
     private val appContext: Application,
-    private val recordingManager: RecordingManager,
     private val uiState: MutableStateFlow<SettingsUiState>
 ) {
     // Serializes all storage-config updates so that a concurrent read-modify-write
@@ -23,35 +19,6 @@ internal class SettingsRecordingActions(
     // committed RecordingStorageState rather than two stale copies of the same snapshot.
     private val storageConfigMutex = Mutex()
 
-    fun stopRecording(scope: CoroutineScope, recordingId: String) {
-        scope.launch {
-            val result = recordingManager.stopRecording(recordingId)
-            uiState.update {
-                it.copy(
-                    userMessage = if (result is Result.Error) {
-                        appContext.getString(R.string.settings_recording_stop_failed, result.message)
-                    } else {
-                        appContext.getString(R.string.settings_recording_stopped)
-                    }
-                )
-            }
-        }
-    }
-
-    fun cancelRecording(scope: CoroutineScope, recordingId: String) {
-        scope.launch {
-            val result = recordingManager.cancelRecording(recordingId)
-            uiState.update {
-                it.copy(
-                    userMessage = if (result is Result.Error) {
-                        appContext.getString(R.string.settings_recording_cancel_failed, result.message)
-                    } else {
-                        appContext.getString(R.string.settings_recording_cancelled)
-                    }
-                )
-            }
-        }
-    }
 
     fun skipOccurrence(scope: CoroutineScope, recordingId: String) {
         scope.launch {

@@ -6,31 +6,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.streamvault.app.R
-import com.streamvault.app.cast.CastMediaRequest
-import com.streamvault.app.cast.CastMediaRequestFactory
-import com.streamvault.app.cast.CastMediaRequestBuildResult
-import com.streamvault.app.cast.CastPlaybackEvent
-import com.streamvault.app.cast.CastPlaybackCoordinator
-import com.streamvault.app.cast.CastPlaybackReportMode
-import com.streamvault.app.cast.CastStartResult
-import com.streamvault.app.cast.CastUiEvent
-import com.streamvault.app.cast.toCastBuildFailureMessageRes
-import com.streamvault.app.cast.toCastPlaybackMessageRes
-import com.streamvault.app.cast.toCastUnsupportedMessageRes
 import com.streamvault.app.navigation.MOVIE_DETAIL_PRESENTATION_HINT_KEY
 import com.streamvault.app.plugins.StreamVaultPluginManager
-import com.streamvault.app.service.DownloadForegroundService
 import com.streamvault.app.util.isPlaybackComplete
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.domain.model.ContentType
-import com.streamvault.domain.model.DownloadContentType
-import com.streamvault.domain.model.DownloadRequest
 import com.streamvault.domain.model.ExternalRatings
 import com.streamvault.domain.model.ExternalRatingsLookup
 import com.streamvault.domain.model.MovieDetailPresentationHint
 import com.streamvault.domain.model.Movie
 import com.streamvault.domain.model.Result
-import com.streamvault.domain.repository.DownloadManager
 import com.streamvault.domain.repository.ExternalRatingsRepository
 import com.streamvault.domain.repository.FavoriteRepository
 import com.streamvault.domain.repository.MovieRepository
@@ -58,9 +43,6 @@ class MovieDetailViewModel @Inject constructor(
     private val favoriteRepository: FavoriteRepository,
     private val preferencesRepository: PreferencesRepository,
     private val pluginManager: StreamVaultPluginManager,
-    private val downloadManager: DownloadManager,
-    private val castMediaRequestFactory: CastMediaRequestFactory,
-    private val castPlaybackCoordinator: CastPlaybackCoordinator
 ) : ViewModel() {
 
     private val movieId: Long = checkNotNull(
@@ -74,9 +56,7 @@ class MovieDetailViewModel @Inject constructor(
     val uiState: StateFlow<MovieDetailUiState> = _uiState.asStateFlow()
 
     private val _castEvents = MutableSharedFlow<CastUiEvent>()
-    val castEvents: SharedFlow<CastUiEvent> = _castEvents.asSharedFlow()
 
-    private var castPlaybackReportMode = CastPlaybackReportMode.NONE
 
     init {
         observeCastPlaybackEvents()
@@ -166,128 +146,6 @@ class MovieDetailViewModel @Inject constructor(
         }
     }
 
-    fun downloadMovie(context: Context) {
-        val movie = _uiState.value.movie ?: return
-        viewModelScope.launch {
-            val resolvedUrl = resolveCopyStreamUrl()
-            when (resolvedUrl) {
-                is Result.Success -> {
-                    val request = DownloadRequest(
-                        providerId = movie.providerId,
-                        contentType = DownloadContentType.MOVIE,
-                        contentId = movie.id,
-                        contentName = movie.name,
-                        streamUrl = resolvedUrl.data,
-                        sourceStreamUrl = movie.streamUrl,
-                        sourceStreamId = movie.streamId.takeIf { it > 0L },
-                        containerExtension = movie.containerExtension,
-                        posterUrl = movie.posterUrl
-                    )
-                    val result = downloadManager.enqueueDownload(request)
-                    when (result) {
-                        is Result.Success -> {
-                            DownloadForegroundService.startDownload(context, result.data.id)
-                            Toast.makeText(context, context.getString(R.string.download_started), Toast.LENGTH_SHORT).show()
-                        }
-                        is Result.Error ->
-                            Toast.makeText(context, context.getString(R.string.download_failed), Toast.LENGTH_SHORT).show()
-                        Result.Loading -> Unit
-                    }
-                }
-                is Result.Error ->
-                    Toast.makeText(context, context.getString(R.string.download_error_no_url), Toast.LENGTH_SHORT).show()
-                Result.Loading -> Unit
-            }
-        }
-    }
-
-    fun castMovie() {
-        val state = _uiState.value
-        if (state.isCasting) return
-        val movie = state.movie ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isCasting = true) }
-            castPlaybackReportMode = CastPlaybackReportMode.NONE
-            var keepCastingPending = false
-            try {
-                val streamInfo = when (val result = movieRepository.getStreamInfo(movie)) {
-                    is Result.Success -> result.data
-                    is Result.Error -> {
-                        _castEvents.emit(CastUiEvent.ShowMessage(R.string.cast_item_unavailable))
-                        return@launch
-                    }
-                    Result.Loading -> {
-                        _castEvents.emit(CastUiEvent.ShowMessage(R.string.cast_item_unavailable))
-                        return@launch
-                    }
-                }
-                val request = when (val buildResult = castMediaRequestFactory.buildFromStreamInfo(
-                    streamInfo = streamInfo,
-                    title = movie.name,
-                    subtitle = movie.genre,
-                    artworkUrl = movie.posterUrl ?: movie.backdropUrl,
-                    isLive = false,
-                    startPositionMs = state.resumePositionMs
-                )) {
-                    is CastMediaRequestBuildResult.Success -> buildResult.request
-                    is CastMediaRequestBuildResult.Unsupported -> {
-                        _castEvents.emit(CastUiEvent.ShowMessage(buildResult.reason.toCastBuildFailureMessageRes()))
-                        return@launch
-                    }
-                }
-                keepCastingPending = emitCastResult(castPlaybackCoordinator.startCasting(request), request)
-            } finally {
-                if (!keepCastingPending) {
-                    _uiState.update { it.copy(isCasting = false) }
-                }
-            }
-        }
-    }
-
-    private fun observeCastPlaybackEvents() {
-        viewModelScope.launch {
-            castPlaybackCoordinator.playbackEvents.collect { event ->
-                handleCastPlaybackEvent(event)
-            }
-        }
-    }
-
-    private suspend fun handleCastPlaybackEvent(event: CastPlaybackEvent) {
-        val reportMode = castPlaybackReportMode
-        if (reportMode == CastPlaybackReportMode.NONE) return
-        if (event is CastPlaybackEvent.RouteSelectionCancelled) {
-            castPlaybackReportMode = CastPlaybackReportMode.NONE
-            _uiState.update { it.copy(isCasting = false) }
-            return
-        }
-        val isSuccess = event is CastPlaybackEvent.MediaLoadSucceeded
-        if (isSuccess && reportMode == CastPlaybackReportMode.FAILURES_ONLY) {
-            castPlaybackReportMode = CastPlaybackReportMode.NONE
-            _uiState.update { it.copy(isCasting = false) }
-            return
-        }
-        castPlaybackReportMode = CastPlaybackReportMode.NONE
-        _uiState.update { it.copy(isCasting = false) }
-        _castEvents.emit(CastUiEvent.ShowMessage(event.toCastPlaybackMessageRes()))
-    }
-
-    private suspend fun emitCastResult(result: CastStartResult, request: CastMediaRequest): Boolean {
-        _castEvents.emit(
-            when (result) {
-                CastStartResult.STARTED -> {
-                    castPlaybackReportMode = CastPlaybackReportMode.FAILURES_ONLY
-                    CastUiEvent.ShowMessage(R.string.cast_started)
-                }
-                CastStartResult.ROUTE_SELECTION_REQUIRED -> {
-                    castPlaybackReportMode = CastPlaybackReportMode.SUCCESS_AND_FAILURE
-                    CastUiEvent.OpenRouteChooser
-                }
-                CastStartResult.UNAVAILABLE -> CastUiEvent.ShowMessage(R.string.cast_unavailable)
-                CastStartResult.UNSUPPORTED -> CastUiEvent.ShowMessage(request.toCastUnsupportedMessageRes())
-            }
-        )
-        return result == CastStartResult.STARTED || result == CastStartResult.ROUTE_SELECTION_REQUIRED
-    }
 
     private fun loadExternalRatings(movie: Movie) {
         viewModelScope.launch {
@@ -354,7 +212,6 @@ data class MovieDetailUiState(
     val error: String? = null,
     val hasResume: Boolean = false,
     val resumePositionMs: Long = 0L,
-    val isCasting: Boolean = false,
     val isLoadingExternalRatings: Boolean = false,
     val externalRatings: ExternalRatings = ExternalRatings.unavailable(),
     val relatedContent: List<Movie> = emptyList()

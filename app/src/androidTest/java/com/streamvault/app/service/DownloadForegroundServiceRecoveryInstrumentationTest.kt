@@ -6,10 +6,6 @@ import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.data.local.dao.DownloadDao
-import com.streamvault.data.local.entity.DownloadEntity
-import com.streamvault.domain.model.DownloadContentType
-import com.streamvault.domain.model.DownloadStatus
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
 import kotlinx.coroutines.delay

@@ -17,7 +17,6 @@ import com.streamvault.data.local.entity.ProviderAccountRuntimeEntity
 import com.streamvault.data.local.entity.StalkerDiscoveryStageEntity
 import com.streamvault.data.local.entity.StalkerPortalStateEntity
 import com.streamvault.data.local.entity.StalkerIndexJobEntity
-import com.streamvault.data.manager.recording.RecordingAlarmScheduler
 import com.streamvault.data.manager.reminder.ProgramReminderAlarmScheduler
 import com.streamvault.data.mapper.*
 import com.streamvault.data.preferences.PreferencesRepository
@@ -98,7 +97,6 @@ class ProviderRepositoryImpl @Inject constructor(
     private val movieDao: MovieDao,
     private val seriesDao: SeriesDao,
     private val programDao: ProgramDao,
-    private val recordingRunDao: RecordingRunDao,
     private val programReminderDao: ProgramReminderDao,
     private val stalkerApiService: StalkerApiService,
     private val credentialCrypto: CredentialCrypto,
@@ -107,7 +105,6 @@ class ProviderRepositoryImpl @Inject constructor(
     private val syncManager: ProviderSyncCommands,
     private val syncMetadataRepository: SyncMetadataRepository,
     private val transactionRunner: DatabaseTransactionRunner,
-    private val recordingAlarmScheduler: RecordingAlarmScheduler,
     private val programReminderAlarmScheduler: ProgramReminderAlarmScheduler,
     private val jellyfinProvider: JellyfinProvider,
     private val stalkerIndexJobDao: StalkerIndexJobDao,
@@ -130,7 +127,6 @@ class ProviderRepositoryImpl @Inject constructor(
         const val BACKGROUND_EPG_START_DELAY_MS = 15_000L
         // Row-equivalent weights for non-row delete steps so the progress bar still moves
         // meaningfully on providers with tiny (or empty) catalogs.
-        const val ALARM_STEP_WEIGHT = 5
         const val PROVIDER_ROW_STEP_WEIGHT = 200
         const val FINALIZE_STEP_WEIGHT = 200
         const val STALKER_DISCOVERY_STAGE_TTL_MILLIS = 60L * 60L * 1000L
@@ -336,7 +332,6 @@ class ProviderRepositoryImpl @Inject constructor(
         id: Long,
         onProgress: ((ProviderDeleteProgress) -> Unit)?
     ): Result<ProviderDeleteOutcome> = try {
-        val estimatedRecordingRunIds = recordingRunDao.getIdsByProvider(id)
         val estimatedReminderIds = programReminderDao.getIdsByProvider(id)
 
         // Weight progress by the real row counts of the large child tables so the bar
@@ -348,7 +343,6 @@ class ProviderRepositoryImpl @Inject constructor(
 
         val totalWeight = (
                 programCount + channelCount + movieCount + seriesCount +
-                (estimatedRecordingRunIds.size + estimatedReminderIds.size) * ALARM_STEP_WEIGHT +
                 PROVIDER_ROW_STEP_WEIGHT + FINALIZE_STEP_WEIGHT
             ).coerceAtLeast(1)
         var completedWeight = 0
@@ -368,10 +362,8 @@ class ProviderRepositoryImpl @Inject constructor(
             // Re-read alarm identities under the same Room transaction that removes
             // their rows. This closes the window where a newly committed alarm could
             // be cascade-deleted without receiving a durable cancellation tombstone.
-            val recordingRunIds = recordingRunDao.getIdsByProvider(id)
             val reminderIds = programReminderDao.getIdsByProvider(id)
             providerDeletionCleanupDao.insertAll(
-                recordingRunIds.map { ProviderDeletionCleanupEntity(id = 0, providerId = id, action = ProviderDeletionCleanupWorker.RECORDING_ALARM, targetId = it) } +
                     reminderIds.map { ProviderDeletionCleanupEntity(id = 0, providerId = id, action = ProviderDeletionCleanupWorker.REMINDER_ALARM, targetId = it.toString()) } +
                     ProviderDeletionCleanupEntity(id = 0, providerId = id, action = ProviderDeletionCleanupWorker.SYNC_RUNTIME)
             )

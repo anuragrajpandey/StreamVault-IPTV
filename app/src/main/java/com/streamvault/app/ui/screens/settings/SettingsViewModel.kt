@@ -25,14 +25,8 @@ import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.data.sync.ProviderSyncCommands
 import com.streamvault.data.sync.SyncRepairSection
 import com.streamvault.domain.model.VodCategoryLoadMode
-import com.streamvault.domain.manager.BackupConflictStrategy
-import com.streamvault.domain.manager.BackupImportPlan
-import com.streamvault.domain.manager.BackupManager
-import com.streamvault.domain.manager.BackupPreview
-import com.streamvault.domain.manager.BackupRestoreStatusStore
 import com.streamvault.domain.manager.DriveBackupSyncManager
 import com.streamvault.domain.manager.ParentalControlManager
-import com.streamvault.domain.manager.RecordingManager
 import com.streamvault.domain.model.Category
 import com.streamvault.domain.model.AppHomeDashboardShelf
 import com.streamvault.domain.model.AppLandingDestination
@@ -55,9 +49,6 @@ import com.streamvault.domain.model.PlaybackBufferMode
 import com.streamvault.domain.model.VodDuplicateHandlingMode
 import com.streamvault.domain.model.VodHttpProtocolMode
 import com.streamvault.domain.model.ProviderStatus
-import com.streamvault.domain.model.RecordingItem
-import com.streamvault.domain.model.RecordingStorageConfig
-import com.streamvault.domain.model.RecordingStorageState
 import com.streamvault.domain.model.RemoteColorButton
 import com.streamvault.domain.model.RemoteShortcutProfile
 import com.streamvault.domain.model.RemoteShortcutSelection
@@ -109,10 +100,7 @@ class SettingsViewModel @Inject constructor(
     private val programDao: ProgramDao,
     private val preferencesRepository: PreferencesRepository,
     private val internetSpeedTestRunner: InternetSpeedTestRunner,
-    private val backupManager: BackupManager,
-    private val backupRestoreStatusStore: BackupRestoreStatusStore,
     private val driveBackupSyncManager: DriveBackupSyncManager,
-    private val recordingManager: RecordingManager,
     private val parentalControlManager: ParentalControlManager,
     private val syncManager: ProviderSyncCommands,
     private val xtreamIndexJobDao: XtreamIndexJobDao,
@@ -1296,13 +1284,6 @@ class SettingsViewModel @Inject constructor(
         driveBackupActions.deleteBackup(viewModelScope, snapshotId)
     }
 
-    fun stopRecording(recordingId: String) {
-        recordingActions.stopRecording(viewModelScope, recordingId)
-    }
-
-    fun cancelRecording(recordingId: String) {
-        recordingActions.cancelRecording(viewModelScope, recordingId)
-    }
 
     fun skipOccurrence(recordingId: String) {
         recordingActions.skipOccurrence(viewModelScope, recordingId)

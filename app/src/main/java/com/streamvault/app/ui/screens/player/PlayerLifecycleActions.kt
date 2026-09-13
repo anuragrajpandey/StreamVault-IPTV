@@ -124,7 +124,6 @@ fun PlayerViewModel.onAppBackgrounded(): Job? {
 fun PlayerViewModel.onAppForegrounded() {
     if (isAppInForeground) return
     isAppInForeground = true
-    if (shouldResumeAfterForeground && !resumePrompt.value.show) {
         playerEngine.play()
     }
     shouldResumeAfterForeground = false

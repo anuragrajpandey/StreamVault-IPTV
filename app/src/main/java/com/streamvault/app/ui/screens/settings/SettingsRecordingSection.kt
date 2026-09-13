@@ -4,7 +4,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import com.streamvault.app.MainActivity
 import com.streamvault.app.navigation.Routes
-import com.streamvault.domain.model.RecordingStatus
 
 internal fun LazyListScope.settingsRecordingSection(
     uiState: SettingsUiState,
@@ -23,8 +22,6 @@ internal fun LazyListScope.settingsRecordingSection(
             outputDirectory = uiState.recordingStorageState.outputDirectory,
             availableBytes = uiState.recordingStorageState.availableBytes,
             isWritable = uiState.recordingStorageState.isWritable,
-            activeCount = uiState.recordingItems.count { it.status == RecordingStatus.RECORDING },
-            scheduledCount = uiState.recordingItems.count { it.status == RecordingStatus.SCHEDULED },
             fileNamePattern = uiState.recordingStorageState.fileNamePattern,
             retentionDays = uiState.recordingStorageState.retentionDays,
             maxSimultaneousRecordings = uiState.recordingStorageState.maxSimultaneousRecordings,
@@ -63,7 +60,6 @@ internal fun SettingsRecordingBrowserDialog(
     if (!showRecordingBrowserDialog) return
 
     RecordingBrowserDialog(
-        recordingItems = uiState.recordingItems,
         selectedRecordingId = selectedRecordingId,
         onSelectedRecordingChange = onSelectedRecordingChange,
         onDismiss = { onShowRecordingBrowserDialogChange(false) },

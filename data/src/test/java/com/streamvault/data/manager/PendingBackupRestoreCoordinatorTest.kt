@@ -2,7 +2,6 @@ package com.streamvault.data.manager
 
 import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
-import com.streamvault.data.local.dao.BackupRestoreLedgerDao
 import com.streamvault.data.local.dao.ChannelDao
 import com.streamvault.data.local.dao.CategoryDao
 import com.streamvault.data.local.dao.ChannelPreferenceDao
@@ -16,13 +15,11 @@ import com.streamvault.data.local.dao.ProviderDao
 import com.streamvault.data.local.dao.SearchHistoryDao
 import com.streamvault.data.local.dao.SeriesDao
 import com.streamvault.data.local.dao.VirtualGroupDao
-import com.streamvault.data.local.entity.BackupRestoreItemEntity
 import com.streamvault.data.local.entity.ChannelEntity
 import com.streamvault.data.local.entity.CategoryEntity
 import com.streamvault.data.local.entity.FavoriteEntity
 import com.streamvault.data.local.entity.ProviderEntity
 import com.streamvault.data.provider.toProviderSnapshot
-import com.streamvault.domain.manager.BackupProviderReference
 import com.streamvault.domain.manager.PortableContentReference
 import com.streamvault.domain.manager.PortableCategoryReference
 import com.streamvault.domain.manager.PortableCustomGroupBackup
@@ -33,7 +30,6 @@ import com.streamvault.domain.model.ProviderType
 import com.streamvault.domain.model.LegacyProvider
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.domain.repository.ProviderSnapshotRepository
-import com.streamvault.domain.manager.RecordingManager
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flowOf
@@ -52,7 +48,6 @@ import org.mockito.kotlin.never
 class PendingBackupRestoreCoordinatorTest {
     @Test
     fun `cancellation leaves restore instruction retryable`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val channelDao: ChannelDao = mock()
         val gson = Gson()
@@ -93,7 +88,6 @@ class PendingBackupRestoreCoordinatorTest {
 
     @Test
     fun `replace scope clears existing favorites only after every backup reference resolves`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val favoriteDao: FavoriteDao = mock()
         val channelDao: ChannelDao = mock()
@@ -141,7 +135,6 @@ class PendingBackupRestoreCoordinatorTest {
 
     @Test
     fun `provider pass rebinds pending items when local provider id changes again`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val channelDao: ChannelDao = mock()
         val favoriteDao: FavoriteDao = mock()
@@ -198,7 +191,6 @@ class PendingBackupRestoreCoordinatorTest {
 
     @Test
     fun `hidden category fetch requirements include only categories referenced by pending restore items`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val preferences: PreferencesRepository = mock()
         val gson = Gson()
         val reference = PortableContentReference(
@@ -254,7 +246,6 @@ class PendingBackupRestoreCoordinatorTest {
 
     @Test
     fun `hidden category requirements inspect nested provider and global restore payloads`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val preferences: PreferencesRepository = mock()
         val snapshots: ProviderSnapshotRepository = mock()
@@ -330,7 +321,6 @@ class PendingBackupRestoreCoordinatorTest {
 
     @Test
     fun `provider pass resolves favorite by remote id after local ids changed`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val channelDao: ChannelDao = mock()
         val favoriteDao: FavoriteDao = mock()
@@ -412,7 +402,6 @@ class PendingBackupRestoreCoordinatorTest {
 
     @Test
     fun `provider pass applies hidden category after category catalog is available`() = runBlocking {
-        val ledger: BackupRestoreLedgerDao = mock()
         val providerDao: ProviderDao = mock()
         val preferences: PreferencesRepository = mock()
         val categoryDao: CategoryDao = mock()

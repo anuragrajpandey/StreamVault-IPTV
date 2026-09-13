@@ -10,9 +10,6 @@ import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
-import com.streamvault.app.cast.CastManager
-import com.streamvault.app.cast.CastRouteChooserActivity
-import com.streamvault.app.backup.BackupFileBridge
 import com.streamvault.app.device.isTelevisionDevice
 import com.streamvault.app.localization.resolveAppLocale
 import com.streamvault.app.navigation.AppNavigation
@@ -119,7 +116,6 @@ class MainActivity : ComponentActivity() {
     lateinit var tvInputChannelSyncManager: TvInputChannelSyncManager
 
     @Inject
-    lateinit var castManager: CastManager
 
     @Inject
     lateinit var databaseStartupCoordinator: DatabaseStartupCoordinator
@@ -308,9 +304,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun openCastRouteChooser() {
-        startActivity(Intent(this, CastRouteChooserActivity::class.java))
-    }
 
     private fun enterPlayerPictureInPictureModeIfEligible(requirePlaying: Boolean = true): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false

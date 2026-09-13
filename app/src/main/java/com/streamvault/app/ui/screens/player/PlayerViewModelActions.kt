@@ -2,16 +2,7 @@ package com.streamvault.app.ui.screens.player
 
 import androidx.lifecycle.viewModelScope
 import com.streamvault.app.R
-import com.streamvault.app.cast.CastMediaRequest
-import com.streamvault.app.cast.CastMediaRequestBuildResult
-import com.streamvault.app.cast.CastMediaRequestUnsupportedReason
-import com.streamvault.app.cast.CastPlaybackEvent
-import com.streamvault.app.cast.CastPlaybackReportMode
-import com.streamvault.app.cast.CastRewriteRequiredReason
-import com.streamvault.app.cast.CastStartResult
 import com.streamvault.domain.model.ContentType
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingRequest
 import com.streamvault.domain.model.Result
 import com.streamvault.domain.model.StreamInfo
 import com.streamvault.domain.usecase.ScheduleRecordingCommand
@@ -19,7 +10,6 @@ import kotlinx.coroutines.launch
 
 fun PlayerViewModel.castCurrentMedia(onRouteSelectionRequired: () -> Unit) {
     viewModelScope.launch {
-        castPlaybackReportMode = CastPlaybackReportMode.NONE
         val request = when (val result = buildCastRequestResult()) {
             is PlayerCastRequestResult.Success -> result.request
             is PlayerCastRequestResult.Failure -> {
@@ -33,7 +23,6 @@ fun PlayerViewModel.castCurrentMedia(onRouteSelectionRequired: () -> Unit) {
 
         when (playerCastCoordinator.startCasting(request)) {
             CastStartResult.STARTED -> {
-                castPlaybackReportMode = CastPlaybackReportMode.SUCCESS_AND_FAILURE
                 showPlayerNotice(
                     message = appContext.getString(R.string.cast_started),
                     recoveryType = PlayerRecoveryType.NETWORK
@@ -41,12 +30,10 @@ fun PlayerViewModel.castCurrentMedia(onRouteSelectionRequired: () -> Unit) {
             }
 
             CastStartResult.ROUTE_SELECTION_REQUIRED -> {
-                castPlaybackReportMode = CastPlaybackReportMode.SUCCESS_AND_FAILURE
                 onRouteSelectionRequired()
             }
 
             CastStartResult.UNAVAILABLE -> {
-                castPlaybackReportMode = CastPlaybackReportMode.NONE
                 showPlayerNotice(
                     message = appContext.getString(R.string.cast_unavailable),
                     recoveryType = PlayerRecoveryType.SOURCE
@@ -54,7 +41,6 @@ fun PlayerViewModel.castCurrentMedia(onRouteSelectionRequired: () -> Unit) {
             }
 
             CastStartResult.UNSUPPORTED -> {
-                castPlaybackReportMode = CastPlaybackReportMode.NONE
                 showPlayerNotice(
                     message = toPlayerCastUnsupportedMessage(request),
                     recoveryType = PlayerRecoveryType.SOURCE
@@ -73,18 +59,12 @@ internal fun PlayerViewModel.observeCastPlaybackEvents() {
 }
 
 private fun PlayerViewModel.handleCastPlaybackEvent(event: CastPlaybackEvent) {
-    val reportMode = castPlaybackReportMode
-    if (reportMode == CastPlaybackReportMode.NONE) return
     if (event is CastPlaybackEvent.RouteSelectionCancelled) {
-        castPlaybackReportMode = CastPlaybackReportMode.NONE
         return
     }
     val isSuccess = event is CastPlaybackEvent.MediaLoadSucceeded
-    if (isSuccess && reportMode == CastPlaybackReportMode.FAILURES_ONLY) {
-        castPlaybackReportMode = CastPlaybackReportMode.NONE
         return
     }
-    castPlaybackReportMode = CastPlaybackReportMode.NONE
     if (isSuccess) {
         playerEngine.pause()
     }
@@ -130,18 +110,14 @@ fun PlayerViewModel.startManualRecording() {
 }
 
 fun PlayerViewModel.scheduleRecording() {
-    scheduleRecordingInternal(RecordingRecurrence.NONE)
 }
 
 fun PlayerViewModel.scheduleDailyRecording() {
-    scheduleRecordingInternal(RecordingRecurrence.DAILY)
 }
 
 fun PlayerViewModel.scheduleWeeklyRecording() {
-    scheduleRecordingInternal(RecordingRecurrence.WEEKLY)
 }
 
-private fun PlayerViewModel.scheduleRecordingInternal(recurrence: RecordingRecurrence) {
     viewModelScope.launch {
         val result = playerRecordingCoordinator.scheduleRecording(
             ScheduleRecordingCommand(
@@ -158,9 +134,6 @@ private fun PlayerViewModel.scheduleRecordingInternal(recurrence: RecordingRecur
             showPlayerNotice(message = result.message, recoveryType = PlayerRecoveryType.SOURCE)
         } else {
             val recurrenceLabel = when (recurrence) {
-                RecordingRecurrence.NONE -> ""
-                RecordingRecurrence.DAILY -> " daily"
-                RecordingRecurrence.WEEKLY -> " weekly"
             }
             val scheduledItem = (result as? Result.Success)?.data
             val title = scheduledItem?.programTitle ?: "Recording"
@@ -170,7 +143,6 @@ private fun PlayerViewModel.scheduleRecordingInternal(recurrence: RecordingRecur
 }
 
 fun PlayerViewModel.stopCurrentRecording() {
-    val recording = currentChannelRecording.value ?: return
     viewModelScope.launch {
         val result = playerRecordingCoordinator.stopRecording(recording.id)
         if (result is Result.Error) {

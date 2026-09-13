@@ -2,9 +2,6 @@ package com.streamvault.data.local
 
 import androidx.room.Room
 import com.google.common.truth.Truth.assertThat
-import com.streamvault.data.local.entity.DownloadEntity
-import com.streamvault.domain.model.DownloadContentType
-import com.streamvault.domain.model.DownloadStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

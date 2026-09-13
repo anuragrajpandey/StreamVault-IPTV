@@ -9,18 +9,13 @@ import org.junit.Test
 
 class CastMediaRequestFactoryTest {
 
-    private val factory = CastMediaRequestFactory()
 
     @Test
     fun `maps adaptive and transport stream formats to cast MIME types`() {
         assertThat(request("https://example.test/live.m3u8")?.mimeType)
-            .isEqualTo(CastMediaRequestFactory.MIME_HLS)
         assertThat(request("https://example.test/movie.mpd")?.mimeType)
-            .isEqualTo(CastMediaRequestFactory.MIME_DASH)
         assertThat(request("https://example.test/channel.ism/manifest")?.mimeType)
-            .isEqualTo(CastMediaRequestFactory.MIME_SMOOTH_STREAMING)
         assertThat(request("https://example.test/live.ts")?.mimeType)
-            .isEqualTo(CastMediaRequestFactory.MIME_MPEG_TS)
     }
 
     @Test
@@ -30,15 +25,12 @@ class CastMediaRequestFactoryTest {
                 "https://example.test/playback?id=1",
                 containerExtension = "m3u8"
             )?.mimeType
-        ).isEqualTo(CastMediaRequestFactory.MIME_HLS)
     }
 
     @Test
     fun `maps progressive and unknown URLs to generic video MIME type`() {
         assertThat(request("https://example.test/movie.mp4")?.mimeType)
-            .isEqualTo(CastMediaRequestFactory.MIME_VIDEO)
         assertThat(request("https://example.test/playback?id=1")?.mimeType)
-            .isEqualTo(CastMediaRequestFactory.MIME_VIDEO)
     }
 
     @Test

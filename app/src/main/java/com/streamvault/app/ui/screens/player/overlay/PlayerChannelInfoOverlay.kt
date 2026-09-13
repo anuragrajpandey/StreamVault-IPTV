@@ -58,7 +58,6 @@ import com.streamvault.app.ui.time.LocalAppTimeFormat
 import com.streamvault.app.ui.time.createTimeFormat
 import com.streamvault.domain.model.Channel
 import com.streamvault.domain.model.Program
-import com.streamvault.domain.model.RecordingStatus
 import com.streamvault.player.timeshift.LiveTimeshiftStatus
 import java.util.Date
 import com.streamvault.app.ui.design.AppColors.Brand as Primary
@@ -76,7 +75,6 @@ fun ChannelInfoOverlay(
     onOverlayInteracted: () -> Unit,
     onOpenFullEpg: () -> Unit,
     onOpenLastGroup: () -> Unit,
-    currentRecordingStatus: RecordingStatus?,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
     onScheduleRecording: () -> Unit,
@@ -224,12 +222,10 @@ fun ChannelInfoOverlay(
                                     containerColor = AppColors.SurfaceEmphasis
                                 )
                             }
-                            if (currentRecordingStatus == RecordingStatus.RECORDING) {
                                 StatusPill(
                                     label = stringResource(R.string.player_recording_badge),
                                     containerColor = AppColors.Live
                                 )
-                            } else if (currentRecordingStatus == RecordingStatus.SCHEDULED) {
                                 StatusPill(
                                     label = stringResource(R.string.player_recording_scheduled_badge),
                                     containerColor = AppColors.BrandMuted
@@ -621,10 +617,8 @@ fun ChannelInfoOverlay(
                     ChannelInfoActionMenuTray(
                         title = stringResource(R.string.player_record_options),
                         actions = buildList {
-                            if (currentRecordingStatus == RecordingStatus.RECORDING || currentRecordingStatus == RecordingStatus.SCHEDULED) {
                                 add(
                                     ChannelInfoMenuEntry(
-                                        label = if (currentRecordingStatus == RecordingStatus.SCHEDULED) {
                                             stringResource(R.string.player_cancel_scheduled_recording)
                                         } else {
                                             stringResource(R.string.player_stop_recording)

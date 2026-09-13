@@ -4,10 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.streamvault.domain.model.DownloadContentType
-import com.streamvault.domain.model.DownloadItem
-import com.streamvault.domain.model.DownloadRequest
-import com.streamvault.domain.model.DownloadStatus
 
 @Entity(
     tableName = "downloads",

@@ -67,8 +67,6 @@ import com.streamvault.domain.repository.FavoriteRepository
 import com.streamvault.domain.repository.ProviderRepository
 import com.streamvault.domain.usecase.SearchContent
 import com.streamvault.domain.usecase.SearchContentScope
-import com.streamvault.domain.manager.RecordingManager
-import com.streamvault.domain.model.RecordingStatus
 import com.streamvault.domain.util.AdultContentVisibilityPolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -87,7 +85,6 @@ class SearchViewModel @Inject constructor(
     private val parentalControlManager: ParentalControlManager,
     private val favoriteRepository: FavoriteRepository,
     private val categoryRepository: CategoryRepository,
-    private val recordingManager: RecordingManager
 ) : ViewModel() {
     private companion object {
         const val MAX_RESULTS_PER_SECTION = 120
@@ -124,10 +121,8 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             recordingManager.observeRecordingItems().collect { items ->
                 _recordingChannelIds.value = items
-                    .filter { it.status == RecordingStatus.RECORDING }
                     .map { it.channelId }.toSet()
                 _scheduledChannelIds.value = items
-                    .filter { it.status == RecordingStatus.SCHEDULED }
                     .map { it.channelId }.toSet()
             }
         }

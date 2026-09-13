@@ -9,7 +9,6 @@ import com.streamvault.domain.model.SearchHistoryScope
 import com.streamvault.domain.model.Series
 import com.streamvault.data.preferences.PreferencesRepository
 import com.streamvault.domain.manager.ParentalControlManager
-import com.streamvault.domain.manager.RecordingManager
 import com.streamvault.domain.repository.CategoryRepository
 import com.streamvault.domain.repository.FavoriteRepository
 import com.streamvault.domain.repository.ProviderRepository
@@ -46,7 +45,6 @@ class SearchViewModelTest {
     private val parentalControlManager: ParentalControlManager = mock()
     private val favoriteRepository: FavoriteRepository = mock()
     private val categoryRepository: CategoryRepository = mock()
-    private val recordingManager: RecordingManager = mock()
 
     private lateinit var viewModel: SearchViewModel
 

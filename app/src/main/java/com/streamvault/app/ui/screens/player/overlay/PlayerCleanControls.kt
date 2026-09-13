@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.HighQuality
@@ -62,7 +61,6 @@ import com.streamvault.app.ui.screens.player.PlayerTimeshiftUiState
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.domain.model.Channel
 import com.streamvault.domain.model.Program
-import com.streamvault.domain.model.RecordingStatus
 import java.util.Locale
 
 private val ClearWhite = Color.White
@@ -89,7 +87,6 @@ fun PlayerCleanControls(
     liveTranslationAvailable: Boolean,
     audioTrackCount: Int,
     videoQualityCount: Int,
-    currentRecordingStatus: RecordingStatus?,
     isMuted: Boolean,
     playbackSpeed: Float,
     mediaTitle: String?,
@@ -337,7 +334,6 @@ fun PlayerCleanControls(
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_idle_standby_after), onOpenIdleStandbyTimer)
                             CleanIconButton(Icons.Default.Settings, "Audio/video sync", onOpenAudioVideoSync)
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.multiview_nav), onOpenSplitScreen)
-                            if (currentRecordingStatus == RecordingStatus.RECORDING) {
                                 CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_stop_recording), onStopRecording)
                             } else {
                                 CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_record), onStartRecording)

@@ -5,8 +5,6 @@ import com.streamvault.app.update.isRemoteVersionNewer
 import com.streamvault.app.update.AppUpdateInstaller
 import com.streamvault.data.local.dao.ProgramDao
 import com.streamvault.data.preferences.PreferencesRepository
-import com.streamvault.domain.manager.RecordingManager
-import com.streamvault.domain.model.RecordingItem
 import com.streamvault.domain.repository.CategoryRepository
 import com.streamvault.domain.repository.ChannelRepository
 import com.streamvault.domain.repository.CombinedM3uRepository
@@ -106,7 +104,6 @@ internal fun registerRecordingObservers(
 ) {
     scope.launch {
         recordingManager.observeRecordingItems().collect { items ->
-            uiState.update { it.copy(recordingItems = items.sortedByDescending(RecordingItem::scheduledStartMs)) }
         }
     }
 

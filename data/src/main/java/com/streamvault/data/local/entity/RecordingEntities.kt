@@ -5,10 +5,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.streamvault.domain.model.RecordingFailureCategory
-import com.streamvault.domain.model.RecordingRecurrence
-import com.streamvault.domain.model.RecordingSourceType
-import com.streamvault.domain.model.RecordingStatus
 import com.streamvault.domain.model.ProgramReminderDeliveryState
 
 @Entity(
@@ -37,7 +33,6 @@ data class RecordingScheduleEntity(
     @ColumnInfo(name = "program_title") val programTitle: String? = null,
     @ColumnInfo(name = "requested_start_ms") val requestedStartMs: Long,
     @ColumnInfo(name = "requested_end_ms") val requestedEndMs: Long,
-    val recurrence: RecordingRecurrence = RecordingRecurrence.NONE,
     @ColumnInfo(name = "recurring_rule_id") val recurringRuleId: String? = null,
     val enabled: Boolean = true,
     @ColumnInfo(name = "is_manual") val isManual: Boolean = false,
@@ -81,9 +76,7 @@ data class RecordingRunEntity(
     @ColumnInfo(name = "program_title") val programTitle: String? = null,
     @ColumnInfo(name = "scheduled_start_ms") val scheduledStartMs: Long,
     @ColumnInfo(name = "scheduled_end_ms") val scheduledEndMs: Long,
-    val recurrence: RecordingRecurrence = RecordingRecurrence.NONE,
     @ColumnInfo(name = "recurring_rule_id") val recurringRuleId: String? = null,
-    val status: RecordingStatus = RecordingStatus.SCHEDULED,
     @ColumnInfo(name = "source_type") val sourceType: RecordingSourceType = RecordingSourceType.UNKNOWN,
     @ColumnInfo(name = "resolved_url") val resolvedUrl: String? = null,
     @ColumnInfo(name = "headers_json") val headersJson: String = "{}",
@@ -177,9 +170,7 @@ data class RecordingRunWithSchedule(
     @ColumnInfo(name = "program_title") val programTitle: String? = null,
     @ColumnInfo(name = "scheduled_start_ms") val scheduledStartMs: Long,
     @ColumnInfo(name = "scheduled_end_ms") val scheduledEndMs: Long,
-    val recurrence: RecordingRecurrence,
     @ColumnInfo(name = "recurring_rule_id") val recurringRuleId: String? = null,
-    val status: RecordingStatus,
     @ColumnInfo(name = "source_type") val sourceType: RecordingSourceType,
     @ColumnInfo(name = "output_uri") val outputUri: String? = null,
     @ColumnInfo(name = "output_display_path") val outputDisplayPath: String? = null,
