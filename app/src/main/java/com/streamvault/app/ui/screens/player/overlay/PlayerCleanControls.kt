@@ -16,13 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Settings
@@ -314,16 +312,10 @@ fun PlayerCleanControls(
                         CleanIconButton(Icons.Default.HighQuality, stringResource(R.string.player_video_quality), onOpenVideoTracks, primaryControlSize)
                     }
                     CleanIconButton(Icons.Default.Settings, "Playback speed", onOpenPlaybackSpeed, primaryControlSize)
-                    if (isCastConnected) {
-                        CleanIconButton(Icons.Default.Cast, stringResource(R.string.player_stop_casting), onStopCasting, primaryControlSize)
-                    } else {
-                        CleanIconButton(Icons.Default.Cast, stringResource(R.string.player_cast), onCast, primaryControlSize)
-                    }
                     CleanIconButton(Icons.Default.AspectRatio, aspectRatioLabel, onToggleAspectRatio, primaryControlSize)
-                    CleanIconButton(Icons.Default.PictureInPictureAlt, "Picture in picture", onEnterPictureInPicture, primaryControlSize)
                 }
 
-                if (live || audioVideoSyncEnabled || showExternalPlayerAction || currentRecordingStatus != null) {
+                if (live || audioVideoSyncEnabled || showExternalPlayerAction) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -337,11 +329,6 @@ fun PlayerCleanControls(
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_idle_standby_after), onOpenIdleStandbyTimer)
                             CleanIconButton(Icons.Default.Settings, "Audio/video sync", onOpenAudioVideoSync)
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.multiview_nav), onOpenSplitScreen)
-                            if (currentRecordingStatus == RecordingStatus.RECORDING) {
-                                CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_stop_recording), onStopRecording)
-                            } else {
-                                CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_record), onStartRecording)
-                            }
                         } else {
                             CleanIconButton(Icons.Default.Settings, stringResource(R.string.player_idle_standby_after), onOpenIdleStandbyTimer)
                         }
