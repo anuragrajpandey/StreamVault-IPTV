@@ -288,7 +288,7 @@ private fun TopNavigationBar(
                 color = AppColors.TextPrimary,
                 modifier = Modifier.wrapContentWidth(Alignment.Start)
             )
-            Spacer(modifier = Modifier.width(32.dp)) // Increased spacing to prevent overlap
+            Spacer(modifier = Modifier.width(32.dp))
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -298,13 +298,14 @@ private fun TopNavigationBar(
             ) {
                 items.forEach { item ->
                     val requester = focusRequesters.getOrPut(item.route) { FocusRequester() }
+                    val selected = isDestinationSelected(item, currentRoute)
                     TopNavigationButton(
                         label = stringResource(item.labelRes),
                         icon = item.icon,
-                        selected = currentRoute.startsWith(item.route),
+                        selected = selected,
                         focusRequester = requester,
                         onClick = {
-                            if (!currentRoute.startsWith(item.route)) {
+                            if (!selected) {
                                 onNavigate(item.route)
                             }
                         }
@@ -383,7 +384,7 @@ private fun TopNavigationButton(
                     onClick()
                 }
             )
-            .zIndex(if (isFocused) 1f else 0f) // Keep focused button on top
+            .zIndex(if (isFocused) 1f else 0f)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -747,10 +748,10 @@ private fun DestinationRail(
                 RailButton(
                     label = stringResource(item.labelRes),
                     icon = item.icon,
-                    selected = currentRoute.startsWith(item.route),
+                    selected = isDestinationSelected(item, currentRoute),
                     modifier = Modifier.focusRequester(requester),
                     onClick = {
-                        if (!currentRoute.startsWith(item.route)) {
+                        if (!isDestinationSelected(item, currentRoute)) {
                             onNavigate(item.route)
                         }
                     }
@@ -832,12 +833,21 @@ private data class DestinationItem(
     val icon: ImageVector
 )
 
+private fun isDestinationSelected(
+    item: DestinationItem,
+    currentRoute: String
+): Boolean = if (item.route == Routes.VOD) {
+    currentRoute.startsWith(Routes.MOVIES) || currentRoute.startsWith(Routes.SERIES)
+} else {
+    currentRoute.startsWith(item.route)
+}
+
 private fun findActiveDestinationItem(
     items: List<DestinationItem>,
     currentRoute: String
 ): DestinationItem? =
     items
-        .filter { currentRoute.startsWith(it.route) }
+        .filter { isDestinationSelected(it, currentRoute) }
         .maxByOrNull { it.route.length }
         ?: items.firstOrNull { it.route == currentRoute }
 
