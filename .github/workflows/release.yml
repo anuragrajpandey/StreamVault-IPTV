@@ -21,24 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Repair progressive onboarding before build
-        shell: bash
-        env:
-          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
-        run: |
-          set -euo pipefail
-          if [[ "$HEAD_MESSAGE" == *"fix: isolate progressive onboarding from provider lock"* ]]; then
-            echo "Progressive onboarding source fix is already committed."
-            exit 0
-          fi
-          python3 tools/repair_progressive_onboarding.py
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/src/main/java/com/streamvault/data/sync/SyncManager.kt data/src/main/java/com/streamvault/data/sync/InitialCatalogCallbackRegistry.kt data/src/main/java/com/streamvault/data/sync/SyncManagerXtreamLiveStrategy.kt data/src/main/java/com/streamvault/data/sync/SyncManagerM3uImporter.kt tools/repair_progressive_onboarding.py
-          git rm -f .github/workflows/one-shot-repair.yml .github/workflows/repair-now.yml .github/workflows/repair-final.yml 2>/dev/null || true
-          git commit -m 'fix: isolate progressive onboarding from provider lock'
-          git push
-
       - name: Restore app lint baseline for CI
         shell: bash
         run: |
