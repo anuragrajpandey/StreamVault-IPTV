@@ -1208,9 +1208,7 @@ class PlayerViewModel @Inject constructor(
                 if (!isActivePlaybackSession(requestVersion, playbackLogicalUrl)) return@launch
                 if (!preparePlayer(streamInfo, requestVersion)) return@launch
 
-                // Check for resume position after the player is fully prepared (VOD only).
-                // Doing this after preparePlayer ensures pause() acts on the live player instance,
-                // not a stale one that may have already been replaced by prepareInternal().
+                // Resume VOD automatically from saved progress. No Resume/Start Over prompt.
                 if (showResumePrompt && currentContentType != ContentType.LIVE && currentContentId != -1L && currentProviderId != -1L) {
                     val history = playbackHistoryCoordinator.getPlaybackHistory(
                         contentId = currentContentId,
@@ -1221,14 +1219,11 @@ class PlayerViewModel @Inject constructor(
                         episodeNumber = currentEpisodeNumber
                     )
                     if (isActivePlaybackSession(requestVersion, playbackLogicalUrl)) {
+                        _resumePrompt.value = ResumePromptState()
                         if (history != null && history.resumePositionMs > 5000L && !isPlaybackComplete(history.resumePositionMs, history.totalDurationMs)) {
-                            playerEngine.pause()
-                            _resumePrompt.value = ResumePromptState(
-                                show = true,
-                                positionMs = history.resumePositionMs,
-                                title = currentTitle
-                            )
+                            playerEngine.seekTo(history.resumePositionMs)
                         }
+                        playerEngine.play()
                     }
                 }
             }
