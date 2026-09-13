@@ -1,8 +1,7 @@
-name: EliteStocks TV final cleanup v7
+name: EliteStocks TV final cleanup
 
 on:
-  push:
-    branches: [elitestocks-tv-feature-cleanup]
+  workflow_dispatch:
 
 permissions:
   contents: write
