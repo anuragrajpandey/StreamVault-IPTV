@@ -351,7 +351,11 @@ fun MovieCard(
     onLongClick: (() -> Unit)? = null,
     isLocked: Boolean = false,
     showTypeBadge: Boolean = false,
-    watchProgress: Float = 0f,
+    watchProgress: Float = if (movie.durationSeconds > 0) {
+        (movie.watchProgress.toFloat() / (movie.durationSeconds.toFloat() * 1000f)).coerceIn(0f, 1f)
+    } else {
+        0f
+    },
     isReorderMode: Boolean = false,
     isDragging: Boolean = false,
     width: Dp = 136.dp,
