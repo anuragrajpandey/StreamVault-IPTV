@@ -2,18 +2,13 @@ name: EliteStocks TV Cleanup
 
 on:
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: 'Branch to clean up and verify'
-        required: true
-        default: 'elitestocks-tv-feature-cleanup'
-        type: string
 
 permissions:
   contents: write
 
 env:
   GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m
+  TV_BRANCH: elitestocks-tv-feature-cleanup
 
 jobs:
   cleanup-and-verify:
@@ -21,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout target TV branch
+      - name: Checkout EliteStocks TV branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: elitestocks-tv-feature-cleanup
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -56,5 +51,5 @@ jobs:
             echo 'No changes to commit.'
           else
             git commit -m 'refactor: complete EliteStocks TV cleanup'
-            git push origin HEAD:${{ inputs.target_branch }}
+            git push origin HEAD:elitestocks-tv-feature-cleanup
           fi
