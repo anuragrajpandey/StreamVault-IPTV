@@ -176,6 +176,29 @@ internal class SyncManagerM3uImporter(
             sessionId = continuationSessionId
         }
 
+        suspend fun flushLiveBatch() {
+            if (channelBatch.isEmpty()) return
+            val stagedBatch = channelBatch.toList()
+            flushChannelBatch(provider.id, sessionId, channelBatch)
+            if (initialCatalogCommitted) return
+            val initialCatalogCallback = InitialCatalogCallbackRegistry.take(provider.id) ?: return
+            if (stagedBatch.isEmpty()) return
+            syncCatalogStore.upsertLiveCatalog(
+                providerId = provider.id,
+                categories = liveCategories.entities(),
+                channels = stagedBatch,
+                afterCatalogApply = initialCatalogCallback
+            )
+            initialCatalogCommitted = true
+            val continuationSessionId = syncCatalogStore.newSessionId()
+            syncCatalogStore.stageChannelBatch(provider.id, continuationSessionId, stagedBatch)
+            if (movieBatch.isNotEmpty()) {
+                syncCatalogStore.stageMovieBatch(provider.id, continuationSessionId, movieBatch.toList())
+                movieBatch.clear()
+            }
+            sessionId = continuationSessionId
+        }
+
         try {
             openPlaylistStream(provider) { streamed ->
                 streamed.contentLength
