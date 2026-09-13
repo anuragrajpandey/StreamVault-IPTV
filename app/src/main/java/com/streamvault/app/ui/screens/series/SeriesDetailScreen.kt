@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -164,7 +165,7 @@ private fun SeriesDetailContent(
     onCastEpisode: (Episode) -> Unit,
     onBack: () -> Unit
 ) {
-    val isTelevisionDevice = rememberIsTelevisionDevice()
+    val isTelevisionDevice = (LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val copyEpisodeUrl: (Episode) -> Unit = { episode ->
