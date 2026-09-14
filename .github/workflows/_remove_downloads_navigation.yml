@@ -6,7 +6,6 @@ permissions:
   contents: write
 jobs:
   cleanup:
-    if: github.sha == 'd2ef2fed592d1f01c880723e0a1ad9cedd028ec5'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +36,7 @@ jobs:
       - name: Commit cleanup and remove helper
         run: |
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+users.noreply.github.com'
           git add app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt .github/workflows/_remove_downloads_navigation.yml
           git commit -m 'feat: remove downloads navigation route'
           git rm .github/workflows/_remove_downloads_navigation.yml
