@@ -1,0 +1,76 @@
+name: Remove Downloads Navigation Repair
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.event.head_commit.message == 'chore: add downloads navigation repair helper'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Remove Downloads navigation references
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt')
+          s = p.read_text()
+          for old in [
+              'import com.streamvault.app.ui.screens.downloads.DownloadsScreen\n',
+              '    const val DOWNLOADS = "downloads"\n',
+              '    AppLandingDestination.DOWNLOADS -> Routes.DOWNLOADS\n',
+              '    AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS\n',
+              '\n        composable(Routes.DOWNLOADS) {\n            DownloadsScreen(\n                onNavigate = { route -> tabNavigate(route) },\n                currentRoute = Routes.DOWNLOADS\n            )\n        }\n',
+          ]:
+              s = s.replace(old, '')
+          p.write_text(s)
+
+          p = Path('app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt')
+          s = p.read_text()
+          old = '    AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)\n'
+          if s.count(old) != 1:
+              raise SystemExit(f'Expected one Downloads shell mapping, got {s.count(old)}')
+          p.write_text(s.replace(old, ''))
+
+          p = Path('domain/src/main/java/com/streamvault/domain/model/AppTopLevelDestination.kt')
+          s = p.read_text()
+          old = '    DOWNLOADS("downloads", AppLandingDestination.DOWNLOADS),\n'
+          if s.count(old) != 1:
+              raise SystemExit(f'Expected one top-level Downloads enum, got {s.count(old)}')
+          s = s.replace(old, '')
+          s = s.replace('                if (destination != DOWNLOADS) unique += destination\n', '                unique += destination\n')
+          p.write_text(s)
+
+          p = Path('domain/src/main/java/com/streamvault/domain/model/AppLandingDestination.kt')
+          s = p.read_text()
+          old = '    DOWNLOADS("downloads"),\n'
+          if s.count(old) != 1:
+              raise SystemExit(f'Expected one landing Downloads enum, got {s.count(old)}')
+          p.write_text(s.replace(old, ''))
+          PY
+
+          ! grep -R -n --exclude-dir=.git 'Routes.DOWNLOADS\|AppTopLevelDestination.DOWNLOADS\|AppLandingDestination.DOWNLOADS\|const val DOWNLOADS' app/src/main/java domain/src/main/java
+
+      - name: Run navigation unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Commit repair and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt domain/src/main/java/com/streamvault/domain/model/AppTopLevelDestination.kt domain/src/main/java/com/streamvault/domain/model/AppLandingDestination.kt
+          git commit -m 'fix: remove downloads navigation references'
+          git push
+          git rm .github/workflows/_remove_downloads_navigation_v2.yml
+          git commit -m 'chore: remove downloads repair helper'
+          git push
