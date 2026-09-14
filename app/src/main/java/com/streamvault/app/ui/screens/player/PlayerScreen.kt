@@ -90,7 +90,6 @@ import com.streamvault.app.ui.screens.player.overlay.EpgOverlay
 import com.streamvault.app.ui.screens.player.overlay.PlayerErrorOverlay
 import com.streamvault.app.ui.screens.player.overlay.PlayerNoticeBanner
 import com.streamvault.app.ui.screens.player.overlay.PlayerEpisodeSelectionDialog
-import com.streamvault.app.ui.screens.player.overlay.PlayerResumePrompt
 import com.streamvault.app.ui.screens.player.overlay.PlayerTrackSelectionDialog
 import com.streamvault.app.ui.screens.player.overlay.PlayerAspectRatioToast
 import com.streamvault.app.ui.screens.player.overlay.PlayerControlsOverlay
@@ -177,7 +176,6 @@ fun PlayerScreen(
     val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()
     val autoPlayCountdown by viewModel.autoPlayCountdown.collectAsStateWithLifecycle()
     val playbackTitle by viewModel.playbackTitle.collectAsStateWithLifecycle()
-    val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()
     val currentSeriesSeasons = remember(currentSeries) {
         currentSeries?.seasons.sanitizedForPlayer()
     }
@@ -542,7 +540,7 @@ fun PlayerScreen(
         }
     }
 
-    BackHandler(enabled = !resumePrompt.show) {
+    BackHandler {
         handleBackPress()
     }
 
@@ -1141,15 +1139,6 @@ fun PlayerScreen(
             }
         }
 
-        // Resume Prompt Dialog
-        if (!isInPictureInPictureMode && resumePrompt.show) {
-            PlayerResumePrompt(
-                title = resumePrompt.title,
-                onStartOver = { viewModel.dismissResumePrompt(resume = false) },
-                onResume = { viewModel.dismissResumePrompt(resume = true) }
-            )
-        }
-        
         // Track Selection Dialog
         if (!isInPictureInPictureMode) {
             PlayerTrackSelectionDialog(
