@@ -1,0 +1,44 @@
+name: Remove Resume UI Once
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove obsolete resume prompt UI
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt')
+          s = p.read_text()
+          replacements = [
+              ('import com.streamvault.app.ui.screens.player.overlay.PlayerResumePrompt\n', ''),
+              ('    val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()\n', ''),
+              ('    BackHandler(enabled = !resumePrompt.show) {\n', '    BackHandler {\n'),
+              ('''        // Resume Prompt Dialog\n        if (!isInPictureInPictureMode && resumePrompt.show) {\n            PlayerResumePrompt(\n                title = resumePrompt.title,\n                onStartOver = { viewModel.dismissResumePrompt(resume = false) },\n                onResume = { viewModel.dismissResumePrompt(resume = true) }\n            )\n        }\n        \n''', ''),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'Missing expected block: {old[:80]!r}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit cleanup and remove helper
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/streamvault/app/ui/screens/player/PlayerScreen.kt .github/workflows/_remove-resume-ui.yml
+          git commit -m "cleanup: remove obsolete resume prompt UI"
+          git rm .github/workflows/_remove-resume-ui.yml
+          git commit -m "chore: remove temporary resume UI workflow"
+          git push
