@@ -6,7 +6,6 @@ on:
 
 jobs:
   cleanup:
-    if: github.event.head_commit.message == 'chore: start feature cleanup'
     runs-on: ubuntu-latest
     permissions:
       contents: write
