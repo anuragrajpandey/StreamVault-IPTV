@@ -36,6 +36,7 @@ jobs:
                   ('    const val DOWNLOADS = "downloads"\n', ''),
                   ('    AppLandingDestination.DOWNLOADS -> Routes.DOWNLOADS\n', ''),
                   ('    AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS\n', ''),
+                  ('\n        composable(Routes.DOWNLOADS) {\n            DownloadsScreen(\n                onNavigate = { route -> tabNavigate(route) },\n                currentRoute = Routes.DOWNLOADS\n            )\n        }\n', ''),
               ],
               'app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt': [
                   ('    AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)\n', ''),
@@ -45,13 +46,11 @@ jobs:
           for name, replacements in files.items():
               p = Path(name)
               text = p.read_text()
-              original = text
               for old, new in replacements:
                   if old not in text:
                       raise SystemExit(f'Expected cleanup target missing in {name}: {old!r}')
                   text = text.replace(old, new, 1)
               p.write_text(text)
-              print(f'updated {name}: {len(original)} -> {len(text)} bytes')
           PY
 
           if grep -RIn --exclude-dir=.git --exclude='*.lock' \
