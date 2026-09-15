@@ -38,7 +38,6 @@ import com.streamvault.app.ui.screens.series.SeriesScreen
 import com.streamvault.app.ui.screens.vod.VodScreen
 import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
-import com.streamvault.app.ui.screens.downloads.DownloadsScreen
 import com.streamvault.app.MainActivity
 import com.streamvault.domain.model.AppLandingDestination
 import com.streamvault.domain.model.AppTopLevelDestination
@@ -107,7 +106,6 @@ object Routes {
     const val MOVIES = "movies"
     const val SERIES = "series"
     const val VOD = "vod"
-    const val DOWNLOADS = "downloads"
     const val EPG = "epg"
     const val EPG_DESTINATION = "epg?categoryId={categoryId}&anchorTime={anchorTime}&favoritesOnly={favoritesOnly}"
     const val SETTINGS = "settings"
@@ -338,7 +336,6 @@ internal fun AppLandingDestination.toAppRoute(): String = when (this) {
     AppLandingDestination.MOVIES -> Routes.MOVIES
     AppLandingDestination.SERIES -> Routes.SERIES
     AppLandingDestination.GUIDE -> Routes.EPG
-    AppLandingDestination.DOWNLOADS -> Routes.DOWNLOADS
     AppLandingDestination.PLUGINS -> Routes.PLUGINS
     AppLandingDestination.SETTINGS -> Routes.SETTINGS
 }
@@ -348,7 +345,6 @@ internal fun AppTopLevelDestination.toAppRoute(): String = when (this) {
     AppTopLevelDestination.LIVE_TV -> Routes.LIVE_TV
     AppTopLevelDestination.MOVIES -> Routes.MOVIES
     AppTopLevelDestination.SERIES -> Routes.SERIES
-    AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS
     AppTopLevelDestination.GUIDE -> Routes.EPG
     AppTopLevelDestination.SEARCH -> Routes.SEARCH
     AppTopLevelDestination.PLUGINS -> Routes.PLUGINS
@@ -708,13 +704,6 @@ fun AppNavigation(mainActivity: MainActivity) {
                 },
                 onNavigate = { route -> tabNavigate(route) },
                 currentRoute = Routes.VOD
-            )
-        }
-
-        composable(Routes.DOWNLOADS) {
-            DownloadsScreen(
-                onNavigate = { route -> tabNavigate(route) },
-                currentRoute = Routes.DOWNLOADS
             )
         }
 

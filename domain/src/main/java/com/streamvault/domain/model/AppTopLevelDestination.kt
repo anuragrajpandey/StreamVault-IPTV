@@ -9,7 +9,6 @@ enum class AppTopLevelDestination(
     LIVE_TV("live_tv", AppLandingDestination.LIVE_TV),
     MOVIES("movies", AppLandingDestination.MOVIES),
     SERIES("series", AppLandingDestination.SERIES),
-    DOWNLOADS("downloads", AppLandingDestination.DOWNLOADS),
     GUIDE("guide", AppLandingDestination.GUIDE),
     SEARCH("search"),
     PLUGINS("plugins", AppLandingDestination.PLUGINS),
@@ -33,7 +32,7 @@ enum class AppTopLevelDestination(
         fun normalizeForStorage(destinations: List<AppTopLevelDestination>): List<AppTopLevelDestination> {
             val unique = linkedSetOf<AppTopLevelDestination>()
             destinations.forEach { destination ->
-                if (destination != DOWNLOADS) unique += destination
+                unique += destination
             }
             unique += SETTINGS
             return unique.toList()
