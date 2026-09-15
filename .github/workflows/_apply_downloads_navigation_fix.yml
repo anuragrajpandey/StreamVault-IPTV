@@ -41,6 +41,18 @@ jobs:
                   ('import androidx.compose.material.icons.filled.Download\n', ''),
                   ('    AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)\n', ''),
               ],
+              'app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsPreferenceDialogs.kt': [
+                  ('    AppLandingDestination.DOWNLOADS -> R.string.nav_downloads\n', ''),
+              ],
+              'app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsViewModel.kt': [
+                  ('        AppLandingDestination.DOWNLOADS -> R.string.nav_downloads\n', ''),
+              ],
+              'app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreenState.kt': [
+                  ('        AppLandingDestination.DOWNLOADS -> R.string.nav_downloads\n', ''),
+              ],
+              'app/src/main/java/com/streamvault/app/ui/screens/settings/TopNavigationDialog.kt': [
+                  ('    AppTopLevelDestination.DOWNLOADS -> R.string.nav_downloads\n', ''),
+              ],
           }
 
           for name, pairs in replacements.items():
@@ -54,7 +66,7 @@ jobs:
           PY
 
           if grep -RIn --exclude-dir=.git --exclude='*.lock' \
-              'AppTopLevelDestination.DOWNLOADS\|AppLandingDestination.DOWNLOADS\|Routes.DOWNLOADS\|DownloadsScreen' \
+              'AppTopLevelDestination.DOWNLOADS\|AppLandingDestination.DOWNLOADS\|Routes.DOWNLOADS' \
               app/src/main domain/src/main; then
             echo 'Downloads navigation references remain'
             exit 1
@@ -72,6 +84,10 @@ jobs:
           rm -f .github/workflows/_apply_downloads_navigation_fix.yml
           git add app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt \
             app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt \
+            app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsPreferenceDialogs.kt \
+            app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsViewModel.kt \
+            app/src/main/java/com/streamvault/app/ui/screens/settings/SettingsScreenState.kt \
+            app/src/main/java/com/streamvault/app/ui/screens/settings/TopNavigationDialog.kt \
             domain/src/main/java/com/streamvault/domain/model/AppTopLevelDestination.kt \
             domain/src/main/java/com/streamvault/domain/model/AppLandingDestination.kt \
             .github/workflows/_apply_downloads_navigation_fix.yml
