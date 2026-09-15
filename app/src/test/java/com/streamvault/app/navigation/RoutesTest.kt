@@ -134,7 +134,6 @@ class RoutesTest {
         assertThat(AppLandingDestination.MOVIES.toAppRoute()).isEqualTo(Routes.MOVIES)
         assertThat(AppLandingDestination.SERIES.toAppRoute()).isEqualTo(Routes.SERIES)
         assertThat(AppLandingDestination.GUIDE.toAppRoute()).isEqualTo(Routes.EPG)
-        assertThat(AppLandingDestination.DOWNLOADS.toAppRoute()).isEqualTo(Routes.DOWNLOADS)
         assertThat(AppLandingDestination.PLUGINS.toAppRoute()).isEqualTo(Routes.PLUGINS)
         assertThat(AppLandingDestination.SETTINGS.toAppRoute()).isEqualTo(Routes.SETTINGS)
     }
@@ -145,7 +144,6 @@ class RoutesTest {
         assertThat(AppTopLevelDestination.LIVE_TV.toAppRoute()).isEqualTo(Routes.LIVE_TV)
         assertThat(AppTopLevelDestination.MOVIES.toAppRoute()).isEqualTo(Routes.MOVIES)
         assertThat(AppTopLevelDestination.SERIES.toAppRoute()).isEqualTo(Routes.SERIES)
-        assertThat(AppTopLevelDestination.DOWNLOADS.toAppRoute()).isEqualTo(Routes.DOWNLOADS)
         assertThat(AppTopLevelDestination.GUIDE.toAppRoute()).isEqualTo(Routes.EPG)
         assertThat(AppTopLevelDestination.SEARCH.toAppRoute()).isEqualTo(Routes.SEARCH)
         assertThat(AppTopLevelDestination.PLUGINS.toAppRoute()).isEqualTo(Routes.PLUGINS)
