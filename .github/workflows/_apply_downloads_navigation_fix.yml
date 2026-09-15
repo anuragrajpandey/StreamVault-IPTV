@@ -1,0 +1,79 @@
+name: Apply Downloads Navigation Fix
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Patch Downloads navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'domain/src/main/java/com/streamvault/domain/model/AppTopLevelDestination.kt': [
+                  ('    DOWNLOADS("downloads", AppLandingDestination.DOWNLOADS),\n', ''),
+                  ('                if (destination != DOWNLOADS) unique += destination\n', '                unique += destination\n'),
+              ],
+              'domain/src/main/java/com/streamvault/domain/model/AppLandingDestination.kt': [
+                  ('    DOWNLOADS("downloads"),\n', ''),
+              ],
+              'app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt': [
+                  ('import com.streamvault.app.ui.screens.downloads.DownloadsScreen\n', ''),
+                  ('    const val DOWNLOADS = "downloads"\n', ''),
+                  ('    AppLandingDestination.DOWNLOADS -> Routes.DOWNLOADS\n', ''),
+                  ('    AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS\n', ''),
+                  ('\n        composable(Routes.DOWNLOADS) {\n            DownloadsScreen(\n                onNavigate = { route -> tabNavigate(route) },\n                currentRoute = Routes.DOWNLOADS\n            )\n        }\n', ''),
+              ],
+              'app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt': [
+                  ('import androidx.compose.material.icons.filled.Download\n', ''),
+                  ('    AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)\n', ''),
+              ],
+          }
+
+          for name, pairs in replacements.items():
+              p = Path(name)
+              text = p.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'Missing expected target in {name}: {old!r}')
+                  text = text.replace(old, new, 1)
+              p.write_text(text)
+          PY
+
+          if grep -RIn --exclude-dir=.git --exclude='*.lock' \
+              'AppTopLevelDestination.DOWNLOADS\|AppLandingDestination.DOWNLOADS\|Routes.DOWNLOADS\|DownloadsScreen' \
+              app/src/main domain/src/main; then
+            echo 'Downloads navigation references remain'
+            exit 1
+          fi
+
+      - name: Verify compilation
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Commit and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f .github/workflows/_apply_downloads_navigation_fix.yml
+          git add app/src/main/java/com/streamvault/app/navigation/AppNavigation.kt \
+            app/src/main/java/com/streamvault/app/ui/components/shell/AppShell.kt \
+            domain/src/main/java/com/streamvault/domain/model/AppTopLevelDestination.kt \
+            domain/src/main/java/com/streamvault/domain/model/AppLandingDestination.kt \
+            .github/workflows/_apply_downloads_navigation_fix.yml
+          git commit -m 'feat: remove downloads navigation'
+          git push origin master
