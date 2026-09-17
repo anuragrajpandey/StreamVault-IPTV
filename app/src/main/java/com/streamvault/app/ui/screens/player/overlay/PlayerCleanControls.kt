@@ -366,7 +366,7 @@ private fun CleanIconButton(
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Glass,
-            focusedContainerColor = GlassStrong
+            focusedContainerColor = Primary.copy(alpha = 0.96f)
         ),
         modifier = Modifier
             .size(size)
