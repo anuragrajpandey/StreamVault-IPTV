@@ -935,40 +935,6 @@ fun PlayerScreen(
             )
         }
 
-        if (currentChannelRecording?.status == com.streamvault.domain.model.RecordingStatus.RECORDING) {
-            val recordingPulse = rememberInfiniteTransition(label = "recordingPulse")
-            val recordingAlpha by recordingPulse.animateFloat(
-                initialValue = 1f,
-                targetValue = 0.2f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 750),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "recordingAlpha"
-            )
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 18.dp, top = 18.dp)
-                    .background(Color.Black.copy(alpha = 0.58f), RoundedCornerShape(999.dp))
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .background(Color(0xFFFF4D4F).copy(alpha = recordingAlpha), RoundedCornerShape(999.dp))
-                )
-                Text(
-                    text = stringResource(R.string.settings_recording_status_recording),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
         when (val resolutionState = playbackResolutionUiState) {
             PlaybackResolutionUiState.Resolving -> Box(
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.82f)),
@@ -1021,7 +987,7 @@ fun PlayerScreen(
             liveTranslationAvailable = liveTranslationAvailable,
             audioTrackCount = availableAudioTracks.size,
             videoQualityCount = availableVideoQualities.size,
-            currentRecordingStatus = currentChannelRecording?.status,
+            currentRecordingStatus = null,
             isMuted = isMuted,
             playbackSpeed = playbackSpeed,
             mediaTitle = mediaTitle,
@@ -1335,7 +1301,7 @@ fun PlayerScreen(
                         viewModel.closeChannelInfoOverlay()
                         viewModel.openLastVisitedCategory()
                     },
-                    currentRecordingStatus = currentChannelRecording?.status,
+                    currentRecordingStatus = null,
                     onStartRecording = {
                         notificationPermissionGate.runRecordingAction {
                             viewModel.startManualRecording()
