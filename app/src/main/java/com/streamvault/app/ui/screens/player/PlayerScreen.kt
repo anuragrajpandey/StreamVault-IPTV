@@ -254,7 +254,7 @@ fun PlayerScreen(
     // When the TV player controls appear, move focus onto the primary transport
     // control so the remote always has a visible selection target.
     LaunchedEffect(showControls) {
-        if (showControls && !anyOverlayVisible) {
+        if (showControls) {
             delay(50)
             playButtonFocusRequester.requestFocusSafely(
                 tag = "PlayerScreen",
@@ -1482,6 +1482,7 @@ private fun PlayerControlsOverlayHost(
         sleepTimerUiState = sleepTimerUiState,
         timeshiftUiState = timeshiftUiState,
         playButtonFocusRequester = playButtonFocusRequester,
+        seekBarFocusRequester = seekBarFocusRequester,
         quickActionsFocusRequester = quickActionsFocusRequester,
         modifier = modifier,
         onClose = onClose,
