@@ -81,6 +81,7 @@ class PlayerSmokeTest {
                     isMuted = false,
                     mediaTitle = null,
                     playButtonFocusRequester = playButtonFocusRequester,
+                    seekBarFocusRequester = FocusRequester(),
                     onClose = {},
                     onTogglePlayPause = {},
                     onSeekBackward = {},
