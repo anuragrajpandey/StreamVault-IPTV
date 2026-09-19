@@ -563,50 +563,6 @@ fun ChannelInfoOverlay(
             }
 
             when (expandedPanel) {
-                ChannelInfoPanel.RECORD -> {
-                    ChannelInfoActionMenuTray(
-                        title = stringResource(R.string.player_record_options),
-                        actions = buildList {
-                            if (currentRecordingStatus == RecordingStatus.RECORDING || currentRecordingStatus == RecordingStatus.SCHEDULED) {
-                                add(
-                                    ChannelInfoMenuEntry(
-                                        label = if (currentRecordingStatus == RecordingStatus.SCHEDULED) {
-                                            stringResource(R.string.player_cancel_scheduled_recording)
-                                        } else {
-                                            stringResource(R.string.player_stop_recording)
-                                        }
-                                    ) {
-                                        expandedPanel = null
-                                        onStopRecording()
-                                    }
-                                )
-                            } else {
-                                add(
-                                    ChannelInfoMenuEntry(stringResource(R.string.player_record_now)) {
-                                        expandedPanel = null
-                                        onStartRecording()
-                                    }
-                                )
-                            }
-                            add(ChannelInfoMenuEntry(stringResource(R.string.player_schedule_recording)) {
-                                expandedPanel = null
-                                onScheduleRecording()
-                            })
-                            add(ChannelInfoMenuEntry(stringResource(R.string.player_schedule_daily_recording)) {
-                                expandedPanel = null
-                                onScheduleDailyRecording()
-                            })
-                            add(ChannelInfoMenuEntry(stringResource(R.string.player_schedule_weekly_recording)) {
-                                expandedPanel = null
-                                onScheduleWeeklyRecording()
-                            })
-                        },
-                        onInteraction = onOverlayInteracted,
-                        firstActionFocusRequester = recordPanelFocusRequester,
-                        ownerFocusRequester = recordButtonFocusRequester
-                    )
-                }
-
                 ChannelInfoPanel.CATCH_UP -> {
                     ChannelInfoActionMenuTray(
                         title = stringResource(R.string.player_catchup_options),
