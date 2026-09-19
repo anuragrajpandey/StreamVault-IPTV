@@ -71,6 +71,7 @@ private val SecondaryDockGlass = Color.Black.copy(alpha = 0.52f)
 
 @Composable
 fun PlayerCleanControls(
+    modifier: Modifier = Modifier,
     visible: Boolean,
     title: String,
     contentType: String,
@@ -130,8 +131,7 @@ fun PlayerCleanControls(
     onOpenExternalPlayer: () -> Unit,
     seekPreview: SeekPreviewState,
     onSeekPreviewPositionChanged: (Long?) -> Unit,
-    onUserInteraction: () -> Unit,
-    modifier: Modifier = Modifier
+    onUserInteraction: () -> Unit
 ) {
     if (!visible) return
 
