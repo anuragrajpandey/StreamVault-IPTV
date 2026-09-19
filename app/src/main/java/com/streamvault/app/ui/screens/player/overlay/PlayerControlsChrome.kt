@@ -765,10 +765,6 @@ private fun PlayerLiveInfo(
             onToggleMute
         ))
         add(PlayerActionSpec(
-            stringResource(if (isCastConnected) R.string.player_stop_casting else R.string.player_cast),
-            if (isCastConnected) onStopCasting else onCast
-        ))
-        add(PlayerActionSpec(
             sleepTimerActionLabel(
                 title = stringResource(R.string.player_idle_standby_after),
                 activeLabel = stringResource(
@@ -779,21 +775,12 @@ private fun PlayerLiveInfo(
             ),
             onOpenIdleStandbyTimer
         ))
-        add(PlayerActionSpec(stringResource(R.string.player_picture_in_picture), onEnterPictureInPicture))
         if (showExternalPlayerAction) {
             add(PlayerActionSpec(stringResource(R.string.player_open_in_external_player), onOpenExternalPlayer))
         }
         if (canRestartProgram) {
             add(PlayerActionSpec(stringResource(R.string.player_restart), onRestartProgram))
             add(PlayerActionSpec(stringResource(R.string.player_archive), onOpenArchive))
-        }
-        if (currentRecordingStatus == RecordingStatus.RECORDING) {
-            add(PlayerActionSpec(stringResource(R.string.player_stop_recording), onStopRecording))
-        } else {
-            add(PlayerActionSpec(stringResource(R.string.player_record), onStartRecording))
-            add(PlayerActionSpec(stringResource(R.string.player_schedule_recording), onScheduleRecording))
-            add(PlayerActionSpec(stringResource(R.string.player_schedule_daily_recording), onScheduleDailyRecording))
-            add(PlayerActionSpec(stringResource(R.string.player_schedule_weekly_recording), onScheduleWeeklyRecording))
         }
     }
     val secondaryActions = buildList {
