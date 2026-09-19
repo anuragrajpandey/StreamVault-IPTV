@@ -510,25 +510,21 @@ class DashboardViewModel @Inject constructor(
         else -> favoriteRepository.getFavorites(providerIds, contentType)
     }
 
-    private fun observeRecentLiveIds(providerIds: List<Long>, limit: Int): Flow<List<Long>> = when (providerIds.size) {
-        0 -> flowOf(emptyList())
-        1 -> playbackHistoryRepository.getRecentlyWatchedByProvider(providerIds.first(), limit)
-            .map { history ->
-                history
-                    .filter { it.contentType == ContentType.LIVE }
-                    .sortedByDescending { it.lastWatchedAt }
-                    .distinctBy { it.contentId }
-                    .map { it.contentId }
-                    .take(limit)
-            }
-        else -> combine(providerIds.map { providerId ->
-            playbackHistoryRepository.getRecentlyWatchedByProvider(providerId, limit)
-        }) { histories ->
-            histories.toList()
-                .flatMap { it }
+    private fun observeRecentLiveIds(providerIds: List<Long>, limit: Int): Flow<List<Long>> {
+        if (providerIds.isEmpty()) return flowOf(emptyList())
+
+        // Ask the history repository for one globally ordered recent-history stream.
+        // The repository already merges persisted and in-memory playback updates and
+        // applies the requested provider scope. Building this per-provider and merging
+        // afterwards could produce stale ordering and unnecessarily large intermediate
+        // lists for combined M3U profiles.
+        return playbackHistoryRepository.getRecentlyWatchedByProviders(
+            providerIds = providerIds.toSet(),
+            limit = limit
+        ).map { history ->
+            history
                 .asSequence()
                 .filter { it.contentType == ContentType.LIVE }
-                .sortedByDescending { it.lastWatchedAt }
                 .distinctBy { it.providerId to it.contentId }
                 .map { it.contentId }
                 .take(limit)
