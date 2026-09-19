@@ -127,10 +127,8 @@ fun ChannelInfoOverlay(
         currentChannel.isArchivePlayable(currentProgram)
     val hasCatchUpOptions = canBrowseArchive || canRestartProgram
     var expandedPanel by remember { mutableStateOf<ChannelInfoPanel?>(null) }
-    val recordButtonFocusRequester = remember { FocusRequester() }
     val catchUpButtonFocusRequester = remember { FocusRequester() }
     val liveDvrPanelFocusRequester = remember { FocusRequester() }
-    val recordPanelFocusRequester = remember { FocusRequester() }
     val catchUpPanelFocusRequester = remember { FocusRequester() }
 
     fun handleMainActionFocus(ownerPanel: ChannelInfoPanel?) {
@@ -222,17 +220,6 @@ fun ChannelInfoOverlay(
                                 StatusPill(
                                     label = stringResource(R.string.player_live_rewind_badge),
                                     containerColor = AppColors.SurfaceEmphasis
-                                )
-                            }
-                            if (currentRecordingStatus == RecordingStatus.RECORDING) {
-                                StatusPill(
-                                    label = stringResource(R.string.player_recording_badge),
-                                    containerColor = AppColors.Live
-                                )
-                            } else if (currentRecordingStatus == RecordingStatus.SCHEDULED) {
-                                StatusPill(
-                                    label = stringResource(R.string.player_recording_scheduled_badge),
-                                    containerColor = AppColors.BrandMuted
                                 )
                             }
                             if (currentChannel != null) {
@@ -541,25 +528,6 @@ fun ChannelInfoOverlay(
                         )
                     }
                 }
-                item {
-                    QuickActionButton(
-                        icon = "REC",
-                        label = stringResource(R.string.player_record),
-                        onClick = { togglePanel(ChannelInfoPanel.RECORD) },
-                        onInteraction = { handleMainActionFocus(ChannelInfoPanel.RECORD) },
-                        colors = ClickableSurfaceDefaults.colors(
-                            containerColor = if (expandedPanel == ChannelInfoPanel.RECORD) Primary.copy(alpha = 0.22f) else AppColors.SurfaceEmphasis,
-                            focusedContainerColor = Primary.copy(alpha = 0.85f)
-                        ),
-                        modifier = Modifier
-                            .focusRequester(recordButtonFocusRequester)
-                            .focusProperties {
-                                if (expandedPanel == ChannelInfoPanel.RECORD) {
-                                    up = recordPanelFocusRequester
-                                }
-                            }
-                    )
-                }
                 if (hasCatchUpOptions) {
                     item {
                         QuickActionButton(
@@ -580,28 +548,6 @@ fun ChannelInfoOverlay(
                                 }
                         )
                     }
-                }
-                item {
-                    QuickActionButton(
-                        icon = stringResource(R.string.player_action_cast),
-                        label = if (isCastConnected) stringResource(R.string.player_stop_casting) else stringResource(R.string.player_cast),
-                        onClick = {
-                            expandedPanel = null
-                            if (isCastConnected) onStopCasting() else onCast()
-                        },
-                        onInteraction = { handleMainActionFocus(null) }
-                    )
-                }
-                item {
-                    QuickActionButton(
-                        icon = stringResource(R.string.player_action_pip),
-                        label = stringResource(R.string.player_pip_short),
-                        onClick = {
-                            expandedPanel = null
-                            onEnterPictureInPicture()
-                        },
-                        onInteraction = { handleMainActionFocus(null) }
-                    )
                 }
                 item {
                     QuickActionButton(
@@ -700,7 +646,6 @@ fun ChannelInfoOverlay(
 
 private enum class ChannelInfoPanel {
     LIVE_DVR,
-    RECORD,
     CATCH_UP
 }
 
