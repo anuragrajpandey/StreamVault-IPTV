@@ -51,7 +51,7 @@ class PlayerOverlayGoldenTest {
                         isMuted = false,
                         mediaTitle = null,
                         playButtonFocusRequester = FocusRequester(),
-                        seekBarFocusRequester = FocusRequester(),
+                        seekBarFocusRequester = remember { FocusRequester() },
                         onClose = {},
                         onTogglePlayPause = {},
                         onSeekBackward = {},
