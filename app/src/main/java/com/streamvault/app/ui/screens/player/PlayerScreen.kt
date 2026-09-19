@@ -250,6 +250,18 @@ fun PlayerScreen(
         focusRequester.requestFocus()
     }
 
+    // When the TV player controls appear, move focus onto the primary transport
+    // control so the remote always has a visible selection target.
+    LaunchedEffect(showControls) {
+        if (showControls && !anyOverlayVisible) {
+            delay(50)
+            playButtonFocusRequester.requestFocusSafely(
+                tag = "PlayerScreen",
+                target = "Player play/pause control"
+            )
+        }
+    }
+
     LaunchedEffect(mainActivity, streamUrl, playbackState, isPlaying, videoFormat.width, videoFormat.height, videoFormat.pixelWidthHeightRatio) {
         mainActivity?.updatePlayerPictureInPictureState(
             enabled = streamUrl.isNotBlank()
