@@ -95,6 +95,7 @@ fun PlayerCleanControls(
     sleepTimerUiState: SleepTimerUiState,
     timeshiftUiState: PlayerTimeshiftUiState,
     playButtonFocusRequester: FocusRequester,
+    seekBarFocusRequester: FocusRequester,
     quickActionsFocusRequester: FocusRequester,
     onClose: () -> Unit,
     onTogglePlayPause: () -> Unit,
@@ -228,6 +229,11 @@ fun PlayerCleanControls(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 10.dp)
+                                .focusRequester(seekBarFocusRequester)
+                                .focusProperties {
+                                    up = playButtonFocusRequester
+                                    down = quickActionsFocusRequester
+                                }
                                 .semantics { contentDescription = "Playback position" },
                             colors = SliderDefaults.colors(
                                 activeTrackColor = Primary,
@@ -274,7 +280,10 @@ fun PlayerCleanControls(
                         modifier = Modifier
                             .size(playControlSize)
                             .focusRequester(playButtonFocusRequester)
-                            .focusProperties { down = quickActionsFocusRequester }
+                            .focusProperties {
+                                up = seekBarFocusRequester
+                                down = quickActionsFocusRequester
+                            }
                             .semantics { contentDescription = if (isPlaying) "Pause" else "Play" }
                     ) {
                         Box(
