@@ -899,11 +899,12 @@ fun AppNavigation(mainActivity: MainActivity) {
                         // else: plain popBackStack() succeeded — returns to existing Guide entry, preserving EpgViewModel
                     },
                     onNavigate = { route ->
+                        // Top-level tab changes must end fullscreen playback immediately.
+                        // Do not leave the live engine streaming underneath another tab.
+                        viewModel.stopPlaybackForNavigation()
                         navController.navigateIfResumed(route) {
                             launchSingleTop = true
-                            if (route == Routes.MULTI_VIEW) {
-                                popUpTo(Routes.PLAYER) { inclusive = true }
-                            }
+                            popUpTo(Routes.PLAYER) { inclusive = true }
                         }
                     }
                 )
