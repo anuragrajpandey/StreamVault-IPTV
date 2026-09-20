@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -130,6 +133,8 @@ internal fun LivePreviewPane(
     val renderSurfaceType by (playerEngine?.renderSurfaceType)?.collectAsStateWithLifecycle(
         initialValue = PlayerRenderSurfaceType.SURFACE_VIEW
     ) ?: remember { mutableStateOf(PlayerRenderSurfaceType.SURFACE_VIEW) }
+    val isPlaying by (playerEngine?.isPlaying)?.collectAsStateWithLifecycle(initialValue = false)
+        ?: remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier,
@@ -206,6 +211,36 @@ internal fun LivePreviewPane(
             }
 
             if (channel != null) {
+                TvButton(
+                    onClick = {
+                        if (isPlaying) playerEngine?.pause() else playerEngine?.play()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp),
+                    colors = ButtonDefaults.colors(
+                        containerColor = SurfaceHighlight,
+                        contentColor = OnBackground,
+                        focusedContainerColor = Primary.copy(alpha = 0.28f),
+                        focusedContentColor = OnBackground
+                    )
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = if (isPlaying) "Pause" else "Play",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+
                 Text(
                     text = channel.name,
                     style = MaterialTheme.typography.titleMedium,
