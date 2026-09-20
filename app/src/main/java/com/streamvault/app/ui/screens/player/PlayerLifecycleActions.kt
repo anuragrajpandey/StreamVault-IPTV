@@ -130,6 +130,23 @@ fun PlayerViewModel.onAppForegrounded() {
     shouldResumeAfterForeground = false
 }
 
+/** Stops active fullscreen playback before navigating to another top-level tab. */
+fun PlayerViewModel.stopPlaybackForNavigation(): Job? {
+    val progressFlush = queueForcedProgressFlush()
+    val activeEngine = playerEngine
+    playerEngine.stopLiveTimeshift()
+    stopLiveTranslationSession()
+    playerPreviewCoordinator.clear(activeEngine)
+    activeEngine.stop()
+    if (activeEngine !== playerEngineCoordinator.mainEngine) {
+        playerEngineCoordinator.switchTo(playerEngineCoordinator.mainEngine)
+        activeEngine.release()
+    } else {
+        activeEngine.resetForReuse()
+    }
+    return progressFlush
+}
+
 fun PlayerViewModel.onPlayerScreenDisposed(): Job? {
     val progressFlush = queueForcedProgressFlush()
     playerEngine.stopLiveTimeshift()
