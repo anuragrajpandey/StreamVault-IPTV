@@ -309,6 +309,39 @@ class ChannelRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getChannelsByProviderAndIds(providerId: Long, ids: List<Long>): Flow<List<Channel>> {
+        if (ids.isEmpty()) return flowOf(emptyList())
+        return channelDao.getByProviderAndIds(providerId, ids).flatMapLatest { requestedEntities ->
+            if (requestedEntities.isEmpty()) {
+                return@flatMapLatest flowOf(emptyList())
+            }
+            val logicalGroupIds = requestedEntities.mapNotNull { entity ->
+                entity.logicalGroupId.takeIf(String::isNotBlank)
+            }.distinct()
+            val entityPoolFlow = if (logicalGroupIds.isEmpty()) {
+                flowOf(requestedEntities)
+            } else {
+                channelDao.getByProviderAndLogicalGroupIds(providerId, logicalGroupIds)
+            }
+            combine(
+                flowOf(requestedEntities),
+                entityPoolFlow,
+                preferencesRepository.parentalControlLevel,
+                currentPresentationSettingsFlow(),
+                preferencesRepository.hideDecorativeLiveRows
+            ) { requested, entityPool, level, settings, hideDecorativeRows ->
+                val filteredRequested = applyVisibilityFilter(requested, level, emptySet(), hideDecorativeRows)
+                val filteredPool = applyVisibilityFilter(entityPool, level, emptySet(), hideDecorativeRows)
+                buildChannelsForRequestedIds(
+                    requestedIds = ids,
+                    requestedEntities = filteredRequested,
+                    entityPool = filteredPool.ifEmpty { filteredRequested },
+                    settings = settings
+                )
+            }.flowOn(Dispatchers.Default)
+        }
+    }
+
     override suspend fun incrementChannelErrorCount(channelId: Long): Result<Unit> = try {
         channelDao.incrementErrorCount(channelId)
         Result.success(Unit)
