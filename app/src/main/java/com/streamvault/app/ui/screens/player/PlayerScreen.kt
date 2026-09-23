@@ -155,11 +155,7 @@ fun PlayerScreen(
         reminderBlockedMessage = stringResource(R.string.notification_permission_reminder_required),
         recordingBlockedMessage = stringResource(R.string.notification_permission_recording_alert_required)
     )
-    val isInPictureInPictureMode = mainActivity
-        ?.pictureInPictureModeFlow
-        ?.collectAsState(initial = mainActivity.isInPictureInPictureMode)
-        ?.value
-        ?: false
+    val isInPictureInPictureMode = false
     val playerEngine by viewModel.activePlayerEngine.collectAsStateWithLifecycle()
     val playbackState by playerEngine.playbackState.collectAsStateWithLifecycle()
     val isPlaying by playerEngine.isPlaying.collectAsStateWithLifecycle()
@@ -206,13 +202,13 @@ fun PlayerScreen(
     val showDiagnostics by viewModel.showDiagnostics.collectAsStateWithLifecycle()
     val playerDiagnostics by viewModel.playerDiagnostics.collectAsStateWithLifecycle()
     val playerNotice by viewModel.playerNotice.collectAsStateWithLifecycle()
-    val currentChannelRecording by viewModel.currentChannelRecording.collectAsStateWithLifecycle()
+    val currentChannelRecording = null
     val isMuted by viewModel.isMuted.collectAsStateWithLifecycle()
     val mediaTitle by viewModel.mediaTitle.collectAsStateWithLifecycle()
     val playbackSpeed by viewModel.playbackSpeed.collectAsStateWithLifecycle()
     val audioVideoSyncEnabled by viewModel.audioVideoSyncEnabled.collectAsStateWithLifecycle()
     val audioVideoOffsetState by viewModel.audioVideoOffsetUiState.collectAsStateWithLifecycle()
-    val castConnectionState by viewModel.castConnectionState.collectAsStateWithLifecycle()
+    val castConnectionState = CastConnectionState.DISCONNECTED
     val seekPreview by viewModel.seekPreview.collectAsStateWithLifecycle()
     val preventStandbyDuringPlayback by viewModel.preventStandbyDuringPlayback.collectAsStateWithLifecycle()
     val timeshiftUiState by viewModel.timeshiftUiState.collectAsStateWithLifecycle()
@@ -239,13 +235,8 @@ fun PlayerScreen(
     val channelInfoFocusRequester = remember { FocusRequester() }
     val layoutDirection = LocalLayoutDirection.current
     val isRtl = layoutDirection == LayoutDirection.Rtl
-    val currentPictureInPictureMode by rememberUpdatedState(isInPictureInPictureMode)
-    val enterPictureInPicture = remember(mainActivity) {
-        {
-            mainActivity?.enterPlayerPictureInPictureModeFromPlayer()
-            Unit
-        }
-    }
+    val currentPictureInPictureMode = false
+    val enterPictureInPicture: () -> Unit = {}
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -263,17 +254,6 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(mainActivity, streamUrl, playbackState, isPlaying, videoFormat.width, videoFormat.height, videoFormat.pixelWidthHeightRatio) {
-        mainActivity?.updatePlayerPictureInPictureState(
-            enabled = streamUrl.isNotBlank()
-                && playbackState != PlaybackState.ERROR
-                && (isPlaying || playbackState == PlaybackState.READY || playbackState == PlaybackState.BUFFERING),
-            isPlaying = isPlaying,
-            videoWidth = videoFormat.width,
-            videoHeight = videoFormat.height,
-            pixelWidthHeightRatio = videoFormat.pixelWidthHeightRatio
-        )
-    }
 
     LaunchedEffect(sleepTimerExitEvent) {
         if (sleepTimerExitEvent > 0) {
@@ -289,14 +269,6 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(isInPictureInPictureMode) {
-        if (isInPictureInPictureMode) {
-            viewModel.closeOverlays()
-            if (showControls) {
-                viewModel.toggleControls()
-            }
-        }
-    }
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
         viewModel.onAppForegrounded()
@@ -312,7 +284,6 @@ fun PlayerScreen(
 
     DisposableEffect(mainActivity) {
         onDispose {
-            mainActivity?.clearPlayerPictureInPictureState()
             viewModel.onPlayerScreenDisposed()
         }
     }
@@ -1016,27 +987,11 @@ fun PlayerScreen(
             onSeekForward = viewModel::seekForward,
             onRestartProgram = viewModel::restartCurrentProgram,
             onOpenArchive = { showProgramHistory = true },
-            onStartRecording = {
-                notificationPermissionGate.runRecordingAction {
-                    viewModel.startManualRecording()
-                }
-            },
-            onStopRecording = viewModel::stopCurrentRecording,
-            onScheduleRecording = {
-                notificationPermissionGate.runRecordingAction {
-                    viewModel.scheduleRecording()
-                }
-            },
-            onScheduleDailyRecording = {
-                notificationPermissionGate.runRecordingAction {
-                    viewModel.scheduleDailyRecording()
-                }
-            },
-            onScheduleWeeklyRecording = {
-                notificationPermissionGate.runRecordingAction {
-                    viewModel.scheduleWeeklyRecording()
-                }
-            },
+            onStartRecording = {},
+            onStopRecording = {},
+            onScheduleRecording = {},
+            onScheduleDailyRecording = {},
+            onScheduleWeeklyRecording = {},
             onToggleAspectRatio = viewModel::toggleAspectRatio,
             onOpenSubtitleTracks = { showTrackSelection = TrackType.TEXT },
             onOpenAudioTracks = { showTrackSelection = TrackType.AUDIO },
@@ -1051,9 +1006,9 @@ fun PlayerScreen(
             onOpenSplitScreen = { showSplitDialog = true },
             onEnterPictureInPicture = enterPictureInPicture,
             onToggleMute = viewModel::toggleMute,
-            isCastConnected = castConnectionState == CastConnectionState.CONNECTED,
-            onCast = { viewModel.castCurrentMedia { mainActivity?.openCastRouteChooser() } },
-            onStopCasting = viewModel::stopCasting,
+            isCastConnected = false,
+            onCast = {},
+            onStopCasting = {},
             onSeekToLiveEdge = viewModel::seekToLiveEdge,
             onSeekToPosition = viewModel::seekTo,
             onSetScrubbingMode = viewModel::setScrubbingMode,
@@ -1177,7 +1132,7 @@ fun PlayerScreen(
             PlayerAudioVideoOffsetDialog(
                 visible = showAudioVideoOffsetDialog &&
                     audioVideoSyncEnabled &&
-                    castConnectionState != CastConnectionState.CONNECTED,
+                    true,
                 state = audioVideoOffsetState,
                 canSaveChannel = currentChannel != null,
                 onDismiss = {
