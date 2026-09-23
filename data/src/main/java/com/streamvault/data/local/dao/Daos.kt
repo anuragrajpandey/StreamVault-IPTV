@@ -543,11 +543,48 @@ abstract class ChannelDao {
         JOIN providers p ON p.id = c.provider_id
         LEFT JOIN channel_epg_mappings cem ON cem.provider_channel_id = c.id AND cem.provider_id = c.provider_id
         LEFT JOIN epg_channels ec ON ec.epg_source_id = cem.epg_source_id AND ec.xmltv_channel_id = cem.xmltv_channel_id
+        WHERE c.provider_id = :providerId AND c.id IN (:ids)
+        """
+    )
+    abstract fun getByProviderAndIds(providerId: Long, ids: List<Long>): Flow<List<ChannelBrowseEntity>>
+
+    @Query(
+        """
+        SELECT c.id, c.stream_id, c.name, c.logo_url, c.group_title, c.category_id, c.category_name, c.stream_url,
+               c.epg_channel_id, c.number, c.catch_up_supported, c.catch_up_days, c.catchUpSource,
+               c.provider_id,
+               (SELECT guide_source_policy FROM provider_configs WHERE provider_id = c.provider_id) AS guide_source_policy,
+               (SELECT channel_logo_source_policy FROM provider_configs WHERE provider_id = c.provider_id) AS channel_logo_source_policy,
+               ec.icon_url AS epg_icon_url,
+               c.is_adult, c.is_user_protected, c.logical_group_id, c.error_count
+        FROM channels c
+        JOIN providers p ON p.id = c.provider_id
+        LEFT JOIN channel_epg_mappings cem ON cem.provider_channel_id = c.id AND cem.provider_id = c.provider_id
+        LEFT JOIN epg_channels ec ON ec.epg_source_id = cem.epg_source_id AND ec.xmltv_channel_id = cem.xmltv_channel_id
         WHERE c.logical_group_id IN (:logicalGroupIds)
         ORDER BY c.provider_id ASC, c.number ASC, c.name ASC
         """
     )
     abstract fun getByLogicalGroupIds(logicalGroupIds: List<String>): Flow<List<ChannelBrowseEntity>>
+
+    @Query(
+        """
+        SELECT c.id, c.stream_id, c.name, c.logo_url, c.group_title, c.category_id, c.category_name, c.stream_url,
+               c.epg_channel_id, c.number, c.catch_up_supported, c.catch_up_days, c.catchUpSource,
+               c.provider_id,
+               (SELECT guide_source_policy FROM provider_configs WHERE provider_id = c.provider_id) AS guide_source_policy,
+               (SELECT channel_logo_source_policy FROM provider_configs WHERE provider_id = c.provider_id) AS channel_logo_source_policy,
+               ec.icon_url AS epg_icon_url,
+               c.is_adult, c.is_user_protected, c.logical_group_id, c.error_count
+        FROM channels c
+        JOIN providers p ON p.id = c.provider_id
+        LEFT JOIN channel_epg_mappings cem ON cem.provider_channel_id = c.id AND cem.provider_id = c.provider_id
+        LEFT JOIN epg_channels ec ON ec.epg_source_id = cem.epg_source_id AND ec.xmltv_channel_id = cem.xmltv_channel_id
+        WHERE c.provider_id = :providerId AND c.logical_group_id IN (:logicalGroupIds)
+        ORDER BY c.provider_id ASC, c.number ASC, c.name ASC
+        """
+    )
+    abstract fun getByProviderAndLogicalGroupIds(providerId: Long, logicalGroupIds: List<String>): Flow<List<ChannelBrowseEntity>>
 
     @Query(
         """
