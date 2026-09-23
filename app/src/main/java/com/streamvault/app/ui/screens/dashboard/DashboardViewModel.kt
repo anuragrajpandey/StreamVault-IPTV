@@ -510,7 +510,9 @@ class DashboardViewModel @Inject constructor(
         else -> favoriteRepository.getFavorites(providerIds, contentType)
     }
 
-    private fun observeRecentLiveIds(providerIds: List<Long>, limit: Int): Flow<List<Long>> {
+    private data class RecentChannelKey(val providerId: Long, val contentId: Long)
+
+    private fun observeRecentLiveIds(providerIds: List<Long>, limit: Int): Flow<List<RecentChannelKey>> {
         if (providerIds.isEmpty()) return flowOf(emptyList())
 
         // Ask the history repository for one globally ordered recent-history stream.
@@ -526,19 +528,38 @@ class DashboardViewModel @Inject constructor(
                 .asSequence()
                 .filter { it.contentType == ContentType.LIVE }
                 .distinctBy { it.providerId to it.contentId }
-                .map { it.contentId }
+                .map { RecentChannelKey(providerId = it.providerId, contentId = it.contentId) }
                 .take(limit)
                 .toList()
         }
     }
 
-    private fun loadChannelsByOrderedIds(ids: List<Long>): Flow<List<Channel>> {
-        if (ids.isEmpty()) return flowOf(emptyList())
+    private fun loadChannelsByOrderedIds(keys: List<RecentChannelKey>): Flow<List<Channel>> {
+        if (keys.isEmpty()) return flowOf(emptyList())
 
-        return channelRepository.getChannelsByIds(ids).map { channels ->
-            channels.orderedByRequestedRawIds(ids)
+        val grouped = keys.groupBy(RecentChannelKey::providerId)
+        return combine(
+            grouped.map { (providerId, providerKeys) ->
+                val ids = providerKeys.map(RecentChannelKey::contentId)
+                channelRepository.getChannelsByProviderAndIds(providerId, ids)
+                    .map { channels -> channels.orderedByRequestedRawIds(ids) }
+            }
+        ) { providerChannels ->
+            val byKey = buildMap<Pair<Long, Long>, Channel> {
+                providerChannels.flatten().forEach { channel ->
+                    put(providerKey(channel.providerId, channel.id), channel)
+                    channel.allVariantRawIds().forEach { rawId ->
+                        put(providerKey(channel.providerId, rawId), channel)
+                    }
+                }
+            }
+            keys.mapNotNull { key -> byKey[providerKey(key.providerId, key.contentId)] }
+                .distinctBy { it.providerId to it.id }
         }
     }
+
+    private fun providerKey(providerId: Long, contentId: Long): Pair<Long, Long> =
+        providerId to contentId
 
     private fun loadMoviesByOrderedIds(ids: List<Long>): Flow<List<Movie>> {
         if (ids.isEmpty()) return flowOf(emptyList())
