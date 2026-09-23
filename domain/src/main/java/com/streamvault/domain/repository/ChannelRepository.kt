@@ -24,6 +24,7 @@ interface ChannelRepository {
     suspend fun getStreamInfo(channel: Channel, preferStableUrl: Boolean = false): Result<StreamInfo>
     suspend fun refreshChannels(providerId: Long): Result<Unit>
     fun getChannelsByIds(ids: List<Long>): Flow<List<Channel>>
+    fun getChannelsByProviderAndIds(providerId: Long, ids: List<Long>): Flow<List<Channel>>
     suspend fun incrementChannelErrorCount(channelId: Long): Result<Unit>
     suspend fun resetChannelErrorCount(channelId: Long): Result<Unit>
 
