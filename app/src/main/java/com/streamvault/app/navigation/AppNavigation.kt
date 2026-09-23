@@ -1028,10 +1028,13 @@ private suspend fun resolveLastWatchedStartupTarget(
     }
     return resolveStartupChannelTarget(
         mainActivity = mainActivity,
-        channelIds = recentHistory
+        channelKeys = recentHistory
+            .asSequence()
             .filter { it.contentType == ContentType.LIVE }
             .sortedByDescending { it.lastWatchedAt }
-            .map { it.contentId },
+            .map { StartupChannelKey(providerId = it.providerId, contentId = it.contentId) }
+            .distinct()
+            .toList(),
         sourceContext = context,
         virtualCategoryId = VirtualCategoryIds.RECENT
     )
@@ -1039,17 +1042,33 @@ private suspend fun resolveLastWatchedStartupTarget(
 
 private suspend fun resolveStartupChannelTarget(
     mainActivity: MainActivity,
-    channelIds: List<Long>,
+    channelIds: List<Long> = emptyList(),
+    channelKeys: List<StartupChannelKey> = emptyList(),
     sourceContext: LiveStartupContext,
     virtualCategoryId: Long
 ): PlayerNavigationRequest? {
-    if (channelIds.isEmpty()) return null
+    val requestedKeys = if (channelKeys.isNotEmpty()) {
+        channelKeys
+    } else {
+        channelIds.distinct().mapNotNull { channelId ->
+            sourceContext.providerIds.firstOrNull()?.let { providerId ->
+                StartupChannelKey(providerId = providerId, contentId = channelId)
+            }
+        }
+    }
+    if (requestedKeys.isEmpty()) return null
     val hiddenChannelIdsByProvider = sourceContext.providerIds.associateWith { providerId ->
         mainActivity.preferencesRepository.getHiddenChannelIds(providerId).first()
     }
-    for (channelId in channelIds.distinct()) {
-        val channel = mainActivity.channelRepository.getChannel(channelId) ?: continue
-        if (channel.providerId !in sourceContext.providerIds) continue
+    for (key in requestedKeys) {
+        if (key.providerId !in sourceContext.providerIds) continue
+        val channel = mainActivity.channelRepository
+            .getChannelsByProviderAndIds(key.providerId, listOf(key.contentId))
+            .first()
+            .firstOrNull { candidate ->
+                candidate.id == key.contentId || candidate.allVariantRawIds().contains(key.contentId)
+            }
+            ?: continue
         if (channel.id in hiddenChannelIdsByProvider[channel.providerId].orEmpty()) continue
         return Routes.livePlayer(
             channel = channel,
@@ -1085,7 +1104,12 @@ private suspend fun resolveLiveStartupContext(
     }
 }
 
-private sealed interface LiveStartupContext {
+private data class StartupChannelKey(
+    val providerId: Long,
+    val contentId: Long
+)
+
+$marker
     val providerIds: List<Long>
 
     data class Provider(val providerId: Long) : LiveStartupContext {
