@@ -1109,7 +1109,7 @@ private data class StartupChannelKey(
     val contentId: Long
 )
 
-$marker
+private sealed interface LiveStartupContext {
     val providerIds: List<Long>
 
     data class Provider(val providerId: Long) : LiveStartupContext {
