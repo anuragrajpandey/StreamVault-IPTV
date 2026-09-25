@@ -538,23 +538,23 @@ class DashboardViewModel @Inject constructor(
         if (keys.isEmpty()) return flowOf(emptyList())
 
         val grouped = keys.groupBy(RecentChannelKey::providerId)
-        return combine(
-            grouped.map { (providerId, providerKeys) ->
+        return flow {
+            val channels = grouped.flatMap { (providerId, providerKeys) ->
                 val ids = providerKeys.map(RecentChannelKey::contentId)
-                channelRepository.getChannelsByProviderAndIds(providerId, ids)
-                    .map { channels -> channels.orderedByRequestedRawIds(ids) }
+                channelRepository.getChannelsByProviderAndIds(providerId, ids).first()
             }
-        ) { providerChannels ->
             val byKey = buildMap<Pair<Long, Long>, Channel> {
-                providerChannels.flatten().forEach { channel ->
+                channels.forEach { channel ->
                     put(providerKey(channel.providerId, channel.id), channel)
                     channel.allVariantRawIds().forEach { rawId ->
                         put(providerKey(channel.providerId, rawId), channel)
                     }
                 }
             }
-            keys.mapNotNull { key -> byKey[providerKey(key.providerId, key.contentId)] }
-                .distinctBy { it.providerId to it.id }
+            emit(
+                keys.mapNotNull { key -> byKey[providerKey(key.providerId, key.contentId)] }
+                    .distinctBy { it.providerId to it.id }
+            )
         }
     }
 
