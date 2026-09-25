@@ -190,6 +190,12 @@ class GetCustomCategoriesTest {
         override suspend fun refreshChannels(providerId: Long) = error("Not used in test")
         override fun getChannelsByIds(ids: List<Long>): Flow<List<Channel>> =
             flowOf(channels.filter { channel -> channel.allVariantRawIds().any(ids::contains) })
+        override fun getChannelsByProviderAndIds(providerId: Long, ids: List<Long>): Flow<List<Channel>> =
+            flowOf(
+                channels.filter { channel ->
+                    channel.providerId == providerId && channel.allVariantRawIds().any(ids::contains)
+                }
+            )
         override suspend fun incrementChannelErrorCount(channelId: Long) = error("Not used in test")
         override suspend fun resetChannelErrorCount(channelId: Long) = error("Not used in test")
     }
